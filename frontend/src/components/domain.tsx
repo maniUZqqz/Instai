@@ -71,7 +71,11 @@ export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; 
   const elapsed = job.started_at && job.status === 'running' ? Math.max(0, (now - new Date(job.started_at).getTime()) / 1000) : job.duration_sec
   const indeterminate = job.status === 'queued' || (job.status === 'running' && job.progress <= 0)
   return (
-    <div className={'job' + (compact ? ' compact' : '')} aria-live="polite">
+    <div className={'job' + (compact ? ' compact' : '')}>
+      <span className="sr-only" role="status" aria-live="polite">
+        {job.title || job.kind}: {t(('job.status.' + job.status) as 'job.status.queued')}
+        {job.status === 'running' ? ` ${f.percent(Math.round(job.progress * 10) / 10)}` : ''}
+      </span>
       <div className="row between" style={{ flexWrap: 'nowrap' }}>
         <div className="grow strong">{job.title || job.kind}</div>
         <JobStatusBadge status={job.status} />

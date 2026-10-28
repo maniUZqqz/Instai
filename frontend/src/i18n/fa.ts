@@ -733,7 +733,7 @@ export const fa = {
   'sbd.shot_n': 'شات {n}',
   'sbd.approved': 'تأییدشده',
   'sbd.estimate_hint': 'برآورد زمان GPU برای نسخه‌ی نهایی؛ عدد اندازه‌گیری‌شده نیست.',
-  'sbd.gpu_est': 'GPU ≈ {t} (برآورد)',
+  'sbd.gpu_est': 'زمان GPU حدود {t} (برآورد)',
   'sbd.keyframe_alt': 'تصویر کلیدی شات {n}',
   'sbd.no_keyframe': 'هنوز تصویری ساخته نشده',
   'sbd.audio_alt': 'گفتار شات {n}',

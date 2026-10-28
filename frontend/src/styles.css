@@ -107,6 +107,7 @@
 html {
   font-size: 17px;
   -webkit-text-size-adjust: 100%;
+  scroll-padding-block: 76px 90px; /* keep focused fields clear of the sticky top bar and the sticky save bar */
 }
 body {
   margin: 0;
@@ -809,8 +810,10 @@ textarea::placeholder {
 .chip button {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
+  margin-block: -6px;
+  margin-inline-end: -8px;
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -1439,10 +1442,30 @@ audio {
   gap: 1.25rem;
   align-items: start;
 }
+.split.plan-split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+}
 @media (max-width: 900px) {
-  .split {
+  .split,
+  .split.plan-split {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+a.skip-link {
+  position: fixed;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  z-index: 200;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--on-primary);
+  text-decoration: none;
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+a.skip-link:focus {
+  transform: none;
 }
 .popover-wrap {
   position: relative;

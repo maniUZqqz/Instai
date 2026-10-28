@@ -283,7 +283,7 @@ function PlanTab({ s, isAnime, onApplied }: { s: SeriesDetail; isAnime: boolean;
         {runner.job && !runner.succeeded && <div style={{ marginBlockStart: '0.75rem' }}><JobView job={runner.job} offline={runner.offline} /></div>}
       </Card>
       {plan && (
-        <div className="split">
+        <div className="split plan-split">
           <Card title={t('sb.current')} soft>
             <div className="stack-sm">
               <p className="strong">{s.title}</p>
@@ -317,7 +317,7 @@ function PlanTab({ s, isAnime, onApplied }: { s: SeriesDetail; isAnime: boolean;
 const KINDS: MemoryKind[] = ['fact', 'character_state', 'relationship', 'timeline', 'open_thread', 'episode_summary', 'future_goal']
 
 function MemoryTab({ s }: { s: SeriesDetail }) {
-  const { t, tr } = useI18n()
+  const { t, f, tr } = useI18n()
   const confirm = useConfirm()
   const q = useQuery<Memory>(`/series/${s.id}/memory`)
   const [kind, setKind] = useState<MemoryKind>('fact')
@@ -353,7 +353,7 @@ function MemoryTab({ s }: { s: SeriesDetail }) {
                   const rows = m.entries[k] ?? []
                   if (rows.length === 0) return null
                   return (
-                    <Card key={k} title={<>{tr('mem.kind_' + k, k)} <span className="muted small">({rows.length})</span></>}>
+                    <Card key={k} title={<>{tr('mem.kind_' + k, k)} <span className="muted small">({f.num(rows.length)})</span></>}>
                       <div>
                         {rows.map((r) => (
                           <div key={r.id} className="mem-item">

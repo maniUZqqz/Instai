@@ -2,7 +2,7 @@ import { useId, useState, type ButtonHTMLAttributes, type ReactNode } from 'reac
 import { Link, NavLink, type LinkProps } from 'react-router-dom'
 import { useI18n } from '../i18n'
 import type { Query } from '../hooks'
-import { errorText } from '../api/client'
+import { ApiError, errorText } from '../api/client'
 import { Icon, type IconName } from './Icon'
 
 // ---------------------------------------------------------------- buttons
@@ -124,14 +124,21 @@ export function Empty({ icon = 'info', title, text, action }: { icon?: IconName;
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useI18n()
+  const isNotFound = error instanceof ApiError && error.code === 'not_found'
   return (
     <div className="card" role="alert">
       <Notice tone="err">{errorText(error)}</Notice>
-      {onRetry && (
+      {(onRetry || isNotFound) && (
         <div style={{ marginBlockStart: '0.75rem' }}>
-          <Button icon="refresh" onClick={onRetry}>
-            {t('common.retry')}
-          </Button>
+          {isNotFound ? (
+            <LinkButton to="/" icon="home">
+              {t('nav.dashboard')}
+            </LinkButton>
+          ) : (
+            <Button icon="refresh" onClick={onRetry}>
+              {t('common.retry')}
+            </Button>
+          )}
         </div>
       )}
     </div>

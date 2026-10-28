@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Source } from '../api/types'
 import { useAction, useQuery } from '../hooks'
@@ -9,10 +9,14 @@ import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ExtLink, N
 const STANCES = ['established', 'contested', 'speculative']
 
 /** Sources of a page (explainers). Sources the owner adds are never marked "verified": only the system's own fetches are. */
-export function SourcesPanel({ pageId, seriesId, episodeId, onChanged }: { pageId: number; seriesId?: number; episodeId?: number; onChanged?: () => void }) {
+export function SourcesPanel({ pageId, seriesId, episodeId, onChanged, version }: { pageId: number; seriesId?: number; episodeId?: number; onChanged?: () => void; version?: number }) {
   const { t, tr } = useI18n()
   const confirm = useConfirm()
   const q = useQuery<Source[]>(`/pages/${pageId}/sources`)
+  const reload = q.reload
+  useEffect(() => {
+    if (version !== undefined) reload()
+  }, [version]) // eslint-disable-line react-hooks/exhaustive-deps
   const [adding, setAdding] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const blank = { title: '', url: '', publisher: '', extract: '', claim: '', stance: 'established' }

@@ -45,7 +45,7 @@ function DemoCard({ s, onChanged }: { s: SettingsPayload; onChanged: (p: Setting
     const p = await act.run(() => api.post<SettingsPayload>('/settings/demo-mode', { enabled: on }), { success: t('common.saved') })
     if (p) {
       onChanged(p)
-      refreshDemo()
+      refreshDemo(p.demo_mode)
     }
   }
   return (
@@ -86,7 +86,7 @@ function ServicesCard({ s, onSaved }: { s: SettingsPayload; onSaved: (p: Setting
     if (p) {
       onSaved(p)
       setKey('')
-      refreshDemo()
+      refreshDemo(p.demo_mode)
     }
   }
   const clearKey = async () => {

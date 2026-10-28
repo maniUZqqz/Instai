@@ -46,7 +46,7 @@ export function Research({ ep, onChanged }: { ep: Episode; onChanged: () => void
               return (
                 <section key={st} className="stack-sm" aria-label={tr('stance.' + st)}>
                   <h3>
-                    {tr('stance.' + st)} <span className="muted small">({list.length})</span>
+                    {tr('stance.' + st)} <span className="muted small">({f.num(list.length)})</span>
                   </h3>
                   <p className="small muted">{t(('res.stance_' + st) as 'res.stance_established')}</p>
                   {list.map((c, i) => (
@@ -87,19 +87,7 @@ export function Research({ ep, onChanged }: { ep: Episode; onChanged: () => void
 
       <Card title={t('res.sources')}>
         <div className="stack">
-          {ep.sources.length > 0 && (
-            <ul className="stack-sm" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {ep.sources.map((s) => (
-                <li key={s.id} className="row">
-                  {s.verified ? <Badge tone="ok">{t('src.verified')}</Badge> : <Badge tone="warn">{t('src.unverified')}</Badge>}
-                  <span className="strong">{s.title}</span>
-                  {s.url && <a href={s.url} target="_blank" rel="noreferrer noopener" className="ltr small">{s.url}</a>}
-                  <Badge tone="info">{s.added_by === 'user' ? t('src.by_you') : t('src.by_system')}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-          <SourcesPanel pageId={ep.page} seriesId={ep.series} episodeId={ep.id} onChanged={onChanged} />
+          <SourcesPanel pageId={ep.page} seriesId={ep.series} episodeId={ep.id} onChanged={onChanged} version={ep.sources.length} />
         </div>
       </Card>
     </div>

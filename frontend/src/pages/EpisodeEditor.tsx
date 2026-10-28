@@ -378,7 +378,7 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
   const canCancel = ep.allowed_next.some((a) => a.state === 'cancelled')
   return (
     <Card className="next-card" title={<span className="row"><Badge tone={tone}>{t('next.title')}</Badge></span>} actions={canCancel ? <Button size="sm" variant="ghost" onClick={cancelEp}>{t('next.cancel')}</Button> : undefined}>
-      <div className="stack" aria-live="polite">
+      <div className="stack">
         {body}
         {active.length > 0 && (
           <div className="stack-sm">

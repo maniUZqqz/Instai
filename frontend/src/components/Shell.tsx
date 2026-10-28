@@ -10,7 +10,8 @@ import { Link, NavLink, Progress, Button } from './ui'
 // ---------------------------------------------------------------- app-wide facts (demo mode)
 interface AppCtx {
   demo: boolean | undefined
-  refreshDemo: () => void
+  /** Pass the new value when it is already known (e.g. from a save response); without it the settings are fetched again. */
+  refreshDemo: (known?: boolean) => void
 }
 const AppContext = createContext<AppCtx>({ demo: undefined, refreshDemo: () => {} })
 export const useApp = () => useContext(AppContext)
@@ -110,7 +111,11 @@ export function Shell() {
   const loc = useLocation()
   const settings = useQuery<SettingsPayload>('/settings')
   const [demoOverride, setDemoOverride] = useState<boolean | undefined>()
-  const refreshDemo = useCallback(() => {
+  const refreshDemo = useCallback((known?: boolean) => {
+    if (typeof known === 'boolean') {
+      setDemoOverride(known)
+      return
+    }
     api
       .get<SettingsPayload>('/settings')
       .then((s) => setDemoOverride(s.demo_mode))
@@ -131,7 +136,7 @@ export function Shell() {
 
   return (
     <AppContext.Provider value={{ demo, refreshDemo }}>
-      <a href="#main" className="sr-only">
+      <a href="#main" className="skip-link" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus() }}>
         {t('shell.skip')}
       </a>
       <div className="shell">
