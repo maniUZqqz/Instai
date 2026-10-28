@@ -3,7 +3,7 @@
  "title": "Runtime tools: FFmpeg (video assembly) and Python (installed only when START.bat finds none)",
  "packages": {
   "ffmpeg": {
-   "title": "FFmpeg 7.1.1 essentials build (static; libass, libx264, zoompan, xfade, loudnorm)",
+   "title": "FFmpeg 7.1 static build (libass, libx264, zoompan, xfade, loudnorm); PyPI wheel first, GitHub zip as fallback",
    "default": true,
    "licence": "GPL-3.0 build; InstAI only runs it as a separate program",
    "licence_verified": false
@@ -17,10 +17,25 @@
  },
  "items": [
   {
-   "id": "ffmpeg:essentials-7.1.1",
+   "id": "ffmpeg:imageio-0.6.0",
+   "package": "ffmpeg",
+   "kind": "pypi_member",
+   "title": "FFmpeg 7.1 essentials build (Gyan, static; libass, harfbuzz, libx264) taken from the imageio-ffmpeg 0.6.0 wheel on PyPI (about 31 MB; no ffprobe)",
+   "pypi": {
+    "name": "imageio-ffmpeg",
+    "version": "0.6.0",
+    "wheel_contains": "win_amd64",
+    "member_suffix": "ffmpeg-win-x86_64-v7.1.exe"
+   },
+   "dest": "{TOOLS}\\ffmpeg\\bin\\ffmpeg.exe",
+   "size": 31246824,
+   "source": "Reachability finding: GitHub release assets ran at 15-70 KB/s from the dev PC in Iran; PyPI ran at ~450 KB/s"
+  },
+  {
+   "id": "ffmpeg:essentials-7.1.1-github",
    "package": "ffmpeg",
    "kind": "zip",
-   "title": "FFmpeg 7.1.1 essentials (only ffmpeg.exe + ffprobe.exe are kept)",
+   "title": "FFmpeg 7.1.1 essentials from GitHub (fallback; slow from Iran; ffmpeg.exe + ffprobe.exe)",
    "urls": [
     "https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip"
    ],
@@ -31,7 +46,8 @@
    "pick": {
     "/bin/ffmpeg.exe": "ffmpeg.exe",
     "/bin/ffprobe.exe": "ffprobe.exe"
-   }
+   },
+   "fallback_for": "ffmpeg:imageio-0.6.0"
   },
   {
    "id": "python312",

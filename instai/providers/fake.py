@@ -249,48 +249,13 @@ def script(meta: dict) -> dict:
 
 # ------------------------------------------------------------------ storyboard
 
-_FORMAT_TECH = {
-    "anime_whatif": ["still_kenburns", "parallax_25d", "still_kenburns", "wan_i2v"],
-    "recurring_character": ["puppet_2d", "puppet_2d", "still_kenburns"],
-    "concept_explainer": ["motion_graphics", "still_kenburns", "motion_graphics", "parallax_25d"],
-}
-_MOVES = ["zoom_in", "pan_right", "zoom_out", "pan_left", "pan_up", "pan_down"]
-
-
 def storyboard(meta: dict) -> dict:
-    fa, fmt = _fa(meta), _fmt(meta)
-    scr = meta.get("script") or {}
-    blocks = scr.get("blocks") or []
-    allowed = meta.get("allowed_techniques") or []
-    techs = [t for t in _FORMAT_TECH.get(fmt, ["still_kenburns"]) if not allowed or t in allowed] or (allowed[:1] or ["still_kenburns"])
-    wps = 2.4 if fa else 2.6
+    from instai.agents.storyboard_builder import shots_from_script
+
+    fa = _fa(meta)
     style = meta.get("visual_style") or ("سبک انیمه، رنگ‌های گرم" if fa else "anime style, warm colours")
-    chars = meta.get("characters") or []
-    per_scene = 2
-    scenes = []
-    for si in range(0, len(blocks), per_scene):
-        grp = blocks[si: si + per_scene]
-        shots = []
-        for bi, b in enumerate(grp):
-            idx = si + bi
-            words = max(1, len(b["text"].split()))
-            dur = round(max(3.0, min(12.0, words / wps + 0.8)), 1)
-            tech = techs[idx % len(techs)]
-            shots.append({
-                "description": (f"نمای {idx + 1}: {b['text'][:60]}" if fa else f"Shot {idx + 1}: {b['text'][:60]}"),
-                "image_prompt": f"{style}; {b['text'][:80]}; vertical 9:16, clean composition",
-                "technique": tech,
-                "camera": {"move": _MOVES[idx % len(_MOVES)], "intensity": 0.5},
-                "duration_sec": dur,
-                "narration": b["text"],
-                "speaker": b["speaker"],
-                "sfx": "",
-                "transition": "crossfade" if bi == len(grp) - 1 else "cut",
-            })
-        scenes.append({"title": (f"صحنه {si // per_scene + 1}" if fa else f"Scene {si // per_scene + 1}"),
-                       "summary": grp[0]["text"][:90], "location": ("شهر" if fa else "city") if fmt != "concept_explainer" else ("استودیو" if fa else "studio"),
-                       "characters": chars[:2], "shots": shots})
-    return {"scenes": scenes}
+    return shots_from_script(meta.get("script") or {}, fmt=_fmt(meta), language=meta.get("language") or "fa",
+                             allowed=meta.get("allowed_techniques") or [], style=style, characters=meta.get("characters") or [])
 
 
 # ------------------------------------------------------------------ research / continuity

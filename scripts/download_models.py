@@ -148,6 +148,8 @@ def sha256_of(path: str) -> str:
 def is_installed(item: dict) -> tuple[bool, str]:
     kind = item.get("kind", "file")
     d = dest_of(item)
+    if kind == "pypi_member":
+        return os.path.isfile(d), d
     if kind == "zip":
         marker = os.path.join(d, item.get("marker", ""))
         return (os.path.isfile(marker), d) if item.get("marker") else (os.path.isdir(d) and bool(os.listdir(d)), d)
@@ -185,9 +187,12 @@ def head(url: str) -> tuple[bool, int | None, str]:
         return False, None, type(e).__name__
 
 
-def download_file(urls: list[str], dest: str, size: int | None, retries: int = 4) -> bool:
+def download_file(urls: list[str], dest: str, size: int | None, retries: int = 12) -> bool:
     part = dest + ".part"
     os.makedirs(os.path.dirname(dest), exist_ok=True)
+    if size and os.path.exists(part) and os.path.getsize(part) == size:  # finished earlier, only the rename was missing
+        os.replace(part, dest)
+        return True
     for url in urls:
         for attempt in range(1, retries + 1):
             start = os.path.getsize(part) if os.path.exists(part) else 0
@@ -215,10 +220,13 @@ def download_file(urls: list[str], dest: str, size: int | None, retries: int = 4
                 os.replace(part, dest)
                 return True
             except (urllib.error.URLError, OSError, TimeoutError) as e:
+                if isinstance(e, urllib.error.HTTPError) and e.code == 416 and os.path.exists(part):  # bad range: start over
+                    os.remove(part)
+                    continue
                 if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403, 404):
                     log("  %s -> HTTP %d (skipping this link)" % (url.split("//")[-1][:60], e.code))
                     break
-                wait = min(60, 2 ** attempt)
+                wait = min(30, 2 ** min(attempt, 5))
                 log("  attempt %d/%d failed (%s); retry in %ds" % (attempt, retries, type(e).__name__, wait))
                 time.sleep(wait)
     return False
@@ -244,9 +252,53 @@ def verify(item: dict, path: str) -> bool:
     return True
 
 
+def install_pypi_member(item: dict, dest: str) -> bool:
+    """Take one file out of a wheel on PyPI (PyPI is far more reachable from Iran than GitHub release assets).
+    The wheel's sha256 comes from PyPI's own JSON API, so the download is verified without a hash in the manifest."""
+    spec = item["pypi"]
+    try:
+        with urllib.request.urlopen(urllib.request.Request("https://pypi.org/pypi/%s/%s/json" % (spec["name"], spec["version"]),
+                                                           headers={"User-Agent": UA}), timeout=60) as r:
+            info = json.load(r)
+    except Exception as e:  # noqa: BLE001
+        log("  PyPI metadata not reachable (%s)" % type(e).__name__)
+        return False
+    files = [u for u in info["urls"] if spec["wheel_contains"] in u["filename"]]
+    if not files:
+        log("  no matching wheel on PyPI")
+        return False
+    wheel = files[0]
+    cache = os.path.join(DATA, "downloads", "cache")
+    arch = os.path.join(cache, wheel["filename"])
+    if not (os.path.isfile(arch) and os.path.getsize(arch) == wheel["size"]):
+        if not download_file([wheel["url"]], arch, wheel["size"]):
+            return False
+    if sha256_of(arch) != wheel["digests"]["sha256"]:
+        os.replace(arch, arch + ".bad-" + time.strftime("%Y%m%d%H%M%S"))
+        log("  wheel sha256 mismatch - moved aside")
+        return False
+    with zipfile.ZipFile(arch) as z:
+        member = next((m for m in z.namelist() if m.endswith(spec["member_suffix"])), None)
+        if not member:
+            log("  file not found inside the wheel")
+            return False
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        tmp = dest + ".part"
+        with z.open(member) as src, open(tmp, "wb") as dst:
+            shutil.copyfileobj(src, dst)
+        os.replace(tmp, dest)
+    try:
+        os.remove(arch)
+    except OSError:
+        pass
+    return True
+
+
 def install(item: dict, mirror: str | None) -> bool:
     kind = item.get("kind", "file")
     dest = dest_of(item)
+    if kind == "pypi_member":
+        return install_pypi_member(item, dest)
     urls = urls_for(item, mirror)
     if kind == "file":
         if not download_file(urls, dest, item.get("size")):
@@ -296,6 +348,8 @@ def select(packages: dict, items: list, args) -> list[dict]:
     chosen = []
     for it in items:
         pkg = it.get("package", "")
+        if it.get("fallback_for"):
+            continue  # only tried when the primary item failed (see fallbacks_for)
         if only:
             if not (pkg in only or it["id"] in only or it.get("group") in only):
                 continue
@@ -308,6 +362,10 @@ def select(packages: dict, items: list, args) -> list[dict]:
             continue
         chosen.append(it)
     return chosen
+
+
+def fallbacks_for(items: list, failed: list[str], skip_ids: set) -> list[dict]:
+    return [i for i in items if i.get("fallback_for") in failed and i["id"] not in skip_ids]
 
 
 def status_json(packages: dict, items: list) -> dict:
@@ -378,6 +436,13 @@ def main(argv=None) -> int:
         except Exception as e:  # noqa: BLE001
             log("  error: %s: %s" % (type(e).__name__, e))
             failed.append(it["id"])
+    for it in fallbacks_for(items, failed, set()):
+        log("== %s (fallback)" % it["id"])
+        try:
+            if install(it, args.hf_mirror):
+                failed = [f for f in failed if f != it["fallback_for"]]
+        except Exception as e:  # noqa: BLE001
+            log("  error: %s: %s" % (type(e).__name__, e))
     log("Done." if not failed else "Failed: " + ", ".join(failed))
     return 1 if failed else 0
 

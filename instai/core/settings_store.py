@@ -21,6 +21,7 @@ DEFAULTS: dict[str, tuple[str, Any]] = {
     "piper_voice": ("INSTAI_PIPER_VOICE", "fa_IR-gyro-medium"),
     "tts_engine": ("INSTAI_TTS_ENGINE", "auto"),
     "image_workflow": ("INSTAI_IMAGE_WORKFLOW", "flux_dev_fp8_t2i"),
+    "image_engine": ("INSTAI_IMAGE_ENGINE", "auto"),
     "research_fetch": ("INSTAI_RESEARCH_FETCH", "off"),
     "comfyui_dir": ("COMFYUI_DIR", ""),
 }

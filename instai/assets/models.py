@@ -12,7 +12,7 @@ class Asset(models.Model):
     KINDS = [("image", "image"), ("audio", "audio"), ("video", "video"), ("subtitle", "subtitle"), ("text", "text"),
              ("package", "package"), ("other", "other")]
     ROLES = [("keyframe", "keyframe"), ("layer", "layer"), ("narration", "narration"), ("music", "music"), ("sfx", "sfx"),
-             ("shot_clip", "shot_clip"), ("preview", "preview"), ("final", "final"), ("cover", "cover"), ("subtitles", "subtitles"),
+             ("shot_clip", "shot_clip"), ("render_clip", "render_clip"), ("preview", "preview"), ("final", "final"), ("cover", "cover"), ("subtitles", "subtitles"),
              ("reference", "reference"), ("export", "export"), ("other", "other")]
 
     kind = models.CharField(max_length=10, choices=KINDS)

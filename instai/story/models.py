@@ -53,6 +53,7 @@ class Episode(models.Model):
     script_checks = models.JSONField(default=dict, blank=True)
     estimate = models.JSONField(default=dict, blank=True)     # cached cost estimate
     qc = models.JSONField(default=dict, blank=True)           # last quality-check report
+    research = models.JSONField(default=dict, blank=True)     # explainers: topic, claims (stance + source ids), analogies, caveats
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

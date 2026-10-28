@@ -81,6 +81,9 @@ DATABASES = {
         },
     }
 }
+if os.environ.get("INSTAI_TESTING"):
+    # a file database (not :memory:) so worker threads and the test thread share one WAL database
+    DATABASES["default"]["TEST"] = {"NAME": str(DATA_DIR / "test_db.sqlite3")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LANGUAGE_CODE = "fa"
