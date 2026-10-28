@@ -2,7 +2,6 @@
 Nothing is ever posted automatically; the adapter interface is here so the official Instagram Graph API can be added later."""
 from __future__ import annotations
 
-import abc
 import tempfile
 import zipfile
 from pathlib import Path
@@ -16,20 +15,7 @@ from instai.core.errors import DomainError
 from .models import Publication
 
 
-class PublishAdapter(abc.ABC):
-    """Implement for each platform. Release 1 only ships ManualExport."""
-
-    name = "base"
-
-    @abc.abstractmethod
-    def publish(self, publication: Publication) -> dict: ...
-
-
-class ManualExport(PublishAdapter):
-    name = "manual"
-
-    def publish(self, publication: Publication) -> dict:
-        return export_package(publication.pk)
+from .adapters import ManualExport, PublishAdapter  # noqa: E402,F401  (the adapter interface lives in adapters.py)
 
 
 def best_video(ep) -> Asset | None:

@@ -251,6 +251,7 @@ def _run_remote(ctx, cand: Candidate, kind: str, payload: dict, inputs: dict[str
         RemoteTask.objects.filter(pk=t.pk, status__in=(RemoteTask.QUEUED, RemoteTask.RUNNING)).update(cancel_requested=True)
         raise
     secs = t.seconds or (time.time() - t0)
+    ctx.add_gpu_seconds(secs)                                        # GPU time of a worker counts against the job (and the weekly budget)
     keep = Path(tempfile.mkdtemp(prefix="task-", dir=tasks_root()))
     for f in (d / "out").iterdir():
         shutil.move(str(f), keep / f.name)

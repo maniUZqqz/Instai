@@ -77,7 +77,7 @@ def next_window_open(windows: list[dict], now: datetime, offset_min: int = 210) 
 def publication_slots(per_week: int, days: list[str], at: str, after: datetime, n: int, offset_min: int = 210) -> list[datetime]:
     """The next `n` publication times (UTC) after `after`: `per_week` posts a week on the chosen weekdays at `at` (local HH:MM)."""
     per_week = max(1, min(21, int(per_week or 1)))
-    chosen = [d for d in WEEKDAYS if d in (days or [])] or ["sat", "mon", "wed"]
+    chosen = [d for d in dict.fromkeys(days or []) if d in WEEKDAYS] or ["sat", "mon", "wed"]      # the owner's order decides which days stay when fewer posts are wanted
     if per_week < len(chosen):
         chosen = chosen[:per_week]
     elif per_week > len(chosen):                                   # more posts than named days: add the days farthest from the chosen ones

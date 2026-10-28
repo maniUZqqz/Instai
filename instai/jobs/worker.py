@@ -157,6 +157,31 @@ class WorkerRunner:
         running = list(Job.objects.filter(lease_owner=self.name, status=Job.RUNNING).values_list("pk", flat=True))
         Worker.objects.filter(pk=row.pk).update(current_jobs=running)
 
+    def _automation_tick(self) -> None:
+        try:
+            from instai.jobs import workers
+            from instai.production import automation
+
+            workers.reap_expired()
+            automation.tick()
+            automation.check_worker_health()
+        except Exception:  # noqa: BLE001 - automation must never take the worker down
+            log.exception("automation tick failed")
+
+    def _ensure_gpu_lanes(self) -> None:
+        """One GPU lane per usable device: this PC plus every enabled paired worker (up to 2 extra). A lane only waits for a free device."""
+        try:
+            from instai.jobs.models import WorkerNode
+
+            want = self.gpu_lanes + min(2, WorkerNode.objects.filter(enabled=True).count())
+        except Exception:  # noqa: BLE001
+            return
+        have = sum(1 for t in self.threads if t.name.startswith("gpu-lane"))
+        for i in range(have, want):
+            t = threading.Thread(target=self._lane, args=(("gpu",), f"gpu{i}"), daemon=True, name=f"gpu-lane-{i}")
+            self.threads.append(t)
+            t.start()
+
     def run_forever(self) -> None:
         load_handlers()
         log.info("worker %s starting: %d cpu lanes, %d gpu lane(s)", self.name, self.cpu_lanes, self.gpu_lanes)
@@ -164,15 +189,20 @@ class WorkerRunner:
         if reaped:
             log.info("re-queued %d job(s) left by a previous worker", reaped)
         for i in range(self.gpu_lanes):
-            self.threads.append(threading.Thread(target=self._lane, args=(("gpu",), f"gpu{i}"), daemon=True))
+            self.threads.append(threading.Thread(target=self._lane, args=(("gpu",), f"gpu{i}"), daemon=True, name=f"gpu-lane-{i}"))
         for i in range(self.cpu_lanes):
             self.threads.append(threading.Thread(target=self._lane, args=(("cpu", "net"), f"cpu{i}"), daemon=True))
         for t in self.threads:
             t.start()
         try:
+            last_tick = 0.0
             while not self.stop_event.is_set():
                 close_old_connections()
                 self._heartbeat_row()
+                self._ensure_gpu_lanes()
+                if time.time() - last_tick >= 30:               # automation levels, budgets, render windows, publication schedule, worker health
+                    last_tick = time.time()
+                    self._automation_tick()
                 self.stop_event.wait(5)
         except KeyboardInterrupt:
             log.info("stopping ...")

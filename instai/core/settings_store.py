@@ -23,6 +23,8 @@ DEFAULTS: dict[str, tuple[str, Any]] = {
     "pocket_url": ("INSTAI_POCKET_URL", "http://127.0.0.1:5620"),
     "piper_voice": ("INSTAI_PIPER_VOICE", "fa_IR-gyro-medium"),
     "tts_engine": ("INSTAI_TTS_ENGINE", "auto"),
+    "openai_price_in_per_1k": ("INSTAI_OPENAI_PRICE_IN", "0"),
+    "openai_price_out_per_1k": ("INSTAI_OPENAI_PRICE_OUT", "0"),
     "sfx_engine": ("INSTAI_SFX_ENGINE", "auto"),
     "music_engine": ("INSTAI_MUSIC_ENGINE", "auto"),
     "image_workflow": ("INSTAI_IMAGE_WORKFLOW", "flux_dev_fp8_t2i"),
