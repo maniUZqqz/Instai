@@ -15,10 +15,11 @@ class OllamaProvider(TextProvider):
     name = "ollama"
     resource = "gpu"
 
-    def __init__(self, base_url: str = "http://127.0.0.1:11434", model: str = "", keep_alive: str = "10m"):
+    def __init__(self, base_url: str = "http://127.0.0.1:11434", model: str = "", keep_alive: str = "10m", num_ctx: int = 8192):
         self.base_url = base_url.rstrip("/")
         self._model = model
         self.keep_alive = keep_alive
+        self.num_ctx = num_ctx  # Ollama's default context is small; prompts carry story memory and the full script
 
     @property
     def model(self) -> str:
@@ -50,7 +51,7 @@ class OllamaProvider(TextProvider):
                  model=None, timeout=600) -> LLMResult:
         mdl = self._pick_model(model)
         body: dict = {"model": mdl, "messages": messages, "stream": False, "keep_alive": self.keep_alive,
-                      "options": {"temperature": temperature, "num_predict": max_tokens}}
+                      "options": {"temperature": temperature, "num_predict": max_tokens, "num_ctx": self.num_ctx}}
         if schema:
             body["format"] = schema
         if mdl.lower().startswith("qwen3"):

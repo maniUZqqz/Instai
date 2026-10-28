@@ -248,6 +248,28 @@ def test_arbiter_wait_is_cancellable_and_no_gpu_means_no_wait():
     assert nogpu.foreign_load_mb() == 0
 
 
+def test_arbiter_does_not_mistake_our_own_loaded_models_for_another_program():
+    """ComfyUI keeps FLUX loaded (~11 GB) after our job: that is ours, so the next job must not wait for it."""
+    arb = GPUArbiter(probe=lambda: {"used_mb": 11800, "total_mb": 12288}, unloaders={}, poll=0.05, ours=lambda: 11200)
+    assert arb.foreign_load_mb() == 0
+    arb2 = GPUArbiter(probe=lambda: {"used_mb": 11800, "total_mb": 12288}, unloaders={}, poll=0.05, ours=lambda: 1200)
+    assert arb2.foreign_load_mb() == 10600, "10.6 GB beyond what Ollama/ComfyUI report = another program (e.g. the NMarketing agent)"
+    arb3 = GPUArbiter(probe=lambda: {"used_mb": 1500, "total_mb": 12288}, unloaders={}, ours=lambda: 0)
+    assert arb3.foreign_load_mb() == 0, "desktop/compositor usage is below the busy threshold"
+
+
+def test_arbiter_our_load_reads_ollama_and_comfy(monkeypatch):
+    from instai.core import hardware
+    from tests import fakes
+
+    arb = GPUArbiter(probe=lambda: None, unloaders={})
+    arb._probe = None  # use the real code path for "ours"
+    with fakes.ollama_server(loaded=("qwen3:8b",)) as o:
+        monkeypatch.setattr("instai.core.runtime.ollama_url", lambda: o.url)
+        monkeypatch.setattr("instai.core.runtime.comfyui_url", lambda: "http://127.0.0.1:9")
+        assert arb.our_load_mb() == int(5_000_000_000 / 1048576)
+
+
 def test_job_context_run_cmd_is_cancellable(reg):
     import sys
 

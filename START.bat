@@ -22,7 +22,12 @@ echo  -----------------
 
 rem ---- 1. Python 3.10 - 3.13 --------------------------------------
 set "PY="
-if exist ".venv\Scripts\python.exe" goto have_venv
+if not exist ".venv\Scripts\python.exe" goto find_python
+".venv\Scripts\python.exe" -c "import sys" >nul 2>nul
+if not errorlevel 1 goto have_venv
+echo  [..] The virtual environment is broken (was the folder moved?). Setting it aside and creating a new one ...
+ren ".venv" ".venv-broken-%RANDOM%"
+:find_python
 for %%V in (3.12 3.13 3.11 3.10) do if not defined PY py -%%V -c "import sys" >nul 2>nul && set "PY=py -%%V"
 if not defined PY python -c "import sys; sys.exit(0 if (3,10)<=sys.version_info[:2]<=(3,13) else 1)" >nul 2>nul && set "PY=python"
 if not defined PY if exist "tools\python312\python.exe" set "PY=tools\python312\python.exe"

@@ -59,10 +59,11 @@ class Lease:
 
 class GPUArbiter:
     def __init__(self, probe: Callable[[], dict | None] | None = None, unloaders: dict[str, Callable[[], None]] | None = None,
-                 poll: float = 5.0):
+                 poll: float = 5.0, ours: Callable[[], int] | None = None):
         self._lock = threading.Lock()
         self._probe = probe
         self._unloaders = unloaders
+        self._ours = ours
         self.poll = poll
         self.holder: int | None = None   # job id currently holding the GPU
         self.busy_reason = ""
@@ -100,13 +101,37 @@ class GPUArbiter:
                 except Exception as e:  # noqa: BLE001 - unloading is best effort
                     log.warning("unload %s failed: %s", name, e)
 
+    def our_load_mb(self) -> int:
+        """VRAM held by services WE manage (Ollama's loaded models, ComfyUI's torch allocation). With an injected probe (tests) it is 0
+        unless `ours` is injected too. Without this, a model ComfyUI keeps loaded after our own job would look like 'another program'."""
+        if self._ours is not None:
+            return self._ours()
+        if self._probe is not None:
+            return 0
+        from instai.core import hardware, runtime
+
+        mb = 0
+        try:
+            for m in hardware._get_json(runtime.ollama_url().rstrip("/") + "/api/ps", 1.0).get("models", []):
+                mb += int((m.get("size_vram") or 0) / 1048576)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            dev = (hardware._get_json(runtime.comfyui_url().rstrip("/") + "/system_stats", 1.0).get("devices") or [{}])[0]
+            if dev.get("torch_vram_total"):
+                mb += int(dev["torch_vram_total"] / 1048576) + 600  # + the CUDA context
+        except Exception:  # noqa: BLE001
+            pass
+        return mb
+
     def foreign_load_mb(self) -> int:
-        """VRAM in use after we unloaded our own stuff = other programs' share (0 when there is no GPU/nvidia-smi)."""
+        """VRAM used by OTHER programs: total used minus what Ollama/ComfyUI report as theirs (0 when there is no GPU/nvidia-smi)."""
         g = self.probe()
         if not g or g.get("used_mb") is None:
             return 0
+        other = max(0, g["used_mb"] - self.our_load_mb())
         limit = max(BUSY_ABS_MB, int((g.get("total_mb") or 0) * BUSY_FRACTION))
-        return g["used_mb"] if g["used_mb"] > limit else 0
+        return other if other > limit else 0
 
     def wait_until_free(self, ctx, timeout: float = 7200) -> None:
         t0 = time.time()

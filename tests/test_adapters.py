@@ -158,6 +158,10 @@ def test_workflow_availability_checks_nodes_and_model_files():
         bad = {w["id"]: w for w in workflow_availability(part.object_info())}
         assert bad["wan22_i2v_a14b_fp8"]["available"] is False and bad["wan22_i2v_a14b_fp8"]["missing_models"] == ["wan_2.1_vae.safetensors"]
         assert bad["flux_dev_fp8_t2i"]["available"] is True
+    # newer ComfyUI nodes describe combo inputs as ["COMBO", {"options": [...]}]
+    info = full_info = fakes.comfy_server().object_info()
+    info["VAELoader"]["input"]["required"]["vae_name"] = ["COMBO", {"options": []}]
+    assert {w["id"]: w for w in workflow_availability(info)}["wan22_i2v_a14b_fp8"]["missing_models"] == ["wan_2.1_vae.safetensors"]
     none = workflow_availability({})
     assert not any(w["available"] for w in none) and none[0]["missing_nodes"]
 

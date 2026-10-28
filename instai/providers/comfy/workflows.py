@@ -152,11 +152,18 @@ def get_workflow(id_: str) -> WorkflowSpec:
 
 
 def _loader_options(object_info: dict, node: str, key: str) -> list[str] | None:
+    """Model file names a loader node offers. Handles both /object_info shapes: [[names...], {...}] (classic) and
+    ["COMBO", {"options": [names...]}] (newer nodes)."""
     try:
-        opts = object_info[node]["input"]["required"][key][0]
-        return list(opts) if isinstance(opts, list) else None
+        spec = object_info[node]["input"]["required"][key]
+        first = spec[0]
+        if isinstance(first, list):
+            return list(first)
+        if first == "COMBO" and isinstance(spec[1], dict) and isinstance(spec[1].get("options"), list):
+            return list(spec[1]["options"])
     except (KeyError, IndexError, TypeError):
-        return None
+        pass
+    return None
 
 
 def workflow_availability(nodes_or_info, ) -> list[dict]:
