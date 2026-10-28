@@ -3,7 +3,10 @@ import { Shell } from './components/Shell'
 import { Empty, LinkButton } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
+import Monitor from './pages/Monitor'
 import PagesList from './pages/PagesList'
+import Settings from './pages/Settings'
+import System from './pages/System'
 import EpisodeEditor from './pages/EpisodeEditor'
 import SeriesBuilder from './pages/SeriesBuilder'
 import Wizard from './pages/Wizard'
@@ -47,6 +50,9 @@ export default function App() {
         <Route path="series/:id" element={<SeriesBuilder />} />
         <Route path="episodes/:id" element={<EpisodeEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
+        <Route path="monitor" element={<Monitor />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="system" element={<System />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
