@@ -71,16 +71,18 @@ class OpenAICompatProvider(TextProvider):
             body["response_format"] = {"type": "json_object"}
         t0 = time.time()
         last: Exception | None = None
-        for attempt in range(3):
+        attempt = 0
+        while attempt < 3:
             try:
                 r = requests.post(self.base_url + "/chat/completions", json=body, headers=self._headers(), timeout=timeout)
                 if r.status_code in (401, 403):
                     raise ProviderError("API key rejected", retryable=False)
                 if r.status_code == 400 and "response_format" in body:
-                    body.pop("response_format")  # gateway does not know JSON mode: the validator will repair
+                    body.pop("response_format")  # gateway does not know JSON mode: the validator will repair (not a failed attempt)
                     continue
                 if r.status_code in (429, 500, 502, 503, 504):
                     last = ProviderError(f"HTTP {r.status_code}")
+                    attempt += 1
                     time.sleep(2 ** attempt)
                     continue
                 r.raise_for_status()
@@ -93,5 +95,6 @@ class OpenAICompatProvider(TextProvider):
                 raise
             except requests.RequestException as e:
                 last = e
+                attempt += 1
                 time.sleep(2 ** attempt)
-        raise ProviderError(f"API request failed: {type(last).__name__ if last else 'unknown'}") from last
+        raise ProviderError(f"API request failed: {last}" if isinstance(last, ProviderError) else f"API request failed: {type(last).__name__}") from last

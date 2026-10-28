@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import os
 import secrets
+import sys
+import tempfile
 from pathlib import Path
 
 from .envfile import BASE_DIR, ENV_PATH, load_env, write_env_value
@@ -22,7 +24,7 @@ DEBUG = _env_bool("INSTAI_DEBUG", False)
 SECRET_KEY = os.environ.get("INSTAI_SECRET_KEY", "").strip()
 if not SECRET_KEY:
     SECRET_KEY = secrets.token_urlsafe(50)
-    if not os.environ.get("INSTAI_TESTING"):
+    if not (os.environ.get("INSTAI_TESTING") or "pytest" in sys.modules):
         try:
             write_env_value("INSTAI_SECRET_KEY", SECRET_KEY, ENV_PATH)
         except OSError:
@@ -37,6 +39,12 @@ if HOST not in ("127.0.0.1", "localhost", "0.0.0.0", "::1"):
 if os.environ.get("INSTAI_ALLOWED_HOSTS"):
     ALLOWED_HOSTS += [h.strip() for h in os.environ["INSTAI_ALLOWED_HOSTS"].split(",") if h.strip()]
 
+# pytest imports the settings before conftest.py runs, so tests are recognised by the module, not only by the variable
+TESTING = bool(os.environ.get("INSTAI_TESTING")) or "pytest" in sys.modules
+if TESTING:
+    os.environ.setdefault("INSTAI_TESTING", "1")
+    if not os.environ.get("INSTAI_DATA_DIR"):
+        os.environ["INSTAI_DATA_DIR"] = os.path.join(tempfile.mkdtemp(prefix="instai-test-"), "data")
 DATA_DIR = Path(os.environ.get("INSTAI_DATA_DIR") or BASE_DIR / "data").resolve()
 MEDIA_ROOT = DATA_DIR / "media"
 LOG_DIR = DATA_DIR / "logs"
@@ -81,7 +89,7 @@ DATABASES = {
         },
     }
 }
-if os.environ.get("INSTAI_TESTING"):
+if TESTING:
     # a file database (not :memory:) so worker threads and the test thread share one WAL database
     DATABASES["default"]["TEST"] = {"NAME": str(DATA_DIR / "test_db.sqlite3")}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
