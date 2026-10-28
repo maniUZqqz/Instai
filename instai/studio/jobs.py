@@ -371,7 +371,8 @@ def casting_job(ctx):
     ep = Episode.objects.select_related("series__page").get(pk=p["episode_id"])
     page = ep.series.page
     lang = _lang(p, page)
-    voices = [{"id": v["id"], "label": v["label"], "language": v["language"], "tags": v["tags"]} for v in preprod.voice_options(page.language) if v["installed"]]
+    voices = [{"id": v["id"], "label": v["label"], "language": v["language"], "tags": v["tags"]} for v in preprod.voice_options(page.language)
+              if v["installed"] and v["commercial_ok"]]
     if not voices:
         raise DomainError("not_ready", "هیچ صدایی در این رایانه آماده نیست؛ در «سیستم» موتور صدا را آماده کنید یا حالت آزمایشی را روشن کنید.", message_en="No voice is ready on this computer; prepare a speech engine in System or turn on demo mode.")
     chars = preprod.episode_characters(ep)

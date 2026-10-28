@@ -217,7 +217,7 @@ function CastingCard({ ep, st, set, reload }: { ep: Episode; st: StudioPayload; 
     const d = await act.run(() => api.put<StudioPayload>(`/episodes/${ep.id}/studio/casting`, { casting }), { success: t('common.saved') })
     if (d) set(d)
   }
-  const opts = useMemo(() => [{ value: '', label: t('cast.none') }, ...st.voices.map((v) => ({ value: v.id, label: v.label + (v.installed ? '' : ' · ' + t('cast.not_installed')), disabled: !v.installed }))], [st.voices, t])
+  const opts = useMemo(() => [{ value: '', label: t('cast.none') }, ...st.voices.map((v) => ({ value: v.id, label: v.label + (v.installed ? '' : ' · ' + t('cast.not_installed')) + (v.commercial_ok === false ? ' · ' + t('cast.noncommercial') : ''), disabled: !v.installed }))], [st.voices, t])
   return (
     <Card title={t('cast.title')}>
       <div className="stack">

@@ -122,8 +122,8 @@ class RetakeRequest(models.Model):
     """A director's note that sends ONE shot back (the rest of the episode is untouched)."""
 
     SCOPES = [("keyframe", "keyframe"), ("narration", "narration"), ("clip", "clip"), ("all", "all")]
-    episode = models.ForeignKey("story.Episode", related_name="retakes", on_delete=models.CASCADE)
-    shot = models.ForeignKey("story.Shot", null=True, related_name="retakes", on_delete=models.SET_NULL)
+    episode = models.ForeignKey("story.Episode", related_name="retake_requests", on_delete=models.CASCADE)
+    shot = models.ForeignKey("story.Shot", null=True, related_name="retake_requests", on_delete=models.SET_NULL)
     scope = models.CharField(max_length=10, choices=SCOPES, default="keyframe")
     reason = models.TextField(blank=True, default="")
     status = models.CharField(max_length=10, default="open")  # open | done | cancelled

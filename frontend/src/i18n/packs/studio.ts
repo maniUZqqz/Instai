@@ -1,6 +1,6 @@
 // Texts of the studio workflow: development room, brainstorm boards, research, bible, pre-production. (Persian first, English second.)
 export const fa: Record<string, string> = {
-  'ed.tab_studio': 'استودیو (پیش‌تولید)',
+  'ed.tab_studio': 'پیش‌تولید',
   'sb.tab_develop': 'توسعه',
   'ov.developing': 'مجموعه‌ی «{title}» هنوز در مرحله‌ی توسعه است.',
   'ov.open_develop': 'باز کردن اتاق توسعه',
@@ -350,13 +350,14 @@ export const fa: Record<string, string> = {
   'design.remake_image': 'تصویر تازه',
   'design.delete_confirm': 'این برگه حذف شود؟',
   'cast.title': 'انتخاب صدا',
-  'cast.intro': 'برای هر شخصیتی که حرف می‌زند یک صدا انتخاب کنید. «پیشنهاد هوش مصنوعی» بر پایه‌ی سن و شخصیت از میان صدای‌های آماده‌ی این رایانه انتخاب می‌کند.',
+  'cast.intro': 'برای هر شخصیتی که حرف می‌زند یک صدا انتخاب کنید. «پیشنهاد هوش مصنوعی» بر پایه‌ی سن و شخصیت از میان صداهای آماده‌ی این رایانه انتخاب می‌کند.',
   'cast.suggest': 'پیشنهاد هوش مصنوعی',
   'cast.voice': 'صدا',
   'cast.none': '— بدون صدا —',
   'cast.set': 'تعیین شد',
   'cast.missing': 'صدا ندارد',
   'cast.not_installed': 'نصب نیست',
+  'cast.noncommercial': 'غیرتجاری',
   'cast.empty': 'شخصیتی با دیالوگ نیست',
   'cast.empty_text': 'راوی از صدای پیش‌فرض صفحه استفاده می‌کند (تنظیمات صفحه > صدا).',
   'cast.no_voices': 'هیچ صدایی روی این رایانه آماده نیست؛ در بخش «سیستم» موتور صدا را آماده کنید یا حالت آزمایشی را روشن کنید.',
@@ -424,7 +425,7 @@ export const fa: Record<string, string> = {
 }
 
 export const en: Record<string, string> = {
-  'ed.tab_studio': 'Studio (pre-production)',
+  'ed.tab_studio': 'Pre-production',
   'sb.tab_develop': 'Development',
   'ov.developing': 'The series "{title}" is still in development.',
   'ov.open_develop': 'Open the development room',
@@ -781,6 +782,7 @@ export const en: Record<string, string> = {
   'cast.set': 'Set',
   'cast.missing': 'No voice',
   'cast.not_installed': 'not installed',
+  'cast.noncommercial': 'non-commercial',
   'cast.empty': 'No character with dialogue',
   'cast.empty_text': 'The narrator uses the page\'s default voice (page settings > Audio).',
   'cast.no_voices': 'No voice is ready on this computer; prepare a speech engine in System or turn on demo mode.',

@@ -377,11 +377,12 @@ def test_preproduction_stages_gate_and_studio_mode(api, worker):
     st = api.get(f"/api/episodes/{ep}/studio").json()
     assert all(c["has_voice"] for c in st["casting"])
     opts = [v for v in st["voices"] if v["engine"] == "fake"]
-    r = api.put(f"/api/episodes/{ep}/studio/casting", {"casting": [{"character": c["character"], "voice_id": opts[1]["id"]} for c in st["casting"]]}, format="json")
+    r = api.put(f"/api/episodes/{ep}/studio/casting", {"casting": [{"character": c["character"], "voice_id": opts[0]["id"]} for c in st["casting"]]}, format="json")
     assert r.status_code == 200
-    from instai.pages.models import Character
+    from instai.production.models import VoiceCast
 
-    assert Character.objects.get(name="Mimi").voice["voice_id"] == opts[1]["voice"] and Character.objects.get(name="Mimi").voice["voices_by_language"]
+    cast = VoiceCast.objects.get(character__name="Mimi", language="fa")
+    assert (cast.engine, cast.voice_id) == (opts[0]["engine"], opts[0]["voice"]), "casting is written as a VoiceCast, which production resolves first"
     # animatic is required in manual mode; without one the gate is blocked
     assert api.post(f"/api/episodes/{ep}/studio/stages/gate/approve").status_code == 409
     from instai.assets.models import Asset

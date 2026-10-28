@@ -219,6 +219,9 @@ def set_source(series: Series, src: dict) -> Series:
         raise bad("نام سریال منبع لازم است.", "The source series name is required.", title=["required"])
     keep = ("provider", "id", "url", "year", "format", "episodes", "status", "genres", "description", "title_romaji", "title_native", "cover_url", "fandom_wiki")
     data = {k: src[k] for k in keep if k in src and src[k] not in (None, "")}
+    for k in ("url", "cover_url"):  # only web links are kept (the UI renders them as links / images)
+        if k in data and not str(data[k]).lower().startswith(("http://", "https://")):
+            data.pop(k)
     data.update(title=title, manual=bool(src.get("manual") or not src.get("provider")), notes=_s(src.get("notes"), 1500))
     series.source = data
     series.franchise = title

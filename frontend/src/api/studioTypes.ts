@@ -248,6 +248,8 @@ export interface VoiceOption {
   label: string
   language: string
   installed: boolean
+  commercial?: string
+  commercial_ok?: boolean
   tags: string[]
 }
 export interface CastingRow {

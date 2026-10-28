@@ -61,7 +61,7 @@ footage (JW1); some Western shows record first so boarders can work from perform
 | Storyboard (絵コンテ) | Episode **storyboard** (existing editor) | storyboarder | storyboard approval |
 | **Animatic** | **Animatic**: timed stills + scratch narration + subtitles, rendered with the existing render path (`studio.animatic`, never changes the episode state) | - (ffmpeg + TTS) | approve the animatic (a changed shot makes it **stale**) |
 | Settings / model sheets / colour script | **Design sheets**: character turnarounds, expressions, backgrounds, props, colour script per scene (prompts the director approves; images rendered with the same image engine as keyframes) | art director | approve each sheet / the stage |
-| Casting (キャスティング) | **Voice casting**: one voice per speaking character, per language | casting director | owner confirms; stage approval |
+| Casting (キャスティング) | **Voice casting**: one voice per speaking character, per language (written as production's `VoiceCast`; non-commercial engines are never suggested) | casting director | owner confirms; stage approval |
 | Production start (layout ... compositing) | hand-off to **production** (keyframes, narration, clips, assembly) | production pipeline (other workstream) | the **pre-production gate**: with `studio_mode` on, `storyboarding -> asset_generation` is refused until it is approved |
 | Retake (リテイク / retake notes) | **Retake request** on one shot (reason, scope: image / voice / clip / all) | - | director's note; only that shot is regenerated; shown as open / done |
 | Editing, ADR, music, SFX, mix | production's assembly and audio steps (other workstream); the Studio tab shows the status | - | quality review + approval (existing) |
@@ -113,8 +113,8 @@ the owner's report. Reachability from the dev PC: Wikipedia and Fandom answered,
 
 * Colour script and design images need the production image engine (ComfyUI); without it the sheets hold prompts only (and demo placeholders).
 * The animatic uses scratch narration from the page's TTS engine; if none is ready it is silent and timed by reading speed.
-* Production should read `Episode.translations[lang]` (script + per-shot narration) and `Character.voice.voices_by_language` for bilingual renders,
-  and should compose prompts with `instai.styles.library.compose_for_page(page)` so themes and video fragments are used (see DECISIONS.md).
+* Production should read `Episode.translations[lang]` (script + per-shot narration) for bilingual renders (voices are already per language in
+  `VoiceCast`), and should compose prompts with `instai.styles.library.compose_for_page(page)` so themes and video fragments are used (see DECISIONS.md).
 * Delivery / first-print gates are not described by any verified source, so none is modelled.
 
 ## 8. Sources

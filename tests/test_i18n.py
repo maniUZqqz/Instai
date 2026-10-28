@@ -45,7 +45,10 @@ def dictionaries() -> tuple[dict[str, str], dict[str, str]]:
 
 
 def _sources() -> list[tuple[Path, str]]:
-    return [(p, p.read_text(encoding="utf-8")) for p in SRC.rglob("*.ts*") if "i18n" not in p.parts and p.suffix in (".ts", ".tsx")]
+    # src/studio/ is the production workstream's screens with their own dictionary (src/studio/i18n.ts); it checks itself
+    own = SRC / "studio"
+    return [(p, p.read_text(encoding="utf-8")) for p in SRC.rglob("*.ts*")
+            if "i18n" not in p.parts and p.suffix in (".ts", ".tsx") and own not in p.parents]
 
 
 STATIC = re.compile(r"""\b(?:t|tr)\(\s*['"]([A-Za-z0-9_.\-]+)['"](?!\s*\+)""")

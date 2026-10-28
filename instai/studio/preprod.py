@@ -106,60 +106,61 @@ def episode_characters(ep: Episode) -> list[Character]:
 
 
 def voice_options(language: str = "") -> list[dict]:
-    """Voices this machine can speak with right now (Piper files on disk, MOSS if its server is configured, fake voices in demo mode)."""
-    from instai.core import runtime
+    """Voices this machine can speak with right now, from the voice stack (instai.production.voices): one entry per engine voice, with
+    the engine's availability and licence (non-commercial engines are listed but flagged; the AI casting never picks them)."""
+    from instai.production import voices as voice_stack
 
+    lang = (language or "fa")[:2]
     out: list[dict] = []
-    seen: set[str] = set()
-    piper_dir = runtime.models_root() / "piper"
-    names = sorted(p.stem for p in piper_dir.glob("*.onnx")) if piper_dir.exists() else []
-    default = str(settings_store.effective("piper_voice") or "")
-    for n in names + ([default] if default and default not in names else []):
-        lang = n.split("_")[0].lower() if "_" in n else "fa"
-        out.append({"id": f"piper:{n}", "engine": "piper", "voice": n, "label": f"Piper · {n}", "language": lang, "installed": n in names,
-                    "tags": ["offline", "cpu"]})
-    if str(settings_store.effective("moss_tts_url") or "").strip():
-        out.append({"id": "moss:persian", "engine": "moss", "voice": "persian-lora", "label": "MOSS-TTS · Persian LoRA", "language": "fa", "installed": True,
-                    "tags": ["gpu", "cloning"]})
-    if str(settings_store.effective("tts_engine") or "") == "fake":
-        out += [{"id": "fake:a", "engine": "fake", "voice": "fake-a", "label": "Demo voice A", "language": "fa", "installed": True, "tags": ["demo"]},
-                {"id": "fake:b", "engine": "fake", "voice": "fake-b", "label": "Demo voice B", "language": "en", "installed": True, "tags": ["demo"]}]
-    for v in out:
-        seen.add(v["id"])
-    if language:
-        pref = [v for v in out if v["language"].startswith(language[:2])]
-        out = pref + [v for v in out if v not in pref]
+    for e in voice_stack.engines_payload(lang):
+        voices = e["voices"] or ([{"id": e["default_voice"] or e["id"], "label": e["label"], "language": lang}] if (e["available"] and not e["needs_reference"]) else [])
+        for v in voices:
+            vid = str(v.get("id") or "")
+            out.append({"id": f"{e['id']}:{vid}", "engine": e["id"], "voice": vid, "label": f"{e['label']} · {v.get('label') or vid}", "language": str(v.get("language") or lang),
+                        "installed": bool(e["available"]), "commercial": e["commercial"], "commercial_ok": e["commercial"] != "no", "online": bool(e["online"]),
+                        "tags": [t for t in ("online" if e["online"] else "offline", e["resource"], "non-commercial" if e["commercial"] == "no" else "") if t]})
     return out
 
 
+def _language(character: Character, language: str = "") -> str:
+    return (language or character.page.language or "fa")[:2]
+
+
+def _cast(character: Character, language: str):
+    from instai.production.models import VoiceCast
+
+    return VoiceCast.objects.filter(character=character, language=language).first()
+
+
 def casting_rows(ep: Episode) -> list[dict]:
+    from instai.production.models import VoiceCast
+
     rows = []
     for c in episode_characters(ep):
-        v = c.voice or {}
-        rows.append({"character": c.pk, "name": c.name, "role": c.role, "personality": c.personality, "engine": v.get("engine", ""), "voice_id": v.get("voice_id", ""),
-                     "has_voice": bool(v.get("engine") and v.get("voice_id")), "language": v.get("language", ""),
-                     "by_language": v.get("voices_by_language") or {}})
+        lang = _language(c)
+        cast = _cast(c, lang)
+        old = c.voice or {}
+        engine = cast.engine if cast else old.get("engine", "")
+        voice_id = cast.voice_id if cast else old.get("voice_id", "")
+        rows.append({"character": c.pk, "name": c.name, "role": c.role, "personality": c.personality, "engine": engine, "voice_id": voice_id,
+                     "has_voice": bool(cast or (old.get("engine") and old.get("voice_id"))), "language": lang,
+                     "by_language": {v.language: {"engine": v.engine, "voice_id": v.voice_id} for v in VoiceCast.objects.filter(character=c)}})
     return rows
 
 
 def set_voice(character: Character, option_id: str, language: str = "") -> Character:
-    """option_id from voice_options(); '' clears the voice. Per-language voices are kept for bilingual pages."""
-    opts = {v["id"]: v for v in voice_options()}
+    """option_id from voice_options(); '' removes the cast. Written as a VoiceCast (character, language), which production resolves first."""
+    from instai.production.models import VoiceCast
+
+    lang = _language(character, language)
     if not option_id:
-        character.voice = {k: v for k, v in (character.voice or {}).items() if k not in ("engine", "voice_id")}
-    else:
-        o = opts.get(option_id)
-        if not o:
-            raise DomainError("validation_error", "این صدا در این رایانه در دسترس نیست.", message_en="This voice is not available on this computer.", http_status=400, details={"voice_id": ["unknown"]})
-        voice = dict(character.voice or {})
-        by = dict(voice.get("voices_by_language") or {})
-        by[language or o["language"]] = {"engine": o["engine"], "voice_id": o["voice"]}
-        page_lang = character.page.language
-        if not language or language[:2] == page_lang[:2]:
-            voice.update(engine=o["engine"], voice_id=o["voice"], language=language or o["language"])
-        voice["voices_by_language"] = by
-        character.voice = voice
-    character.save(update_fields=["voice"])
+        VoiceCast.objects.filter(character=character, language=lang).delete()
+        return character
+    opt = next((v for v in voice_options(lang) if v["id"] == option_id), None)
+    if not opt:
+        raise DomainError("validation_error", "این صدا در این رایانه در دسترس نیست.", http_status=400, details={"voice_id": ["unknown"]},
+                          message_en="This voice is not available on this computer.")
+    VoiceCast.objects.update_or_create(character=character, language=lang, defaults={"engine": opt["engine"], "voice_id": opt["voice"]})
     return character
 
 
@@ -317,7 +318,7 @@ def assert_gate(ep: Episode) -> None:
 
 def studio_payload(ep: Episode) -> dict:
     return {"report": stage_report(ep), "animatic": animatic_info(ep), "design_sheets": [sheet_dict(s) for s in ep.design_sheets.select_related("asset")],
-            "casting": casting_rows(ep), "voices": voice_options(ep.series.page.language), "retakes": [retake_dict(r) for r in ep.retakes.select_related("shot__scene")[:50]],
+            "casting": casting_rows(ep), "voices": voice_options(ep.series.page.language), "retakes": [retake_dict(r) for r in ep.retake_requests.select_related("shot__scene")[:50]],
             "translations": {k: {"at": v.get("at"), "provider": v.get("provider"), "model": v.get("model"), "shots": len(v.get("shots") or {})}
                              for k, v in (ep.translations or {}).items()},
             "languages": (ep.series.languages or ep.series.page.languages or ["fa"])}

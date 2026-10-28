@@ -459,7 +459,7 @@ def shot_retake(request, pk):
 @api_view(["GET"])
 def episode_retakes(request, pk):
     e = _ep(pk)
-    return Response([preprod.retake_dict(r) for r in e.retakes.select_related("shot__scene")])
+    return Response([preprod.retake_dict(r) for r in e.retake_requests.select_related("shot__scene")])
 
 
 @api_view(["POST"])
