@@ -318,7 +318,7 @@ export function EpisodesTab() {
                                   {e.title || t('episode.untitled', { n: e.number })}
                                 </Link>
                                 {e.logline && <div className="small muted">{e.logline}</div>}
-                                {e.error && <div className="small" style={{ color: 'var(--err)' }}>{e.error}</div>}
+                                {e.error && <div className="small" style={{ color: 'var(--err)' }}>{e.error.split('\n')[0].slice(0, 160)}</div>}
                               </td>
                               <td>
                                 <StateBadge state={e.state} label={e.state_label} />

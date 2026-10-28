@@ -1265,7 +1265,11 @@ html[dir='rtl'] .progress.indeterminate > i {
   padding-block: 0.25rem 0.5rem;
   scrollbar-width: thin;
 }
+.state-steps > li {
+  flex: none;
+}
 .state-step {
+  white-space: nowrap;
   flex: none;
   display: inline-flex;
   align-items: center;

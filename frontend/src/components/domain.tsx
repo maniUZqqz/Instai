@@ -33,6 +33,25 @@ export function JobStatusBadge({ status }: { status: string }) {
   return <Badge tone={tone}>{tr('job.status.' + status, status)}</Badge>
 }
 
+/** An error text that may be a long technical trace: show a short first line and keep the rest behind "technical details". */
+export function ErrorText({ text }: { text: string }) {
+  const { t } = useI18n()
+  const first = text.split('\n')[0]
+  const short = first.length > 220 ? first.slice(0, 220) + '…' : first
+  const long = text.length > short.length + 2
+  return (
+    <div className="stack-sm">
+      <div>{short}</div>
+      {long && (
+        <details>
+          <summary className="small" style={{ cursor: 'pointer' }}>{t('job.tech_details')}</summary>
+          <pre className="log-view mono" style={{ whiteSpace: 'pre-wrap', margin: '0.5rem 0 0' }}>{text}</pre>
+        </details>
+      )}
+    </div>
+  )
+}
+
 /** Re-render every second while `active` (for elapsed-time displays). */
 export function useNow(active: boolean): number {
   const [now, setNow] = useState(() => Date.now())
@@ -82,7 +101,7 @@ export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; 
         </div>
       )}
       {(job.status === 'failed' || job.status === 'cancelled') && (
-        <Notice tone={job.status === 'failed' ? 'err' : 'info'}>{job.error || t(job.status === 'failed' ? 'job.failed' : 'job.cancelled')}</Notice>
+        <Notice tone={job.status === 'failed' ? 'err' : 'info'}>{job.error ? <ErrorText text={job.error} /> : t(job.status === 'failed' ? 'job.failed' : 'job.cancelled')}</Notice>
       )}
       {offline && <Notice tone="warn">{t('job.offline')}</Notice>}
       {extra}

@@ -4,6 +4,7 @@ import { Empty, LinkButton } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
 import PagesList from './pages/PagesList'
+import EpisodeEditor from './pages/EpisodeEditor'
 import SeriesBuilder from './pages/SeriesBuilder'
 import Wizard from './pages/Wizard'
 import { CharactersTab } from './pages/workspace/CharactersTab'
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="history" element={<HistoryTab />} />
         </Route>
         <Route path="series/:id" element={<SeriesBuilder />} />
+        <Route path="episodes/:id" element={<EpisodeEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
         <Route path="*" element={<NotFound />} />
       </Route>

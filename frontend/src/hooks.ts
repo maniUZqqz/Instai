@@ -257,3 +257,23 @@ export function useHashTab<T extends string>(keys: readonly T[], def: T): [T, (k
   }, [])
   return [tab, set]
 }
+
+/** Like useHashTab but returns null when the URL has no (valid) hash, so the caller can pick a smart default. */
+export function useHashTabOpt<T extends string>(keys: readonly T[]): [T | null, (k: T) => void] {
+  const read = (): T | null => {
+    const h = window.location.hash.slice(1)
+    return (keys as readonly string[]).includes(h) ? (h as T) : null
+  }
+  const [tab, setTab] = useState<T | null>(read)
+  useEffect(() => {
+    const on = () => setTab(read())
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const set = useCallback((k: T) => {
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${k}`)
+    setTab(k)
+  }, [])
+  return [tab, set]
+}
