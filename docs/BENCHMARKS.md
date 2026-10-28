@@ -26,4 +26,4 @@ from the brief*, shown in the app labelled "estimate" until a measurement replac
 | 60 s episode made only of Wan shots | about 2 hours | brief section 6 |
 | FLUX image 832x1472, 24 steps | 60 s (placeholder guess) | InstAI default, to be replaced |
 | Layer cut-out / puppet layer | 10 s / 5 s (placeholder guess) | InstAI default |
-| FFmpeg 2.5D assembly (CPU) | measured on the dev PC (i5-4590, no GPU): a 3-shot 12 s preview 360x640 renders in a few seconds; 1080x1920 final of 3 short shots in well under a minute | `tests/test_pipeline_e2e.py` |
+| FFmpeg 2.5D assembly (CPU) | measured, not estimated: the 4 end-to-end render tests (incl. a 1080x1920 30 fps render of 3 short shots, preview renders, partial regeneration) take 38 s in total on the dev PC (i5-4590, 8 GB RAM, no GPU) | `tests/test_pipeline_e2e.py` |

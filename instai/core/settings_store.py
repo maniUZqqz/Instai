@@ -33,9 +33,14 @@ def get_setting(key: str, default: Any = None) -> Any:
     hit = _CACHE.get(key)
     if hit and now - hit[0] < TTL:
         return hit[1] if hit[1] is not None else default
+    from django.db import DatabaseError
+
     from .models import AppSetting
 
-    row = AppSetting.objects.filter(key=key).first()
+    try:
+        row = AppSetting.objects.filter(key=key).first()
+    except DatabaseError:  # database not created/migrated yet: fall back to .env / defaults
+        return default
     val = row.value if row else None
     _CACHE[key] = (now, val)
     return val if val is not None else default
