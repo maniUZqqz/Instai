@@ -1,0 +1,174 @@
+/* Studio screens (workers, voices, rigs). Logical properties only (RTL/LTR); imported by the studio components. */
+.studio-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.studio-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-height: 9rem;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+a.studio-tile:hover,
+a.studio-tile:focus-visible {
+  border-color: var(--primary);
+}
+.studio-tile.disabled {
+  opacity: 0.6;
+}
+.studio-tile-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* workers */
+.studio-device {
+  min-width: 0;
+}
+.studio-caps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.studio-caps .chip {
+  padding-inline: 0.6rem;
+  overflow-wrap: anywhere;
+}
+.studio-speeds {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+}
+.studio-pairing {
+  border-color: var(--primary);
+}
+.studio-code-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0;
+}
+.studio-code {
+  font: 700 clamp(2rem, 9vw, 3.2rem) / 1.1 ui-monospace, Consolas, 'Courier New', monospace;
+  letter-spacing: 0.12em;
+  padding: 0.6rem 1.2rem;
+  background: var(--surface-2);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  user-select: all;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: center !important;
+}
+.studio-addresses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.studio-steps-list {
+  margin: 0;
+  padding-inline-start: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* voices */
+.studio-refs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 0.75rem;
+}
+.studio-refs audio,
+.studio-preview audio {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* rigs */
+.studio-thumbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 0.5rem;
+}
+.studio-thumbs li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.studio-thumbs img {
+  max-width: 100%;
+  max-height: 64px;
+  object-fit: contain;
+}
+.studio-thumb-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-thumb {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  object-fit: contain;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.studio-pair {
+  display: flex;
+  gap: 0.3rem;
+}
+.studio-parts-table input[type='number'] {
+  width: 4.8rem;
+  min-height: 2.5rem;
+  padding: 0.2rem 0.4rem;
+}
+.studio-parts-table .studio-z {
+  width: 4rem;
+}
+.studio-dirty td {
+  background: var(--warn-soft);
+}
+.studio-mouths {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.studio-mouths .chip {
+  padding-inline: 0.7rem;
+  font-weight: 700;
+}
+.studio-chip-ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.studio-chip-missing {
+  background: var(--err-soft);
+  color: var(--err);
+}

@@ -6,6 +6,7 @@ import { useQuery } from '../hooks'
 import { useI18n } from '../i18n'
 import { Icon, type IconName } from './Icon'
 import { Link, NavLink, Progress, Button } from './ui'
+import { StudioNavLink } from '../studio/StudioNavLink'
 
 // ---------------------------------------------------------------- app-wide facts (demo mode)
 interface AppCtx {
@@ -154,6 +155,7 @@ export function Shell() {
                 {t(n.key)}
               </NavLink>
             ))}
+            <StudioNavLink />
           </nav>
           <div className="sidebar-foot">{t('shell.tagline')}</div>
         </aside>

@@ -40,7 +40,14 @@ def _worker_dict(w: WorkerNode) -> dict:
 
 @api_view(["GET"])
 def workers_overview(request):
-    return Response({"devices": compute.overview(), "workers": [_worker_dict(w) for w in WorkerNode.objects.all()], "lan": _lan_status(),
+    from instai.core import hardware
+
+    devices = compute.overview()
+    gpu = hardware.gpu_status()
+    for d in devices:
+        if d.get("local"):
+            d["gpu_name"] = (gpu or {}).get("name") or ""
+    return Response({"devices": devices, "workers": [_worker_dict(w) for w in WorkerNode.objects.all()], "lan": _lan_status(),
                      "recent_tasks": [_task_dict(t) for t in RemoteTask.objects.select_related("worker", "target_worker")[:15]]})
 
 
