@@ -13,7 +13,7 @@ DEFAULTS = {"image": 60.0, "image_preview": 20.0, "video_5s": 540.0, "layer_spli
 # techniques that need a generated keyframe image
 KEYFRAME = {"still_kenburns", "parallax_25d", "wan_i2v", "wan_flf", "talking_video"}
 VIDEO = {"wan_i2v", "wan_flf", "talking_video"}
-IMPLEMENTED = {"still_kenburns", "parallax_25d", "wan_i2v"}  # techniques with a render path today; others fall back to still_kenburns
+IMPLEMENTED = {"still_kenburns", "parallax_25d", "wan_i2v", "wan_flf", "puppet_2d"}  # techniques with a render path today; others fall back to still_kenburns
 
 
 def measured() -> dict[str, float]:

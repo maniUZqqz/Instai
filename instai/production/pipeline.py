@@ -13,6 +13,7 @@ import json
 import logging
 import random
 import tempfile
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -67,7 +68,11 @@ def image_engine() -> str:
 def keyframe_hash(shot: Shot, ep: Episode, mode: str) -> str:
     w, h = KF_SIZE[mode]
     return _h("kf", shot.image_prompt, shot.negative_prompt, shot.seed, w, h, style_prompt(ep), image_engine(),
-              settings_store.effective("image_workflow"), mode if image_engine() != "placeholder" else "")
+              settings_store.effective("image_workflow"), mode if image_engine() != "placeholder" else "", "plate" if shot.technique == "puppet_2d" else "")
+
+
+PLATE_SUFFIX = "empty background plate, no characters, no people, no text"
+PLATE_NEGATIVE = "people, person, character, figure, face, text, watermark"
 
 
 def narration_hash(shot: Shot, ep: Episode) -> str:
@@ -232,8 +237,10 @@ def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
             hsh = keyframe_hash(shot, ep, mode)
             rel = f"episodes/{ep.pk}/keyframes/shot{shot.pk}-{hsh[:8]}.png"
             if client and spec:
-                prompt = ", ".join(x for x in (shot.image_prompt, style_prompt(ep)) if x)
-                inputs = {"prompt": prompt, "negative_prompt": shot.negative_prompt, "width": w, "height": h, "seed": shot.seed,
+                plate = shot.technique == "puppet_2d"      # the puppet is drawn on top: the keyframe is only the background
+                prompt = ", ".join(x for x in (shot.image_prompt, style_prompt(ep), PLATE_SUFFIX if plate else "") if x)
+                neg = ", ".join(x for x in (shot.negative_prompt, PLATE_NEGATIVE if plate else "") if x)
+                inputs = {"prompt": prompt, "negative_prompt": neg, "width": w, "height": h, "seed": shot.seed,
                           "steps": 12 if mode == PREVIEW else 24}
                 graph = spec.build(inputs)
                 _, files = client.run(graph, timeout=1800, on_tick=lambda s: ctx.progress(i / len(shots), f"keyframe {i + 1}/{len(shots)} ({int(s)}s)"),
@@ -365,6 +372,15 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
     for i, s in enumerate(shots):
         kf, nar, clip = current(s, "keyframe"), current(s, "narration"), current(s, "shot_clip")
         layers = None
+        puppet_scene = None
+        if s.technique == "puppet_2d":
+            from . import puppet as puppet_mod
+
+            puppet_scene, pnotes = puppet_mod.build_scene(
+                s, ep, narration=nar, keyframe=kf, duration=asm.shot_duration(asm.ShotSpec(key=str(s.pk), duration=s.duration_sec,
+                                                                                            audio="x" if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0)),
+                language=page_of(ep).language, demo_mode=image_engine() == "placeholder")
+            notes += pnotes
         if s.technique == "parallax_25d":
             notes.append(f"shot {s.scene.index}.{s.index}: no cut-out layers yet (Phase 3), Ken Burns used instead of parallax")
         if s.technique not in costs.IMPLEMENTED:
@@ -377,7 +393,7 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
             video=str(asset_storage.storage.path_for(clip.path)) if (clip and mode == FINAL) else None, layers=layers, camera=s.camera or {},
             technique=s.technique, transition="cut" if last else (s.transition or "cut"),
             audio=str(asset_storage.storage.path_for(nar.path)) if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0,
-            subtitle=s.narration))
+            subtitle=s.narration, puppet=puppet_scene))
     return specs, notes
 
 
@@ -387,7 +403,7 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
         raise DomainError("not_ready", "قسمت هیچ شاتی ندارد.")
     for n in notes:
         ctx.log(n, "warning")
-    if any(s.image is None and s.video is None for s in specs):
+    if any(s.image is None and s.video is None and not s.puppet for s in specs):
         raise ProviderError("some shots have no image yet; run the production step again", retryable=False, code="not_ready")
     opts = render_options(ep, mode)
     work = Path(tempfile.mkdtemp(prefix="asm-", dir=settings.MEDIA_ROOT))
@@ -398,14 +414,22 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
             ctx.check()
             ctx.progress(0.05 + 0.55 * i / len(specs), f"shot clip {i + 1}/{len(specs)}")
             dur = asm.shot_duration(spec)
+            from . import puppet as puppet_mod
+
             chash = _h("clip", spec.image and Path(spec.image).name, spec.video and Path(spec.video).name, spec.camera, round(dur, 3),
-                       opts.width, opts.height, opts.fps, mode)
+                       opts.width, opts.height, opts.fps, mode, puppet_mod.spec_hash_parts(spec.puppet))
             cached = Asset.objects.filter(shot=shot, role="render_clip", is_current=True, input_hash=chash).first()
             if cached and asset_storage.storage.exists(cached.path):
                 clips.append(asset_storage.storage.path_for(cached.path))
                 continue
             out = work / f"clip{i:03d}.mp4"
+            t_clip = time.time()
             asm.render_shot_clip(spec, opts, out, duration=dur, ctx=ctx)
+            if spec.puppet:
+                from .models import ShotRender
+
+                ShotRender.objects.create(shot=shot, technique="puppet_2d", status="done", device="local", seconds=round(time.time() - t_clip, 2),
+                                          params={"mode": mode, "lipsync": spec.puppet.get("lipsync"), "rig": spec.puppet.get("rig"), "duration": round(dur, 2)})
             rel = f"episodes/{ep.pk}/clips/render-shot{shot.pk}-{chash[:8]}.mp4"
             a = asset_storage.register(out, rel, kind="video", role="render_clip", page=page_of(ep), episode=ep, shot=shot, input_hash=chash,
                                        provenance={"mode": mode, "technique": spec.technique, "camera": spec.camera, "job_id": ctx.job.pk})

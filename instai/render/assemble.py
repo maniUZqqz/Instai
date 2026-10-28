@@ -33,6 +33,7 @@ class ShotSpec:
     audio: str | None = None
     audio_duration: float = 0.0
     subtitle: str = ""
+    puppet: dict | None = None            # puppet-2D scene (rig, background layers, camera); see production/puppet.py
 
 
 @dataclass
@@ -93,6 +94,15 @@ def render_shot_clip(spec: ShotSpec, opts: RenderOptions, out_path: Path, *, dur
     out_path.parent.mkdir(parents=True, exist_ok=True)
     mv = spec.camera.get("move", "zoom_in")
     inten = float(spec.camera.get("intensity", 0.5))
+    if spec.puppet:
+        from django.conf import settings
+
+        from .puppet.renderer import PuppetRenderer
+
+        scene = {**spec.puppet, "width": w, "height": h, "fps": fps, "duration": d}
+        PuppetRenderer(scene, Path(settings.MEDIA_ROOT)).render(out_path, ctx=ctx, crf=17 if opts.mode == "final" else 30,
+                                                               preset="veryfast" if opts.mode == "final" else "ultrafast")
+        return out_path
     if spec.video and Path(spec.video).is_file():
         vf = (f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},fps={fps},setsar=1,"
               f"tpad=stop_mode=clone:stop_duration={d:.3f},trim=duration={d:.3f},setpts=PTS-STARTPTS,format=yuv420p")
