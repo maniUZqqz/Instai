@@ -59,11 +59,11 @@ def benchmark_report(request, pk):
 
 # ------------------------------------------------------------------ settings
 
-DEMO = {"llm_provider": "fake", "tts_engine": "fake", "image_engine": "placeholder", "research_fetch": "fake"}
-LIVE = {"llm_provider": "ollama", "tts_engine": "auto", "image_engine": "auto", "research_fetch": "off"}
+DEMO = {"llm_provider": "fake", "tts_engine": "fake", "image_engine": "placeholder", "research_fetch": "fake", "sfx_engine": "fake", "music_engine": "fake"}
+LIVE = {"llm_provider": "ollama", "tts_engine": "auto", "image_engine": "auto", "research_fetch": "off", "sfx_engine": "auto", "music_engine": "auto"}
 ENUMS = {"llm_provider": ["fake", "ollama", "openai"], "openai_json_mode": ["json_schema", "json_object", "none"],
          "tts_engine": ["auto", "moss", "piper", "pocket", "edge", "fake"], "image_engine": ["auto", "comfyui", "placeholder"],
-         "research_fetch": ["off", "wikipedia", "fake"]}
+         "research_fetch": ["off", "wikipedia", "fake"], "sfx_engine": ["auto", "fake"], "music_engine": ["auto", "fake"]}
 
 
 def is_demo_mode() -> bool:

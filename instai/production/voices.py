@@ -46,9 +46,12 @@ def resolve(character, language: str, page=None) -> dict:
         return {"engine": cast.engine or "auto", "voice": cast.voice_id, "reference": ref_path, "speed": cast.speed, "source": "cast",
                 "ref_id": ref_id, "consent_ok": consent_ok}
     cv = (character.voice if character else None) or {}
+    per_lang = (cv.get("voices_by_language") or {}).get(language) or {}      # the pre-production casting step stores voices per language here
+    if per_lang.get("engine"):
+        cv = {**cv, "engine": per_lang["engine"], "voice_id": per_lang.get("voice_id", "")}
     aud = page.profile("audio") if page is not None else {}
     return {"engine": cv.get("engine") or aud.get("narration_engine") or "auto", "voice": cv.get("voice_id") or aud.get("narration_voice") or "",
-            "reference": cv.get("reference") or "", "speed": 1.0, "source": "character" if cv.get("engine") else "page", "ref_id": None, "consent_ok": True}
+            "reference": cv.get("reference") or "", "speed": 1.0, "source": "character-language" if per_lang.get("engine") else ("character" if cv.get("engine") else "page"), "ref_id": None, "consent_ok": True}
 
 
 def effective_engine(engine: str, language: str) -> str:

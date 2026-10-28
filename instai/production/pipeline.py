@@ -226,7 +226,9 @@ def timeline_hash(ep: Episode, mode: str) -> str:
         kf, nar, clip = current(s, "keyframe"), current(s, "narration"), current(s, "shot_clip")
         parts.append([s.pk, kf.sha256 if kf else "", nar.sha256 if nar else "", clip.sha256 if clip else "", s.camera, s.duration_sec,
                       s.transition, s.narration, s.technique])
-    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], page_of(ep).profile("audio")["target_lufs"])
+    from . import mixing
+
+    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], page_of(ep).profile("audio")["target_lufs"], mixing.mix_hash_parts(ep))
 
 
 # ------------------------------------------------------------------ steps (called by job handlers)
@@ -463,6 +465,11 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
     if any(s.image is None and s.video is None and not s.puppet for s in specs):
         raise ProviderError("some shots have no image yet; run the production step again", retryable=False, code="not_ready")
     opts = render_options(ep, mode)
+    from . import mixing
+
+    opts.tracks = mixing.resolve(ep, specs, asm.plan_timeline(specs))
+    if opts.tracks:
+        ctx.log(f"mixing {len(opts.tracks)} track(s): " + ", ".join(f"{t['kind']}{' (ducked)' if t['duck'] else ''}" for t in opts.tracks))
     work = Path(tempfile.mkdtemp(prefix="asm-", dir=settings.MEDIA_ROOT))
     try:
         clips: list[Path] = []

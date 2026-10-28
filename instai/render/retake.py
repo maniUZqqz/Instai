@@ -70,6 +70,8 @@ def plan_range(info: dict, start_sec: float, end_sec: float, *, cut: bool = Fals
         raise RetakeError("the end of the range must be after its start")
     s = max(0, int(round(start_sec * fps)))
     e = min(total, int(round(end_sec * fps)))
+    if s >= total:
+        raise RetakeError("the range is outside the video")
     if (e - s) / fps < MIN_SECONDS and not cut:
         raise RetakeError(f"the range must be at least {MIN_SECONDS} s")
     if (e - s) / fps > MAX_SECONDS and not cut:
@@ -99,17 +101,19 @@ def reference_between(before_png: Path, after_png: Path, out_png: Path) -> Path:
     return out_png
 
 
-def fit_piece(piece: Path, plan: Plan, source: Path, out: Path, *, blend: int = BLEND, ctx=None) -> Path:
-    """Scale/crop/re-time `piece` to the source's size and fps and EXACTLY plan.n frames; blend the seams with the original frames."""
+def fit_piece(piece: Path, plan: Plan, source: Path, out: Path, *, blend: int = BLEND, edge: int = 0, ctx=None) -> Path:
+    """Scale/crop/re-time `piece` to the source's size and fps and EXACTLY plan.n frames; blend the seams with the original frames.
+    `edge` = frames at each end of the piece that are the boundary frames themselves (the model's first and last frame): they are made and then dropped."""
     pinfo = ffmpeg.probe(piece)
     p_dur = max(0.1, pinfo["duration"] or (pinfo["fps"] and 1.0) or 1.0)
-    stretch = plan.seconds / p_dur
+    total_in = plan.n + 2 * edge
+    stretch = (total_in / plan.fps) / p_dur
     w, h, fps, n = plan.width, plan.height, plan.fps, plan.n
     work = Path(tempfile.mkdtemp(prefix="retake-"))
     fitted = work / "fitted.mp4"
     vf = (f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},setpts=PTS*{stretch:.6f},fps={fps},setsar=1,"
           f"tpad=stop_mode=clone:stop_duration=1,format=yuv420p")
-    ffmpeg.run(["-i", str(piece), "-vf", vf, "-frames:v", str(n), "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", "-pix_fmt", "yuv420p", "-an", str(fitted)], ctx=ctx)
+    ffmpeg.run(["-i", str(piece), "-vf", vf, "-frames:v", str(total_in), "-c:v", "libx264", "-preset", "veryfast", "-crf", "12", "-pix_fmt", "yuv420p", "-an", str(fitted)], ctx=ctx)
     k = min(blend, max(0, n // 2 - 1))
     head = extract_frames(source, plan.start, k, work / "head") if k else []
     tail = extract_frames(source, plan.end - k, k, work / "tail") if k else []
@@ -120,7 +124,10 @@ def fit_piece(piece: Path, plan: Plan, source: Path, out: Path, *, blend: int = 
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     written = 0
     try:
-        for i, fr in enumerate(colormatch.read_frames(fitted, w, h)):
+        for raw_i, fr in enumerate(colormatch.read_frames(fitted, w, h)):
+            i = raw_i - edge
+            if i < 0:
+                continue
             if i >= n:
                 break
             if i < len(head):                               # at the start the original still dominates, then the new footage takes over

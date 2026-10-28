@@ -49,6 +49,7 @@ class RenderOptions:
     music: str | None = None
     music_db: float = -22.0
     subtitles: bool = True
+    tracks: list = field(default_factory=list)    # mix tracks resolved to timeline positions (production/mixing.py): music, ambience, sfx
 
     @classmethod
     def for_mode(cls, mode: str, final_height: int = 1920, preview_height: int = 640, fps: int = 30, **kw) -> "RenderOptions":
@@ -172,8 +173,55 @@ def build_filter(shots: list[ShotSpec], timeline: list[dict], opts: RenderOption
         parts.append("[mus][v2a]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[duck]")
         parts.append("[v1a][duck]amix=inputs=2:duration=first:normalize=0[mixed]")
         voice = "[mixed]"
+    if opts.tracks:
+        kt = k + (1 if opts.music else 0)
+        tparts, duck, plain = track_filters(opts.tracks, kt, total)
+        parts += tparts
+        voice = mix_with_tracks(parts, voice, duck, plain)
     parts.append(f"{voice}atrim=0:{total:.3f},loudnorm=I={opts.target_lufs}:TP=-1.5:LRA=11,aresample=48000,asetpts=PTS-STARTPTS[aout]")
     return ";\n".join(parts)
+
+
+def track_filters(tracks: list[dict], first_input: int, total: float) -> tuple[list[str], list[str], list[str]]:
+    """Filter chains for the mix tracks. Returns (chains, labels of tracks that duck under dialogue, labels of the others).
+    Each track: trimmed/looped to its span, faded, set to its gain, delayed to its start."""
+    chains, duck, plain = [], [], []
+    for i, t in enumerate(tracks):
+        span = max(0.05, float(t["end"]) - float(t["start"]))
+        ms = int(round(float(t["start"]) * 1000))
+        fi, fo = min(float(t.get("fade_in", 0.0)), span / 2), min(float(t.get("fade_out", 0.0)), span / 2)
+        c = f"[{first_input + i}:a]aresample=48000,aformat=channel_layouts=stereo"
+        if t.get("loop"):
+            c += ",aloop=loop=-1:size=2000000000"
+        c += f",atrim=0:{span:.3f},asetpts=PTS-STARTPTS"
+        if fi > 0:
+            c += f",afade=t=in:st=0:d={fi:.3f}"
+        if fo > 0:
+            c += f",afade=t=out:st={max(0.0, span - fo):.3f}:d={fo:.3f}"
+        c += f",volume={float(t.get('gain_db', -18.0)):.1f}dB,adelay={ms}|{ms}[tr{i}]"
+        chains.append(c)
+        (duck if t.get("duck") else plain).append(f"[tr{i}]")
+    return chains, duck, plain
+
+
+def mix_with_tracks(parts: list[str], voice: str, duck: list[str], plain: list[str]) -> str:
+    """Append the graph that sums dialogue + tracks; the `duck` group is lowered by a side-chain compressor keyed on the dialogue."""
+    label = voice
+    if duck:
+        bed = duck[0]
+        if len(duck) > 1:
+            parts.append("".join(duck) + f"amix=inputs={len(duck)}:duration=longest:normalize=0[bed]")
+            bed = "[bed]"
+        parts.append(f"{voice}asplit=2[vkey][vmix]")
+        parts.append(f"{bed}[vkey]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[ducked]")
+        ins = ["[vmix]", "[ducked]"] + plain
+    else:
+        ins = [voice] + plain
+    if len(ins) == 1:
+        return ins[0]
+    parts.append("".join(ins) + f"amix=inputs={len(ins)}:duration=first:normalize=0[mixed2]")
+    label = "[mixed2]"
+    return label
 
 
 def assemble(shots: list[ShotSpec], clips: list[Path], opts: RenderOptions, out_path: Path, workdir: Path, *, ctx=None,
@@ -202,6 +250,8 @@ def assemble(shots: list[ShotSpec], clips: list[Path], opts: RenderOptions, out_
             args += ["-i", s.audio]
     if opts.music:
         args += ["-i", opts.music]
+    for t in opts.tracks:
+        args += ["-i", t["file"]]
     total = total_duration(timeline)
     args += [*ffmpeg.filter_complex_args(script), "-map", "[vout]", "-map", "[aout]", "-c:v", "libx264", "-preset", opts.preset,
              "-crf", str(opts.crf), "-pix_fmt", "yuv420p", "-r", str(opts.fps), "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
