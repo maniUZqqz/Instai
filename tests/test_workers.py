@@ -219,7 +219,7 @@ class Agent:
     def __init__(self, tmp_path: Path, server_url: str, code: str, comfy_url: str, name="pc-b"):
         self.dir = tmp_path / "pcb-data"
         env = {**os.environ, "INSTAI_DATA_DIR": str(self.dir), "INSTAI_COMFYUI_URL": comfy_url, "INSTAI_OLLAMA_URL": "http://127.0.0.1:9", "INSTAI_VOICE_FAKE": "1",
-               "PYTHONIOENCODING": "utf-8", "INSTAI_TTS_ENGINE": "fake", "INSTAI_MOSS_TTS_URL": "", "PYTHONUNBUFFERED": "1",
+               "PYTHONIOENCODING": "utf-8", "INSTAI_TTS_ENGINE": "fake", "INSTAI_SFX_ENGINE": "auto", "INSTAI_MUSIC_ENGINE": "auto", "INSTAI_MOSS_TTS_URL": "", "PYTHONUNBUFFERED": "1",
                **{f"INSTAI_VOICE_PORT_{k}": str(free_port()) for k in ("MOSS", "SFX", "MUSIC")}}
         self.log = open(tmp_path / "agent.log", "w", encoding="utf-8")
         self.proc = subprocess.Popen([sys.executable, "-m", "instai.remote.agent", "--server", server_url, "--code", code, "--name", name], cwd=ROOT, env=env,
