@@ -1,0 +1,51 @@
+# Models, tools and licences
+
+Generated from `instai/core/licences.py` by `scripts/gen_docs.py` - edit the registry, not this file.
+The Settings page shows the same table as badges.
+
+**How to read "Verified".** "model card read on 2026-10-28" means the licence line on the model's public Hugging Face card was read on that
+day; the full licence text was **not** audited and nothing here is legal advice. "brief" means the owner's brief states it. "NOT verified"
+means nobody has checked yet. Territorial and sanctions clauses (relevant from Iran) must be read in the full texts before a model is
+adopted for published, commercial content.
+
+**Open owner decisions**
+1. **FLUX.1 [dev]** - weights are under a non-commercial licence. The model card says generated outputs may be used commercially "as described in
+   the licence"; the licence text itself is gated and could not be read here. Until the owner (or a lawyer) accepts it, InstAI is built so that
+   the image model is swappable: Qwen-Image and Z-Image are Apache-2.0 per their cards and must be benchmarked against FLUX with the same seeds.
+2. **Anime video model** (Index-AniSora V3.2, AnimeGen I2V, Wan 2.2 + anime LoRA) - Phase 3 comparison; each licence (including the extra repo
+   terms of AniSora) must be read first. No character/IP LoRAs.
+3. **Voices** - the licence of each Piper voice (e.g. `fa_IR-gyro-medium`) must be checked on its model card before publishing commercially.
+
+**Measured numbers** (VRAM at the chosen quantisation, seconds per step, quality notes) are only entered in `docs/BENCHMARKS.md` after the
+benchmark has run on the real machine; this table never contains invented numbers (the VRAM column says "to measure" where unknown).
+
+| Model / tool | Role | Licence | Commercial use | Verified | VRAM | Notes |
+|---|---|---|---|---|---|---|
+| FLUX.1 [dev] (FP8) **(OWNER DECISION)** | image | FLUX.1 [dev] Non-Commercial License | conditional | model card read on 2026-10-28 (licence line only) | 12 GB (fp8) | Weights are non-commercial. The model card says generated outputs may be used commercially 'as described in the licence'; the full text (gated on Hugging Face) was not readable here. Owner/lawyer must read it. Fallback: Qwen-Image / Z-Image (Apache-2.0), to be benchmarked. |
+| Qwen-Image / Qwen-Image-Edit | image + edit | Apache-2.0 | yes | model card read on 2026-10-28 (licence line only) | to measure | Supported by the installed ComfyUI. Candidate to replace FLUX; also pose/expression editing from references. |
+| Z-Image (Turbo) | image | Apache-2.0 | yes | model card read on 2026-10-28 (licence line only) | to measure | Candidate image model; fast. |
+| Wan 2.2 I2V A14B (fp8, high/low noise) | video | Apache-2.0 | yes | model card read on 2026-10-28 (licence line only) | 12 GB with fp8 + 8-step LoRA | Card: authors claim no rights over generated content; users remain responsible for lawful use. Planning estimate 8-10 GPU min per 5 s 480p shot - NOT measured. |
+| Index-AniSora V3.2 | anime video | Apache-2.0 + extra repo terms (per brief) | unknown | NOT verified | GGUF Q4-Q5 | Phase 3: compare against plain Wan 2.2 on the same stills and seeds. Extra terms for derivatives must be read first. |
+| AnimeGen I2V (AIdeaLab) | anime video | Apache-2.0 (per brief) | unknown | NOT verified | GGUF Q4_K_M ~9.7 GB per expert | Phase 3 comparison candidate. |
+| Wan 2.2 + anime style LoRA | anime video | varies per LoRA | unknown | NOT verified | - | Only if that specific LoRA's licence allows selling output. Many popular ones do not. No character/IP LoRAs. |
+| LTX-2 **(EXCLUDED)** | video | requires a not-sanctioned-country representation | no | brief | - | EXCLUDED: the owner cannot make that representation from Iran. |
+| HunyuanVideo 1.5 **(EXCLUDED)** | video | territorial / trade-law clauses | no | brief | >= 14 GB | EXCLUDED: territorial clauses and needs more VRAM than the RTX 3060. |
+| Wan 2.5 and later **(EXCLUDED)** | video | API only (no open weights) | unknown | brief | - | Not planned: nothing to run locally. |
+| MOSS-TTS-Realtime 1.7B + Persian LoRA | speech, voice cloning | Apache-2.0 | yes | model card read on 2026-10-28 (licence line only) | to measure | Best Persian narration; needs its own server (GPU). |
+| MOSS-SoundEffect v2.0 | ambience / SFX | Apache-2.0 (per Qasem notes) | unknown | NOT verified | to measure | Phase 3. |
+| ACE-Step 1.5 (turbo) | music | MIT | yes | model card read on 2026-10-28 (licence line only) | to measure | Phase 3. |
+| Piper (engine) + voice fa_IR-gyro-medium | speech (CPU fallback) | engine MIT; each voice has its own licence | unknown | NOT verified | none (CPU) | The voice licence must be checked on its model card before publishing commercially. |
+| Vosk (ASR) | speech recognition | Apache-2.0 (per brief) | yes | brief | CPU | Used later for subtitle timing checks. |
+| Pocket-TTS **(EXCLUDED)** | speech | non-commercial | no | brief | - | EXCLUDED for published content. |
+| Edge TTS (unofficial online endpoint) **(EXCLUDED)** | speech | unofficial endpoint, not for commercial use | no | brief | - | EXCLUDED: not a licensed service. |
+| Rhubarb Lip Sync 1.13 | mouth shapes | MIT | yes | brief | CPU | Phase 3: drives puppet-2D mouths from the narration. |
+| Manim (Community) | diagrams for explainers | MIT | yes | brief | CPU | Phase 3 candidate for code-rendered motion graphics (alternative: SVG/Canvas to video). |
+| Real-ESRGAN x4v3 | upscale | BSD-3-Clause | yes | NOT verified | small | Already used by NMarketing. |
+| BiRefNet-lite | background removal (parallax layers) | MIT (per repo) | unknown | NOT verified | small | Phase 3. |
+| InsightFace detector weights **(EXCLUDED)** | talking-head dependency | non-commercial | no | brief | - | EXCLUDED: check every dependency of talking-head tools. |
+| FFmpeg 7.1.1 essentials build | assembly | GPL-3.0 build (run as a separate program, not linked) | yes | NOT verified | CPU | Video produced with FFmpeg is not encumbered by the GPL. |
+| Vazirmatn font (UI + subtitles) | font | SIL Open Font License 1.1 | yes | OFL.txt shipped with the package | - | Bundled in the repo with its licence text. |
+| Qwen3 / Qwen3.5 (Ollama) | text | Apache-2.0 (per model cards; verify the exact tag) | unknown | NOT verified | 8-9B fit 12 GB | Preferred default for Persian script drafts; measure with the benchmark. |
+| Gemma 3 / TranslateGemma (Ollama) | text | Gemma Terms of Use (custom) | conditional | NOT verified | 12B fits | Custom terms with use restrictions; read before commercial use. |
+| gpt-oss:20b (Ollama) | text | Apache-2.0 (per brief list) | unknown | NOT verified | 20B offloads to RAM | Slow on 12 GB. |
+| Dorna / partai dorna-llama3 (Persian) | text | Llama 3 community licence (derivative) | conditional | NOT verified | 8B Q4 | Persian-specialised; check the licence of the exact build. |
