@@ -44,7 +44,12 @@ TESTING = bool(os.environ.get("INSTAI_TESTING")) or "pytest" in sys.modules
 if TESTING:
     os.environ.setdefault("INSTAI_TESTING", "1")
     if not os.environ.get("INSTAI_DATA_DIR"):
-        os.environ["INSTAI_DATA_DIR"] = os.path.join(tempfile.mkdtemp(prefix="instai-test-"), "data")
+        _tmp_root = tempfile.mkdtemp(prefix="instai-test-")
+        os.environ["INSTAI_DATA_DIR"] = os.path.join(_tmp_root, "data")
+        import atexit
+        import shutil
+
+        atexit.register(shutil.rmtree, _tmp_root, ignore_errors=True)  # rendered test videos are large: never leave them behind
 DATA_DIR = Path(os.environ.get("INSTAI_DATA_DIR") or BASE_DIR / "data").resolve()
 MEDIA_ROOT = DATA_DIR / "media"
 LOG_DIR = DATA_DIR / "logs"
