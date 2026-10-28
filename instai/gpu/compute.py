@@ -337,3 +337,8 @@ def parallel_devices(kind: str, payload: dict, needs: list[str] | None = None, v
     needs = capabilities.needs_for(kind, payload) if needs is None else needs
     vram = capabilities.vram_for(kind, payload) if vram_mb is None else vram_mb
     return max(1, len(candidates(kind, payload, needs=needs, vram_mb=vram)))
+
+
+def workflow_available(workflow_id: str) -> bool:
+    """Can ANY device (this PC or an online worker) run this ComfyUI workflow right now (nodes + model files present)?"""
+    return bool(candidates("comfy.graph", {"workflow": workflow_id}, needs=[f"comfy:{workflow_id}"], vram_mb=0))

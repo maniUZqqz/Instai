@@ -1,0 +1,120 @@
+{
+ "1": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "FLUX.1 [dev] FP8.safetensors"
+  }
+ },
+ "2": {
+  "class_type": "KSampler",
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "positive": [
+    "8",
+    0
+   ],
+   "negative": [
+    "3",
+    0
+   ],
+   "latent_image": [
+    "11",
+    0
+   ],
+   "seed": 1,
+   "steps": 24,
+   "cfg": 1.0,
+   "sampler_name": "euler",
+   "scheduler": "simple",
+   "denoise": 0.62
+  }
+ },
+ "3": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "1",
+    1
+   ],
+   "text": "blurry, low resolution, distorted, deformed, bad anatomy, watermark, logo, unreadable text"
+  }
+ },
+ "4": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "clip": [
+    "1",
+    1
+   ],
+   "text": "placeholder prompt"
+  }
+ },
+ "6": {
+  "class_type": "VAEDecode",
+  "inputs": {
+   "samples": [
+    "2",
+    0
+   ],
+   "vae": [
+    "1",
+    2
+   ]
+  }
+ },
+ "7": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "images": [
+    "6",
+    0
+   ],
+   "filename_prefix": "InstAI/Keyframes"
+  }
+ },
+ "8": {
+  "class_type": "FluxGuidance",
+  "inputs": {
+   "conditioning": [
+    "4",
+    0
+   ],
+   "guidance": 3.5
+  }
+ },
+ "9": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "@input:ref.png"
+  }
+ },
+ "10": {
+  "class_type": "ImageScale",
+  "inputs": {
+   "image": [
+    "9",
+    0
+   ],
+   "upscale_method": "lanczos",
+   "width": 832,
+   "height": 1472,
+   "crop": "center"
+  }
+ },
+ "11": {
+  "class_type": "VAEEncode",
+  "inputs": {
+   "pixels": [
+    "10",
+    0
+   ],
+   "vae": [
+    "1",
+    2
+   ]
+  }
+ }
+}

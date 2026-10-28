@@ -147,7 +147,7 @@ def test_workflow_input_validation_and_bindings():
 def test_every_template_is_a_wellformed_graph():
     for w in WORKFLOWS.values():
         assert w.template_file.exists()
-        graph = w.build({"prompt": "x", "image": "i.png"})
+        graph = w.build({"prompt": "x", "image": "i.png", "image_end": "e.png", "folder": "f", "lora_name": "l.safetensors"})
         assert {n["class_type"] for n in graph.values()} >= set(w.required_nodes) - {"LoadImage"} or "LoadImage" in w.required_nodes
 
 

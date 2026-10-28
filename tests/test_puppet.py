@@ -192,7 +192,7 @@ def test_rhubarb_wrapper_languages_and_fallback(tmp_path, monkeypatch):
     cues = [{"start": 0.0, "end": 0.4, "value": "X"}, {"start": 0.4, "end": 0.7, "value": "D"}, {"start": 0.7, "end": 1.0, "value": "B"}]
     monkeypatch.setenv("INSTAI_RHUBARB_EXE", fake_rhubarb(tmp_path, cues))
     fa = lipsync.visemes(wav, language="fa", text="سلام")
-    assert fa["engine"] == "rhubarb" and fa["note"] == "recogniser=phonetic" and fa["cues"][1] == (0.4, 0.7, "D")
+    assert fa["engine"] == "rhubarb" and fa["note"] == "recogniser=phonetic" and fa["cues"][1] == (0.5, 0.7, "D")      # (the first 0.5 s of the test audio is silent: closed mouth, whatever the recogniser said)
     en = lipsync.visemes(wav, language="en", text="hello world")
     assert en["note"] == "recogniser=pocketSphinx"
     # Rhubarb breaks -> the amplitude mouth takes over, with a note
@@ -461,3 +461,13 @@ def test_puppet_shots_render_through_the_episode_pipeline(api, worker, ffmpeg_av
     ep2 = produce(api, worker, ep_id, "preview")
     assert Asset.objects.filter(role="render_clip", episode_id=ep_id).count() == before, "same rig, same audio: clips are reused"
     assert ep2["state"] == "ready_for_approval"
+
+
+def test_pauses_are_masked_with_a_closed_mouth(tmp_path):
+    wav = speech_like_wav(tmp_path / "s.wav")                      # silence 0-0.5, speech, silence 1.5-2.0, speech
+    silent = lipsync.silent_intervals(wav)
+    assert any(abs(a - 0.0) < 0.05 and abs(b - 0.5) < 0.06 for a, b in silent) and any(abs(a - 1.5) < 0.06 and abs(b - 2.0) < 0.06 for a, b in silent)
+    recogniser_says_speech = [(0.0, 3.0, "C")]                    # e.g. Rhubarb's phonetic recogniser on Persian labels pauses as speech too
+    out = lipsync.mask_silence(recogniser_says_speech, silent)
+    assert lipsync.shape_at(out, 0.2) == "X" and lipsync.shape_at(out, 1.7) == "X" and lipsync.shape_at(out, 1.0) == "C" and lipsync.shape_at(out, 2.5) == "C"
+    assert all(out[i][1] <= out[i + 1][0] + 1e-6 for i in range(len(out) - 1))

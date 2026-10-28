@@ -104,8 +104,10 @@ class GPUArbiter:
         return {"llm": llm, "comfy": comfy, "voice": voice}
 
     def unload_others(self, occupant: str) -> None:
-        occupant = "voice" if occupant in ("tts", "sfx", "music") else occupant
-        for name, fn in self.unloaders().items():
+        unloaders = self.unloaders()
+        if occupant in ("tts", "sfx", "music") and "voice" in unloaders:
+            occupant = "voice"                      # speech, effects and music all live in the voice servers
+        for name, fn in unloaders.items():
             if name != occupant:
                 try:
                     fn()

@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import random
+import shutil
 import tempfile
 import time
 from pathlib import Path
@@ -31,6 +32,8 @@ from instai.render import ffmpeg
 from instai.render.placeholders import make_placeholder
 from instai.story import costs, services, states
 from instai.story.models import Episode, Shot
+
+from . import hero
 
 log = logging.getLogger("instai.pipeline")
 PREVIEW, FINAL = "preview", "final"
@@ -68,7 +71,18 @@ def image_engine() -> str:
 def keyframe_hash(shot: Shot, ep: Episode, mode: str) -> str:
     w, h = KF_SIZE[mode]
     return _h("kf", shot.image_prompt, shot.negative_prompt, shot.seed, w, h, style_prompt(ep), image_engine(),
-              settings_store.effective("image_workflow"), mode if image_engine() != "placeholder" else "", "plate" if shot.technique == "puppet_2d" else "")
+              settings_store.effective("image_workflow"), mode if image_engine() != "placeholder" else "", "plate" if shot.technique == "puppet_2d" else "",
+              _reference_key(shot, ep))
+
+
+def _reference_key(shot: Shot, ep: Episode) -> str:
+    """Changes when the character sheet used as a reference for a hero keyframe changes (so the keyframe is made again)."""
+    if shot.technique not in hero.HERO_TECHNIQUES:
+        return ""
+    sheet, _ = hero.reference_sheet(shot, ep)
+    if sheet is None:
+        return "no-sheet"
+    return _h(Path(sheet).name, Path(sheet).stat().st_size)
 
 
 PLATE_SUFFIX = "empty background plate, no characters, no people, no text"
@@ -110,18 +124,29 @@ def missing_narration(ep: Episode) -> list[Shot]:
 
 
 def wan_shots(ep: Episode) -> list[Shot]:
-    return [s for s in services.all_shots(ep) if s.technique == "wan_i2v"]
+    return [s for s in services.all_shots(ep) if s.technique in hero.HERO_TECHNIQUES]
 
 
-def clip_hash(shot: Shot, kf: Asset) -> str:
-    return _h("wan", kf.sha256, shot.image_prompt, shot.description, shot.duration_sec, shot.seed)
+def next_keyframe(shot: Shot, ep: Episode) -> Asset | None:
+    """The keyframe of the shot that follows (the end image of a first/last-frame transition)."""
+    shots = services.all_shots(ep)
+    for i, s in enumerate(shots):
+        if s.pk == shot.pk and i + 1 < len(shots):
+            return current(shots[i + 1], "keyframe")
+    return None
+
+
+def clip_hash(shot: Shot, kf: Asset, ep: Episode | None = None) -> str:
+    end = next_keyframe(shot, ep) if (ep is not None and shot.technique == "wan_flf") else None
+    model = hero.anime_model(ep.series.page) if ep is not None else ""
+    return _h("wan", kf.sha256, shot.image_prompt, shot.description, shot.duration_sec, shot.seed, shot.technique, end.sha256 if end else "", model)
 
 
 def missing_clips(ep: Episode) -> list[Shot]:
     out = []
     for s in wan_shots(ep):
         kf = current(s, "keyframe")
-        if kf and not asset_ok(current(s, "shot_clip"), clip_hash(s, kf)):
+        if kf and not asset_ok(current(s, "shot_clip"), clip_hash(s, kf, ep)):
             out.append(s)
     return out
 
@@ -213,56 +238,76 @@ def media_dir(ep: Episode) -> Path:
 
 
 def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
+    """Keyframes. Placeholders (demo mode) run here on the CPU. Real images go through the GPU router: every shot is one ComfyUI task, so a
+    worker PC takes shots in parallel; hero shots start from the approved character sheet (img2img / Qwen-Image-Edit) when one exists."""
     shots = missing_keyframes(ep, mode)
     engine = image_engine()
     if not shots:
         return {"generated": 0}
     w, h = KF_SIZE[mode]
-    done = 0
-    client = spec = lease_cm = None
+    wid = str(settings_store.effective("image_workflow"))
+    notes: list[str] = []
+    for shot in shots:
+        if shot.seed is None:
+            shot.seed = int(_h("seed", ep.pk, shot.pk), 16) % (2 ** 31)
+            shot.save(update_fields=["seed"])
     if engine != "placeholder":
-        client, spec = _comfy_ready()
-    try:
-        if client:
-            from instai.gpu.arbiter import ARBITER
+        from instai.gpu import compute
+        from instai.providers.comfy.workflows import get_workflow
 
-            lease_cm = ARBITER.hold(ctx, "comfy")
-            lease_cm.__enter__()
+        if not compute.workflow_available(wid):
+            raise ProviderError("ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست). آن را اجرا کنید (یا در تنظیمات حالت آزمایشی را روشن کنید).",
+                                retryable=False, code="not_ready")
+
+    def make(shot: Shot) -> int:
+        hsh = keyframe_hash(shot, ep, mode)
+        rel = f"episodes/{ep.pk}/keyframes/shot{shot.pk}-{hsh[:8]}.png"
+        tmp = Path(tempfile.mkdtemp(prefix="kf-", dir=settings.MEDIA_ROOT)) / "kf.png"
+        if engine == "placeholder":
+            make_placeholder(tmp, w, h, f"shot {shot.scene.index}.{shot.index}", seed=f"{ep.pk}-{shot.pk}")
+            prov = {"provider": "placeholder", "engine": "placeholder", "prompt": shot.image_prompt, "seed": shot.seed, "job_id": ctx.job.pk,
+                    "note": "demo mode: generated placeholder, not an AI image"}
+        else:
+            plate = shot.technique == "puppet_2d"      # the puppet is drawn on top: the keyframe is only the background
+            prompt = ", ".join(x for x in (shot.image_prompt, style_prompt(ep), PLATE_SUFFIX if plate else "") if x)
+            neg = ", ".join(x for x in (shot.negative_prompt, PLATE_NEGATIVE if plate else "") if x)
+            base = {"prompt": prompt, "negative_prompt": neg, "width": w, "height": h, "seed": shot.seed, "steps": 12 if mode == PREVIEW else 24}
+            use_wid, inputs, files, note = hero.keyframe_inputs(shot, ep, base, {})
+            use_wid = use_wid or wid
+            spec = get_workflow(use_wid)
+            res = compute.run_task(ctx, "comfy.graph", {"graph": spec.build(inputs), "workflow": use_wid, "timeout": 1800, "expected": spec.expected_seconds}, inputs=files)
+            try:
+                pics = res.of_kind(*hero.IMAGE_SUFFIX)
+                if not pics:
+                    raise ProviderError("ComfyUI returned no image", retryable=True)
+                shutil.move(str(pics[0]), tmp)
+            finally:
+                res.cleanup()
+            prov = {**spec.provenance(inputs), "provider": "comfyui", "job_id": ctx.job.pk, "engine": "comfyui", "device": res.device, "reference": bool(files),
+                    "note": note}
+        asset_storage.register(tmp, rel, kind="image", role="keyframe", page=page_of(ep), episode=ep, shot=shot, input_hash=hsh, provenance=prov)
+        _cleanup(tmp.parent)
+        Shot.objects.filter(pk=shot.pk).update(status="done", last_error="")
+        return 1
+
+    if engine == "placeholder":
+        done = 0
         for i, shot in enumerate(shots):
             ctx.check()
             ctx.progress(i / len(shots), f"keyframe {i + 1}/{len(shots)}")
-            if shot.seed is None:
-                shot.seed = int(_h("seed", ep.pk, shot.pk), 16) % (2 ** 31)
-                shot.save(update_fields=["seed"])
-            hsh = keyframe_hash(shot, ep, mode)
-            rel = f"episodes/{ep.pk}/keyframes/shot{shot.pk}-{hsh[:8]}.png"
-            if client and spec:
-                plate = shot.technique == "puppet_2d"      # the puppet is drawn on top: the keyframe is only the background
-                prompt = ", ".join(x for x in (shot.image_prompt, style_prompt(ep), PLATE_SUFFIX if plate else "") if x)
-                neg = ", ".join(x for x in (shot.negative_prompt, PLATE_NEGATIVE if plate else "") if x)
-                inputs = {"prompt": prompt, "negative_prompt": neg, "width": w, "height": h, "seed": shot.seed,
-                          "steps": 12 if mode == PREVIEW else 24}
-                graph = spec.build(inputs)
-                _, files = client.run(graph, timeout=1800, on_tick=lambda s: ctx.progress(i / len(shots), f"keyframe {i + 1}/{len(shots)} ({int(s)}s)"),
-                                      cancel=lambda: _cancelled(ctx))
-                if not files:
-                    raise ProviderError("ComfyUI returned no image", retryable=True)
-                tmp = Path(tempfile.mkdtemp(prefix="kf-", dir=settings.MEDIA_ROOT)) / "kf.png"
-                client.download(files[0], tmp)
-                prov = {**spec.provenance(inputs), "provider": "comfyui", "job_id": ctx.job.pk, "engine": "comfyui"}
-            else:
-                tmp = Path(tempfile.mkdtemp(prefix="kf-", dir=settings.MEDIA_ROOT)) / "kf.png"
-                make_placeholder(tmp, w, h, f"shot {shot.scene.index}.{shot.index}", seed=f"{ep.pk}-{shot.pk}")
-                prov = {"provider": "placeholder", "engine": "placeholder", "prompt": shot.image_prompt, "seed": shot.seed, "job_id": ctx.job.pk,
-                        "note": "demo mode: generated placeholder, not an AI image"}
-            asset_storage.register(tmp, rel, kind="image", role="keyframe", page=page_of(ep), episode=ep, shot=shot, input_hash=hsh, provenance=prov)
-            _cleanup(tmp.parent)
-            Shot.objects.filter(pk=shot.pk).update(status="done", last_error="")
-            done += 1
-    finally:
-        if lease_cm:
-            lease_cm.__exit__(None, None, None)
-    return {"generated": done}
+            done += make(shot)
+        return {"generated": done}
+    from instai.gpu import compute
+
+    counter = {"n": 0}
+
+    def tracked(shot):
+        r = make(shot)
+        counter["n"] += 1
+        ctx.progress(counter["n"] / len(shots), f"keyframe {counter['n']}/{len(shots)}")
+        return r
+    done = sum(compute.fan_out(ctx, shots, tracked, kind="comfy.graph", payload={"workflow": wid}))
+    return {"generated": done, "notes": notes}
 
 
 def _cancelled(ctx) -> bool:
@@ -273,22 +318,6 @@ def _cleanup(d: Path) -> None:
     import shutil
 
     shutil.rmtree(d, ignore_errors=True)
-
-
-def _comfy_ready(workflow: str | None = None):
-    from instai.core import hardware, runtime
-    from instai.providers.comfy.client import ComfyClient
-    from instai.providers.comfy.workflows import get_workflow, workflow_availability
-
-    wid = workflow or str(settings_store.effective("image_workflow"))
-    info = hardware.comfy_object_info(runtime.comfyui_url(), force=True)
-    if info is None:
-        raise ProviderError("ComfyUI در دسترس نیست. آن را اجرا کنید (یا در تنظیمات حالت آزمایشی را روشن کنید).", retryable=False, code="not_ready")
-    av = next((w for w in workflow_availability(info) if w["id"] == wid), None)
-    if not av or not av["available"]:
-        miss = (av or {}).get("missing_models", []) + (av or {}).get("missing_nodes", [])
-        raise ProviderError(f"گردش‌کار {wid} روی این ComfyUI آماده نیست؛ موارد ناموجود: {', '.join(miss[:4])}", retryable=False, code="not_ready")
-    return ComfyClient(runtime.comfyui_url()), get_workflow(wid)
 
 
 def step_tts(ctx, ep: Episode, mode: str) -> dict:
@@ -318,8 +347,31 @@ def step_tts(ctx, ep: Episode, mode: str) -> dict:
 
 
 def _speak(ctx, tts, text: str, out: Path, voice: dict, lang: str, seed):
-    """One line of speech. GPU engines (MOSS) hold the arbiter; CPU/online engines (Piper, Pocket, Edge) run in parallel with it."""
+    """One line of speech. MOSS (GPU) goes through the GPU router, so a worker PC can speak while this PC renders video; CPU/online engines
+    (Piper, Pocket, Edge) run right here in parallel with the GPU."""
     kw = dict(voice=voice["voice"] or None, language=lang, seed=seed, reference=voice["reference"] or None)
+    if tts.resource == "gpu" and tts.id == "moss":
+        from instai.gpu import compute
+        from instai.providers.tts import TTSResult
+
+        payload = {"engine": "moss", "text": text, "voice": kw["voice"] or "", "language": lang, "seed": seed}
+        files = {}
+        if kw["reference"]:
+            files["ref.wav"] = Path(kw["reference"])
+            payload["reference_input"] = "ref.wav"
+        res = compute.run_task(ctx, "voice.tts", payload, inputs=files)
+        try:
+            src = res.file("speech.wav")
+            if src is None:
+                raise ProviderError("the speech task returned no audio", retryable=True)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(src), out)
+        finally:
+            res.cleanup()
+        r = TTSResult(out, float(res.result.get("seconds") or 0.0), "moss", str(res.result.get("voice") or ""), int(res.result.get("sample_rate") or 24000),
+                      float(res.result.get("render_seconds") or res.seconds))
+        r.device = res.device
+        return r
     if tts.resource == "gpu":
         from instai.gpu.arbiter import ARBITER
 
@@ -329,39 +381,44 @@ def _speak(ctx, tts, text: str, out: Path, voice: dict, lang: str, seed):
 
 
 def step_clips(ctx, ep: Episode, mode: str) -> dict:
-    """Wan 2.2 hero shots from the approved/current keyframe. Unavailable ComfyUI/workflow is not fatal: those shots keep Ken Burns."""
+    """Wan 2.2 hero shots (image-to-video, first/last-frame transitions, chained for long shots) from the approved keyframes. Every shot is one or
+    more ComfyUI tasks on the GPU router (this PC and worker PCs); colour matched to the keyframe and checked against it and the character sheet.
+    No device able to run Wan is not fatal: those shots keep the Ken Burns motion."""
+    from instai.gpu import compute
+
+    from .models import ShotRender
+
     shots = missing_clips(ep)
     if not shots:
         return {"generated": 0}
-    try:
-        client, spec = _comfy_ready("wan22_i2v_a14b_fp8")
-    except ProviderError as e:
-        ctx.log(f"video clips skipped, Ken Burns is used instead: {e}", "warning")
-        return {"generated": 0, "skipped": len(shots), "reason": str(e)}
-    from instai.gpu.arbiter import ARBITER
+    wid, _ = hero.i2v_workflow(page_of(ep))
+    if not compute.workflow_available(wid):
+        reason = f"no PC can run the video workflow {wid} (ComfyUI down or model files missing)"
+        ctx.log(f"video clips skipped, Ken Burns is used instead: {reason}", "warning")
+        return {"generated": 0, "skipped": len(shots), "reason": reason}
+    counter = {"n": 0}
 
-    done = 0
-    with ARBITER.hold(ctx, "comfy"):
-        for i, shot in enumerate(shots):
-            ctx.check()
-            kf = current(shot, "keyframe")
-            name = client.upload_image(asset_storage.storage.path_for(kf.path), f"instai-shot{shot.pk}.png")
-            frames = max(9, min(81, int(round(shot.duration_sec * 16)) + 1))
-            inputs = {"prompt": shot.image_prompt or shot.description, "image": name, "width": 480, "height": 832, "length": frames,
-                      "seed": shot.seed or 1, "negative_prompt": shot.negative_prompt}
-            graph = spec.build(inputs)
-            _, files = client.run(graph, timeout=3600, on_tick=lambda s: ctx.progress(i / len(shots), f"Wan {i + 1}/{len(shots)} ({int(s)}s)"),
-                                  cancel=lambda: _cancelled(ctx))
-            vids = [f for f in files if f.kind in ("video", "images", "gifs") and f.filename.lower().endswith((".mp4", ".webm", ".mkv", ".mov"))]
-            if not vids:
-                raise ProviderError("ComfyUI returned no video file", retryable=True)
-            tmp = Path(tempfile.mkdtemp(prefix="clip-", dir=settings.MEDIA_ROOT)) / vids[0].filename
-            client.download(vids[0], tmp)
-            rel = f"episodes/{ep.pk}/clips/shot{shot.pk}-{clip_hash(shot, kf)[:8]}{tmp.suffix}"
-            asset_storage.register(tmp, rel, kind="video", role="shot_clip", page=page_of(ep), episode=ep, shot=shot, input_hash=clip_hash(shot, kf),
-                                   provenance={**spec.provenance(inputs), "provider": "comfyui", "job_id": ctx.job.pk})
-            _cleanup(tmp.parent)
-            done += 1
+    def one(shot: Shot) -> int:
+        kf = current(shot, "keyframe")
+        rec = ShotRender.objects.create(shot=shot, technique=shot.technique, status="running", params={"workflow": wid, "duration": shot.duration_sec})
+        try:
+            r = hero.make_clip(ctx, shot, ep, kf, next_keyframe(shot, ep) if shot.technique == "wan_flf" else None, prompt=shot.image_prompt or shot.description,
+                               seed=shot.seed or 1, flf=shot.technique == "wan_flf")
+        except BaseException as e:
+            ShotRender.objects.filter(pk=rec.pk).update(status="failed", error=str(e)[:500])
+            raise
+        chash = clip_hash(shot, kf, ep)
+        rel = f"episodes/{ep.pk}/clips/shot{shot.pk}-{chash[:8]}.mp4"
+        asset = asset_storage.register(r["path"], rel, kind="video", role="shot_clip", page=page_of(ep), episode=ep, shot=shot, input_hash=chash,
+                                       provenance={"workflow": r["workflow"], "provider": "comfyui", "job_id": ctx.job.pk, "device": r["device"], "segments": r["segments"],
+                                                   "colour_match": r["colour"], "consistency": r["qc"], "first_last_frame": r["flf"], "notes": r["notes"]})
+        _cleanup(r["path"].parent)
+        ShotRender.objects.filter(pk=rec.pk).update(status="done", asset=asset, device=r["device"], seconds=r["seconds"], qc=r["qc"],
+                                                    params={"workflow": r["workflow"], "segments": r["segments"], "colour": r["colour"], "notes": r["notes"]})
+        counter["n"] += 1
+        ctx.progress(counter["n"] / len(shots), f"video {counter['n']}/{len(shots)}")
+        return 1
+    done = sum(compute.fan_out(ctx, shots, one, kind="comfy.graph", payload={"workflow": wid}))
     return {"generated": done}
 
 

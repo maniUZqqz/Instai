@@ -12,6 +12,8 @@ os.environ["INSTAI_LLM_PROVIDER"] = "fake"
 os.environ["INSTAI_TTS_ENGINE"] = "fake"
 os.environ["INSTAI_IMAGE_ENGINE"] = "placeholder"
 os.environ["INSTAI_RESEARCH_FETCH"] = "fake"
+os.environ["INSTAI_MODELS_DIR"] = os.path.join(_TMP, "models")   # hermetic: tools/models of the dev checkout (Piper, Rhubarb ...) must not leak into tests
+os.environ["INSTAI_TOOLS_DIR"] = os.path.join(_TMP, "tools")
 os.environ["INSTAI_OLLAMA_URL"] = "http://127.0.0.1:9"       # nothing listens here: detection must degrade to "missing"
 os.environ["INSTAI_COMFYUI_URL"] = "http://127.0.0.1:9"
 os.environ.pop("INSTAI_OPENAI_API_KEY", None)

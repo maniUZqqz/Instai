@@ -119,7 +119,7 @@ def test_models_endpoint_lists_licences_and_workflows(api):
     j = api.get("/api/models?comfy=0").json()
     ids = {m["id"]: m for m in j["models"]}
     assert ids["ltx2"]["excluded"] and ids["flux-dev"]["decision"] and "wan22" in j["packages"] and "piper" in j["packages"]
-    assert {w["id"] for w in j["workflows"]} == {"flux_dev_fp8_t2i", "wan22_i2v_a14b_fp8"}
+    assert {"flux_dev_fp8_t2i", "wan22_i2v_a14b_fp8", "wan22_flf_a14b_fp8", "anisora_v32_i2v_gguf", "animegen_i2v_gguf"} <= {w["id"] for w in j["workflows"]}
     assert api.post("/api/downloads", {"packages": ["definitely-not-a-pack"]}, format="json").status_code == 400
 
 

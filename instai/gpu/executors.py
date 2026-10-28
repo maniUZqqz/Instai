@@ -74,11 +74,16 @@ def run_comfy_graph(payload: dict, io: TaskIO) -> dict:
     for f in sorted(io.in_dir.iterdir()) if io.in_dir.is_dir() else []:
         if f.suffix.lower() in IMAGE_EXT:
             mapping[f.name] = client.upload_image(f, f"instai-{uuid.uuid4().hex[:6]}-{f.name}")
-    for inst in payload.get("install", []):            # e.g. a trained LoRA that must sit in ComfyUI's loras folder
+    for inst in payload.get("install", []):            # files that must sit inside ComfyUI's folder first (a LoRA, a training dataset)
         cd = runtime.comfyui_dir()
         if not cd:
-            raise ProviderError("COMFYUI_DIR is not set on this PC, so a LoRA cannot be installed", retryable=False, code="not_ready")
-        dst = Path(cd) / "models" / str(inst.get("dest") or "loras")
+            raise ProviderError("COMFYUI_DIR is not set on this PC, so files cannot be installed into ComfyUI", retryable=False, code="not_ready")
+        rel = str(inst.get("dest") or "models/loras").replace("\\", "/").strip("/")
+        if rel == "loras":
+            rel = "models/loras"
+        if ".." in rel.split("/") or not rel.startswith(("models/", "input/")):
+            raise ProviderError(f"refusing to install into {rel}", retryable=False, code="bad_task")
+        dst = Path(cd) / rel
         dst.mkdir(parents=True, exist_ok=True)
         src = io.input(inst["input"])
         if not (dst / src.name).exists() or (dst / src.name).stat().st_size != src.stat().st_size:
@@ -97,7 +102,13 @@ def run_comfy_graph(payload: dict, io: TaskIO) -> dict:
         name = f"{f.node_id}-{f.filename}"
         client.download(f, io.out_dir / name)
         saved.append({"name": name, "kind": f.kind, "node": f.node_id})
-    if not saved:
+    for pattern in payload.get("collect", []):           # files a graph wrote straight into ComfyUI's folders (a trained LoRA)
+        cd = runtime.comfyui_dir()
+        found = sorted(Path(cd).glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True) if cd and ".." not in pattern else []
+        if found:
+            shutil.copyfile(found[0], io.out_dir / found[0].name)
+            saved.append({"name": found[0].name, "kind": "file", "node": ""})
+    if not saved and payload.get("expect_files", True):
         raise ProviderError("ComfyUI returned no output file", retryable=True)
     return {"files": saved, "prompt_id": pid}
 

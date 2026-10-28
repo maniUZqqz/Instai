@@ -1,0 +1,78 @@
+{
+ "1": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "FLUX.1 [dev] FP8.safetensors"
+  }
+ },
+ "2": {
+  "class_type": "LoadImageTextSetFromFolderNode",
+  "inputs": {
+   "folder": "instai_lora",
+   "clip": [
+    "1",
+    1
+   ],
+   "resize_method": "Stretch",
+   "width": 512,
+   "height": 512
+  }
+ },
+ "3": {
+  "class_type": "VAEEncode",
+  "inputs": {
+   "pixels": [
+    "2",
+    0
+   ],
+   "vae": [
+    "1",
+    2
+   ]
+  }
+ },
+ "4": {
+  "class_type": "TrainLoraNode",
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "latents": [
+    "3",
+    0
+   ],
+   "positive": [
+    "2",
+    1
+   ],
+   "batch_size": 1,
+   "grad_accumulation_steps": 1,
+   "steps": 300,
+   "learning_rate": 0.0005,
+   "rank": 16,
+   "optimizer": "AdamW",
+   "loss_function": "MSE",
+   "seed": 1,
+   "training_dtype": "bf16",
+   "lora_dtype": "bf16",
+   "algorithm": "lora",
+   "gradient_checkpointing": true,
+   "existing_lora": "[None]"
+  }
+ },
+ "5": {
+  "class_type": "SaveLoRANode",
+  "inputs": {
+   "lora": [
+    "4",
+    1
+   ],
+   "prefix": "loras/instai_character",
+   "steps": [
+    "4",
+    3
+   ]
+  }
+ }
+}

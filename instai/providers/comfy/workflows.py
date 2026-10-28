@@ -144,6 +144,106 @@ WORKFLOWS: dict[str, WorkflowSpec] = {
 }
 
 
+# ------------------------------------------------------------------ Phase 3: hero shots, references, anime candidates, LoRA
+
+_VID_FLF_SCHEMA = {**_VID_SCHEMA, "required": ["prompt", "image", "image_end"],
+                   "properties": {**_VID_SCHEMA["properties"], "image_end": {"type": "string", "minLength": 1}}}
+_REF_SCHEMA = {
+    "type": "object", "required": ["prompt", "image"],
+    "properties": {
+        "prompt": {"type": "string", "minLength": 1}, "negative_prompt": {"type": "string"}, "image": {"type": "string", "minLength": 1},
+        "width": {"type": "integer", "minimum": 256, "maximum": 2048}, "height": {"type": "integer", "minimum": 256, "maximum": 2048},
+        "seed": {"type": ["integer", "null"]}, "steps": {"type": "integer", "minimum": 1, "maximum": 60},
+        "denoise": {"type": "number", "minimum": 0.2, "maximum": 1.0}, "checkpoint": {"type": "string", "minLength": 1},
+        "filename_prefix": {"type": "string"},
+    },
+}
+_WAN_BINDINGS = {"prompt": [("10", "text")], "negative_prompt": [("11", "text")], "image": [("1", "image")], "width": [("12", "width")],
+                 "height": [("12", "height")], "length": [("12", "length")], "fps": [("16", "fps")], "seed": [("13", "noise_seed")],
+                 "filename_prefix": [("17", "filename_prefix")]}
+_WAN_COMMON_MODELS = [("CLIPLoader", "clip_name", "umt5_xxl_fp8_e4m3fn_scaled.safetensors"), ("VAELoader", "vae_name", "wan_2.1_vae.safetensors"),
+                      ("LoraLoaderModelOnly", "lora_name", "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors")]
+_WAN_NODES = ["ModelSamplingSD3", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "KSamplerAdvanced", "VAEDecode", "CreateVideo", "SaveVideo", "LoadImage"]
+_WAN_DEFAULTS = {"width": 480, "height": 832, "length": 81, "fps": 16.0, "seed": None, "negative_prompt": ""}
+
+WORKFLOWS.update({
+    "wan22_flf_a14b_fp8": WorkflowSpec(
+        id="wan22_flf_a14b_fp8", version=1, kind="video", title="Wan 2.2 first/last frame (A14B fp8 + lightx2v 8-step): transitions and retakes",
+        input_schema=_VID_FLF_SCHEMA, output_kind="video", defaults=_WAN_DEFAULTS,
+        bindings={**_WAN_BINDINGS, "image_end": [("18", "image")]},
+        required_nodes=["UNETLoader", "WanFirstLastFrameToVideo", *_WAN_NODES],
+        required_models=[("UNETLoader", "unet_name", "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors"),
+                         ("UNETLoader", "unet_name", "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors"), *_WAN_COMMON_MODELS],
+        vram_gb=12, licence="Apache-2.0 (Wan 2.2) - per Qasem manifest notes; re-verify", licence_status="unverified", expected_seconds=480,
+        notes="Same models as the I2V workflow, with ComfyUI's WanFirstLastFrameToVideo node (as the NMarketing regen tool). Estimate only."),
+    "anisora_v32_i2v_gguf": WorkflowSpec(
+        id="anisora_v32_i2v_gguf", version=1, kind="video", title="Index-AniSora V3.2 (GGUF Q4_0 high/low) - anime I2V candidate",
+        input_schema=_VID_SCHEMA, output_kind="video", defaults=_WAN_DEFAULTS, bindings=_WAN_BINDINGS,
+        required_nodes=["UnetLoaderGGUF", *_WAN_NODES],
+        required_models=[("UnetLoaderGGUF", "unet_name", "Index-Anisora-V3.2-High-Q4_0.gguf"),
+                         ("UnetLoaderGGUF", "unet_name", "Index-Anisora-V3.2-Low-Q4_0.gguf"), *_WAN_COMMON_MODELS],
+        vram_gb=12, licence="Apache-2.0 + extra restrictions for retraining/derivatives (bilibili/Index-anisora LICENSE); community GGUF conversion",
+        licence_status="unverified", expected_seconds=540,
+        notes="Needs the ComfyUI-GGUF custom node. Same sampler and lightx2v LoRA as plain Wan so the comparison is like for like. UNVERIFIED graph: never run on a real ComfyUI."),
+    "animegen_i2v_gguf": WorkflowSpec(
+        id="animegen_i2v_gguf", version=1, kind="video", title="AnimeGen I2V (AIdeaLab, GGUF Q4_K_M high/low) - anime I2V candidate",
+        input_schema=_VID_SCHEMA, output_kind="video", defaults=_WAN_DEFAULTS, bindings=_WAN_BINDINGS,
+        required_nodes=["UnetLoaderGGUF", *_WAN_NODES],
+        required_models=[("UnetLoaderGGUF", "unet_name", "I2V_high_noise_Q4_K_M.gguf"), ("UnetLoaderGGUF", "unet_name", "I2V_low_noise_Q4_K_M.gguf"),
+                         *_WAN_COMMON_MODELS],
+        vram_gb=12, licence="Apache-2.0 (AIdeaLab; card tag commercial-use; Wan 2.2 base); community GGUF conversion", licence_status="unverified",
+        expected_seconds=540, notes="Needs the ComfyUI-GGUF custom node. The model card recommends an RTX 4090 for the original weights; Q4_K_M is ~9.7 GB per expert. UNVERIFIED graph."),
+    "flux_dev_fp8_img2img": WorkflowSpec(
+        id="flux_dev_fp8_img2img", version=1, kind="image", title="FLUX.1 [dev] FP8 - keyframe from the character sheet (img2img, reference conditioning)",
+        input_schema=_REF_SCHEMA,
+        defaults={"width": 832, "height": 1472, "steps": 24, "seed": None, "negative_prompt": "", "denoise": 0.62, "checkpoint": "FLUX.1 [dev] FP8.safetensors"},
+        bindings={"prompt": [("4", "text")], "negative_prompt": [("3", "text")], "image": [("9", "image")], "width": [("10", "width")], "height": [("10", "height")],
+                  "seed": [("2", "seed")], "steps": [("2", "steps")], "denoise": [("2", "denoise")], "checkpoint": [("1", "ckpt_name")],
+                  "filename_prefix": [("7", "filename_prefix")]},
+        required_nodes=["CheckpointLoaderSimple", "KSampler", "CLIPTextEncode", "FluxGuidance", "LoadImage", "ImageScale", "VAEEncode", "VAEDecode", "SaveImage"],
+        required_models=[("CheckpointLoaderSimple", "ckpt_name", "FLUX.1 [dev] FP8.safetensors")], vram_gb=12,
+        licence="FLUX.1 [dev] Non-Commercial License (weights); output use: see docs/MODELS.md", licence_status="unverified", expected_seconds=70,
+        notes="Core nodes only. The sheet is encoded and partly re-noised (denoise ~0.6) so the new keyframe keeps the character's look. Mid-confidence graph (standard img2img)."),
+    "qwen_image_edit_ref": WorkflowSpec(
+        id="qwen_image_edit_ref", version=1, kind="image", title="Qwen-Image-Edit 2509 (4-step Lightning) - keyframe edited from the character sheet",
+        input_schema={**_REF_SCHEMA, "required": ["prompt", "image"]},
+        defaults={"seed": None, "steps": 4, "denoise": 1.0},
+        bindings={"prompt": [("9", "prompt")], "image": [("7", "image")], "seed": [("12", "seed")], "steps": [("12", "steps")], "filename_prefix": [("14", "filename_prefix")]},
+        required_nodes=["UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "ModelSamplingAuraFlow", "CFGNorm", "TextEncodeQwenImageEditPlus",
+                        "ImageScaleToTotalPixels", "VAEEncode", "KSampler", "VAEDecode", "SaveImage", "LoadImage"],
+        required_models=[("UNETLoader", "unet_name", "qwen_image_edit_2509_fp8_e4m3fn.safetensors"), ("CLIPLoader", "clip_name", "qwen_2.5_vl_7b_fp8_scaled.safetensors"),
+                         ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Lightning-4steps-V1.0.safetensors")],
+        vram_gb=12, licence="Apache-2.0 (Qwen-Image-Edit)", licence_status="unverified", expected_seconds=60,
+        notes="UNVERIFIED graph written from ComfyUI's template documentation; the owner's ComfyUI has the Qwen-Image-Edit nodes but the model files must be downloaded."),
+    "flux_dev_fp8_t2i_lora": WorkflowSpec(
+        id="flux_dev_fp8_t2i_lora", version=1, kind="image", title="FLUX.1 [dev] FP8 + a character LoRA (text to image)",
+        input_schema={**_IMG_SCHEMA, "properties": {**_IMG_SCHEMA["properties"], "lora_name": {"type": "string", "minLength": 1},
+                                                    "lora_strength": {"type": "number", "minimum": 0.0, "maximum": 2.0}}},
+        defaults={"width": 832, "height": 1472, "steps": 24, "seed": None, "negative_prompt": "", "checkpoint": "FLUX.1 [dev] FP8.safetensors", "lora_strength": 0.9},
+        bindings={"prompt": [("4", "text")], "negative_prompt": [("3", "text")], "width": [("5", "width")], "height": [("5", "height")], "seed": [("2", "seed")],
+                  "steps": [("2", "steps")], "checkpoint": [("1", "ckpt_name")], "filename_prefix": [("7", "filename_prefix")],
+                  "lora_name": [("9", "lora_name")], "lora_strength": [("9", "strength_model"), ("9", "strength_clip")]},
+        required_nodes=["CheckpointLoaderSimple", "LoraLoader", "KSampler", "CLIPTextEncode", "EmptyLatentImage", "VAEDecode", "SaveImage", "FluxGuidance"],
+        required_models=[("CheckpointLoaderSimple", "ckpt_name", "FLUX.1 [dev] FP8.safetensors")], vram_gb=12,
+        licence="FLUX.1 [dev] Non-Commercial License (weights)", licence_status="unverified", expected_seconds=65,
+        notes="The LoRA file name is chosen at run time (a trained character LoRA); it is not part of availability."),
+    "train_lora_flux": WorkflowSpec(
+        id="train_lora_flux", version=1, kind="train", title="Train a character LoRA with ComfyUI's TrainLoraNode (UNVERIFIED, may not fit 12 GB)",
+        input_schema={"type": "object", "required": ["folder"], "properties": {
+            "folder": {"type": "string", "minLength": 1}, "steps": {"type": "integer", "minimum": 10, "maximum": 4000}, "rank": {"type": "integer", "minimum": 1, "maximum": 128},
+            "learning_rate": {"type": "number", "minimum": 0.00001, "maximum": 0.01}, "seed": {"type": ["integer", "null"]}, "width": {"type": "integer", "minimum": 256, "maximum": 1536},
+            "height": {"type": "integer", "minimum": 256, "maximum": 1536}, "checkpoint": {"type": "string", "minLength": 1}, "filename_prefix": {"type": "string"}}},
+        defaults={"steps": 300, "rank": 16, "learning_rate": 0.0005, "seed": None, "width": 512, "height": 512, "checkpoint": "FLUX.1 [dev] FP8.safetensors"},
+        bindings={"folder": [("2", "folder")], "steps": [("4", "steps")], "rank": [("4", "rank")], "learning_rate": [("4", "learning_rate")], "seed": [("4", "seed")],
+                  "width": [("2", "width")], "height": [("2", "height")], "checkpoint": [("1", "ckpt_name")], "filename_prefix": [("5", "prefix")]},
+        required_nodes=["CheckpointLoaderSimple", "LoadImageTextSetFromFolderNode", "VAEEncode", "TrainLoraNode", "SaveLoRANode"],
+        required_models=[("CheckpointLoaderSimple", "ckpt_name", "FLUX.1 [dev] FP8.safetensors")], vram_gb=12,
+        licence="FLUX.1 [dev] Non-Commercial License (weights)", licence_status="unverified", expected_seconds=1800,
+        notes="UNVERIFIED: written from ComfyUI's training-node documentation and never run. Training a 12B model on a 12 GB card may run out of memory; the job reports that "
+              "plainly and the before/after numbers decide whether a LoRA helps at all."),
+})
+
+
 def get_workflow(id_: str) -> WorkflowSpec:
     try:
         return WORKFLOWS[id_]

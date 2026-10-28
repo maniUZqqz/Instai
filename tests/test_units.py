@@ -203,7 +203,8 @@ def test_licence_table_is_honest_about_what_is_verified():
     from instai.core import licences
 
     by = {m["id"]: m for m in licences.MODELS}
-    assert by["ltx2"]["excluded"] and by["hunyuan15"]["excluded"] and by["pocket-tts"]["excluded"] and by["edge-tts"]["excluded"]
+    assert by["ltx2"]["excluded"] and by["hunyuan15"]["excluded"]
+    assert by["pocket-tts"]["warning"] and by["edge-tts"]["warning"] and not by["pocket-tts"].get("excluded") and not by["edge-tts"].get("excluded")   # owner asked for them
     assert by["flux-dev"]["decision"] is True and by["flux-dev"]["commercial"] == "conditional"
     assert by["anisora"]["verified"] is None and by["animegen"]["verified"] is None
-    assert "NOT verified" in licences.markdown() and "OWNER DECISION" in licences.markdown()
+    assert "NOT verified" in licences.markdown() and "OWNER DECISION" in licences.markdown() and "WARNING" in licences.markdown()
