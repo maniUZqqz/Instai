@@ -88,12 +88,17 @@ def apply_strategy(page: ContentPage, strategy: dict, *, add_characters: bool = 
 # ------------------------------------------------------------------ series and plan
 
 def create_series(page: ContentPage, data: dict) -> Series:
+    from instai.studio import services as studio
+
     series = Series.objects.create(
         page=page, title=data.get("title") or page.name, premise=data.get("premise", ""), branch_point=data.get("branch_point", ""),
         alternative_timeline=data.get("alternative_timeline", ""), content_rules=data.get("content_rules") or [],
         is_fan_content=bool(data.get("is_fan_content")), franchise=data.get("franchise", ""),
+        template_key=str(data.get("template_key") or ""), languages=[l for l in (data.get("languages") or []) if l in ("fa", "en")],
+        look=data.get("look") if isinstance(data.get("look"), dict) else {},
         target_episodes=int(data.get("target_episodes") or page.profile("production")["episodes_per_series"]))
     ensure_memory(series)
+    studio.ensure_steps(series)
     return series
 
 
@@ -141,6 +146,10 @@ def apply_plan(series: Series, plan: dict, *, overwrite_header: bool = True) -> 
     for ep in series.episodes.exclude(number__in=numbers):
         if ep.state in (states.DRAFT, states.PLANNED) and not ep.script:
             ep.delete()
+    from instai.studio import services as studio
+
+    studio.ensure_steps(series)
+    studio.step_touched(series, studio._first_key(series, "composition"))
     return series
 
 
@@ -154,6 +163,10 @@ def _guard(ep: Episode, to: str) -> None:
             raise DomainError("not_ready", "فیلم‌نامه‌ی کامل وجود ندارد.")
     if to == states.ASSET_GENERATION and ep.state == states.STORYBOARDING and not Shot.objects.filter(scene__episode=ep).exists():
         raise DomainError("not_ready", "هنوز هیچ شاتی در استوری‌بورد نیست.")
+    if to == states.ASSET_GENERATION and ep.state == states.STORYBOARDING:
+        from instai.studio import preprod
+
+        preprod.assert_gate(ep)  # pages with studio mode on need the pre-production gate (animatic, design, casting) first
     if to in (states.READY_FOR_APPROVAL, states.APPROVED):
         from instai.assets.models import Asset
 
@@ -286,6 +299,26 @@ def update_shot(shot: Shot, data: dict) -> Shot:
         shot.save()
         refresh_estimate(shot.scene.episode)
     return shot
+
+
+def regenerate_shot(shot: Shot, what: str = "keyframe", mode: str = "preview") -> list:
+    """Send ONE shot back: new seed (keyframe) and/or narration; the rest of the episode is untouched. Returns the production jobs started."""
+    import random
+
+    from instai.assets.models import Asset
+    from instai.production import pipeline
+
+    ep = shot.scene.episode
+    shot.approved = False
+    if what in ("keyframe", "all"):
+        shot.seed = random.randint(1, 2 ** 31 - 1)
+    shot.save()
+    roles = ["keyframe", "shot_clip", "render_clip"] if what == "keyframe" else ["keyframe", "narration", "shot_clip", "render_clip"]
+    if what == "narration":
+        roles = ["narration"]
+    Asset.objects.filter(shot=shot, is_current=True, role__in=roles).update(approved=False, is_current=False)
+    live = (states.ASSET_GENERATION, states.ANIMATION, states.ASSEMBLY, states.QUALITY_REVIEW, states.READY_FOR_APPROVAL, states.FAILED)
+    return pipeline.start(ep, mode) if ep.state in live else []
 
 
 # ------------------------------------------------------------------ story memory

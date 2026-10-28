@@ -41,6 +41,7 @@ def page_dict(page: ContentPage, detail: bool = True) -> dict:
     from instai.story.models import Episode, Series
 
     d = {"id": page.pk, "name": page.name, "handle": page.handle, "format": page.format, "languages": page.languages, "idea": page.idea,
+         "template_key": page.template_key,
          "automation_level": page.automation_level, "status": page.status, "created_at": page.created_at, "updated_at": page.updated_at,
          "format_label": formats.get_format(page.format)["label_fa"], "series_count": Series.objects.filter(page=page).count(),
          "episode_count": Episode.objects.filter(series__page=page).count(),
@@ -56,11 +57,11 @@ def notices_for(page: ContentPage) -> list[dict]:
     n = []
     pol = formats.get_format(page.format)["policy"]
     if pol["fan_notice"]:
-        n.append({"key": "fan", "text": formats.FAN_NOTICE_FA})
+        n.append({"key": "fan", "text": formats.FAN_NOTICE_FA, "text_en": formats.FAN_NOTICE_EN})
     if pol["sourced"]:
-        n.append({"key": "sourced", "text": formats.EXPLAINER_NOTICE_FA})
+        n.append({"key": "sourced", "text": formats.EXPLAINER_NOTICE_FA, "text_en": formats.EXPLAINER_NOTICE_EN})
     if pol["synthetic_presenter_only"]:
-        n.append({"key": "presenter", "text": formats.PRESENTER_NOTICE_FA})
+        n.append({"key": "presenter", "text": formats.PRESENTER_NOTICE_FA, "text_en": formats.PRESENTER_NOTICE_EN})
     return n
 
 
@@ -77,6 +78,11 @@ def pages(request):
         raise DomainError("validation_error", "نام صفحه لازم است.", http_status=400, details={"name": ["required"]})
     if data.get("format", formats.ANIME) not in formats.FORMATS:
         raise DomainError("validation_error", "قالب نامعتبر است.", http_status=400, details={"format": ["invalid"]})
+    if data.get("template_key"):
+        from instai.studio import templates as studio_templates
+
+        if studio_templates.get_template(data["template_key"])["key"] != data["template_key"]:
+            raise DomainError("validation_error", "قالب توسعه نامعتبر است.", http_status=400, details={"template_key": ["invalid"]})
     page = services.create_page(data)
     return Response(page_dict(page), status=201)
 
@@ -88,9 +94,11 @@ def page_detail(request, pk):
         page.delete()
         return Response(status=204)
     if request.method == "PATCH":
-        for f in ("name", "handle", "idea", "automation_level", "status", "languages"):
+        for f in ("name", "handle", "idea", "automation_level", "status", "languages", "template_key"):
             if f in request.data:
                 setattr(page, f, request.data[f])
+        if "languages" in request.data:
+            page.languages = [l for l in (page.languages or []) if l in ("fa", "en")] or ["fa"]
         if page.automation_level not in ("manual", "assisted", "automatic"):
             raise DomainError("validation_error", "سطح خودکارسازی نامعتبر است.", http_status=400)
         page.save()
@@ -132,6 +140,34 @@ def apply_template(request, pk):
 
 
 @api_view(["POST"])
+def apply_look(request, pk):
+    """Set the page's look in one call: style preset + theme (+ realism from the style). Writes the visual profile consistently:
+    style_key, realism, theme_key, the subtitle look from the theme's typography, the composed negative prompt and the palette."""
+    from instai.styles import library, schema
+
+    page = get_object_or_404(ContentPage, pk=pk)
+    style_key = str(request.data.get("style_key") or "")
+    st = library.get_style(style_key)
+    if style_key and not st:
+        raise DomainError("validation_error", "استایل نامعتبر است.", http_status=400, details={"style_key": ["invalid"]})
+    theme_key = str(request.data.get("theme_key") if "theme_key" in request.data else (st or {}).get("theme_key", "") or "")
+    th = library.get_theme(theme_key) if theme_key else None
+    if theme_key and not th:
+        raise DomainError("validation_error", "تم نامعتبر است.", http_status=400, details={"theme_key": ["invalid"]})
+    patch: dict = {"theme_key": theme_key}
+    if st:
+        comp = library.compose(st["key"], theme_key)
+        patch.update(style_key=st["key"], realism=request.data.get("realism") or st["realism"], negative_prompt=comp["negative"],
+                     palette=(th or st)["palette"])
+    if th:
+        patch["subtitle"] = schema.subtitle_profile(th)
+    if "style_notes" in request.data:
+        patch["style_notes"] = str(request.data["style_notes"] or "")
+    page.set_profile("visual", patch)
+    return Response(page_dict(page))
+
+
+@api_view(["POST"])
 def strategy_proposal(request):
     """Wizard step 'idea -> strategy' (page does not exist yet). Returns a job; the proposal is in job.result.strategy."""
     meta = {k: request.data.get(k) for k in ("page_name", "format", "language", "idea", "niche", "audience", "tone", "episodes_count",
@@ -149,7 +185,7 @@ def page_strategy(request, pk):
     from instai.jobs.handlers.story import page_meta
 
     page = get_object_or_404(ContentPage, pk=pk)
-    job = queue.enqueue("story.strategy", {**page_meta(page), **{k: v for k, v in request.data.items() if v not in (None, "")}}, page=page,
+    job = queue.enqueue("story.strategy", {**page_meta(page), **{k: v for k, v in request.data.items() if v not in (None, "")}, "page_id": page.pk}, page=page,
                         title="پیشنهاد استراتژی")
     return job_response(job)
 
@@ -258,6 +294,7 @@ urlpatterns = [
     path("pages/<int:pk>", page_detail),
     path("pages/<int:pk>/profiles/<str:kind>", page_profile),
     path("pages/<int:pk>/apply-template", apply_template),
+    path("pages/<int:pk>/apply-look", apply_look),
     path("pages/<int:pk>/strategy", page_strategy),
     path("pages/<int:pk>/apply-strategy", page_apply_strategy),
     path("pages/<int:pk>/characters", page_characters),

@@ -16,6 +16,13 @@ class Series(models.Model):
     franchise = models.CharField(max_length=160, blank=True, default="")
     target_episodes = models.IntegerField(default=5)
     status = models.CharField(max_length=12, default="draft")        # draft | planned | running | done
+    # development room (instai.studio): template, source material, content languages and look overrides, approval of the development phase
+    template_key = models.CharField(max_length=64, blank=True, default="")
+    source = models.JSONField(default=dict, blank=True)               # {title, provider, id, url, year, format, manual, notes}
+    languages = models.JSONField(default=list, blank=True)            # [] = inherit the page's content languages
+    look = models.JSONField(default=dict, blank=True)                 # {style_key, realism, theme_key}; {} = inherit the page's look
+    dev_status = models.CharField(max_length=12, default="none")      # none | developing | approved
+    dev_approved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -54,6 +61,8 @@ class Episode(models.Model):
     estimate = models.JSONField(default=dict, blank=True)     # cached cost estimate
     qc = models.JSONField(default=dict, blank=True)           # last quality-check report
     research = models.JSONField(default=dict, blank=True)     # explainers: topic, claims (stance + source ids), analogies, caveats
+    studio = models.JSONField(default=dict, blank=True)       # pre-production: animatic, stage approvals, gate (instai.studio.preprod)
+    translations = models.JSONField(default=dict, blank=True)  # {lang: {script, shots: {shot_id: text}, at, provider, model}}
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -27,8 +27,9 @@ def series_dict(s: Series, detail: bool = False) -> dict:
     d = {"id": s.pk, "page": s.page_id, "title": s.title, "premise": s.premise, "branch_point": s.branch_point,
          "alternative_timeline": s.alternative_timeline, "content_rules": s.content_rules, "is_fan_content": s.is_fan_content,
          "franchise": s.franchise, "target_episodes": s.target_episodes, "status": s.status, "created_at": s.created_at,
-         "episode_count": s.episodes.count(), "format": s.page.format}
-    d["notices"] = [{"key": "fan", "text": formats.FAN_NOTICE_FA}] if (s.is_fan_content and s.page.format == formats.ANIME) else []
+         "episode_count": s.episodes.count(), "format": s.page.format, "template_key": s.template_key, "dev_status": s.dev_status, "languages": s.languages,
+         "look": s.look, "source": s.source}
+    d["notices"] = [{"key": "fan", "text": formats.FAN_NOTICE_FA, "text_en": formats.FAN_NOTICE_EN}] if s.is_fan_content else []
     if detail:
         d["arcs"] = [arc_dict(a) for a in s.arcs.all()]
         d["episodes"] = [episode_brief(e) for e in s.episodes.all()]
@@ -490,21 +491,9 @@ def shot_approve(request, pk):
 @api_view(["POST"])
 def shot_regenerate(request, pk):
     """Regenerate ONLY this shot: new seed (keyframe) and/or narration; the rest of the episode is untouched."""
-    from instai.production import pipeline
-
     s = get_object_or_404(Shot.objects.select_related("scene__episode__series__page"), pk=pk)
-    ep = s.scene.episode
     what = request.data.get("what", "keyframe")
-    s.approved = False
-    if what in ("keyframe", "all"):
-        import random
-
-        s.seed = random.randint(1, 2 ** 31 - 1)
-    s.save()
-    Asset.objects.filter(shot=s, is_current=True, role__in=(["keyframe", "shot_clip", "render_clip"] if what == "keyframe" else
-                                                             ["keyframe", "narration", "shot_clip", "render_clip"])).update(approved=False, is_current=False)
-    jobs = pipeline.start(ep, request.data.get("mode", "preview")) if ep.state in (
-        states.ASSET_GENERATION, states.ANIMATION, states.ASSEMBLY, states.QUALITY_REVIEW, states.READY_FOR_APPROVAL, states.FAILED) else []
+    jobs = services.regenerate_shot(s, what, request.data.get("mode", "preview"))
     return Response({"shot": shot_dict(s), "jobs": JobSerializer(jobs, many=True).data}, status=202)
 
 

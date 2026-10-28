@@ -62,7 +62,7 @@ def story_architect(meta: dict, provider=None) -> AgentResult:
         "Each episode needs a title, logline, goal and (except the last) a cliffhanger that leads into the next one. Respect the content "
         "rules and the continuity memory; never contradict established facts.")
     user = "Series context:\n" + _j({k: meta.get(k) for k in ("title", "premise", "branch_point", "alternative_timeline", "characters",
-                                                              "content_rules", "episode_length_sec", "idea", "memory", "is_fan_content")
+                                                              "content_rules", "episode_length_sec", "idea", "memory", "is_fan_content", "bible")
                                     if meta.get(k) not in (None, "", [])})
 
     def semantic(d: dict) -> list[str]:
@@ -118,7 +118,7 @@ def scriptwriter(meta: dict, provider=None) -> AgentResult:
         "and the content rules. For explainers use only the given research claims; label contested ones; do not invent facts or sources.")
     user = "Episode context:\n" + _j({k: meta.get(k) for k in ("series_title", "premise", "branch_point", "alternative_timeline", "episode",
                                                                "characters", "content_rules", "memory", "claims", "duration_sec",
-                                                               "previous_summaries") if meta.get(k) not in (None, "", [])})
+                                                               "previous_summaries", "bible") if meta.get(k) not in (None, "", [])})
 
     def semantic(d: dict) -> list[str]:
         st = reading_stats(d, lang, target)

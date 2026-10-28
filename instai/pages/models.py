@@ -33,7 +33,8 @@ class ContentPage(models.Model):
     name = models.CharField(max_length=160)
     handle = models.CharField(max_length=120, blank=True, default="")
     format = models.CharField(max_length=24, choices=formats.choices(), default=formats.ANIME)
-    languages = models.JSONField(default=list)
+    languages = models.JSONField(default=list)  # content languages, e.g. ["fa"], ["en"], ["fa", "en"]; the first one is the primary
+    template_key = models.CharField(max_length=64, blank=True, default="")  # development template; empty = the format's own template
     idea = models.TextField(blank=True, default="")
     automation_level = models.CharField(max_length=12, choices=AUTOMATION, default="manual")
     status = models.CharField(max_length=10, choices=STATUS, default="active")
