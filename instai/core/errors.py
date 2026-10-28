@@ -31,7 +31,7 @@ MESSAGES_EN = {
     "job_failed": "The job ended with an error. Details are in the production monitor.",
     "ffmpeg_missing": "ffmpeg was not found. START.bat prepares it.",
     "not_ready": "The prerequisites for this action are not ready.",
-    "server_error": "Internal error. Details were written to the log file (data\logs).",
+    "server_error": "Internal error. Details were written to the log file (data\\logs).",
     "method_not_allowed": "This request method is not allowed for this address.",
 }
 
