@@ -8,8 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
-from django.db import connection
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseNotModified
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -20,16 +19,13 @@ from . import hardware, runtime
 @api_view(["GET"])
 def health(request):
     """Cheap liveness + readiness: database, worker heartbeat, ffmpeg, free disk."""
-    db_ok = True
+    db_ok, workers = True, 0
     try:
-        with connection.cursor() as c:
-            c.execute("select 1")
-    except Exception:  # noqa: BLE001
-        db_ok = False
-    from instai.jobs.models import Worker
+        from instai.jobs.models import Worker
 
-    cutoff = timezone.now() - timedelta(seconds=30)
-    workers = Worker.objects.filter(last_seen__gte=cutoff).count() if db_ok else 0
+        workers = Worker.objects.filter(last_seen__gte=timezone.now() - timedelta(seconds=30)).count()
+    except Exception:  # noqa: BLE001 - e.g. database not migrated yet: report it instead of failing
+        db_ok = False
     ff = runtime.ffmpeg_info()
     d = hardware.disk_info(runtime.media_root())
     return Response({"ok": db_ok, "version": settings.VERSION, "db": db_ok, "workers": workers,
@@ -86,6 +82,14 @@ def serve_media(request, path: str):
     resp["Accept-Ranges"] = "bytes"
     resp["Cache-Control"] = "no-cache"
     return resp
+
+
+def api_not_found(request, rest=""):
+    from rest_framework.response import Response as R
+
+    from .errors import MESSAGES_FA
+
+    return JsonResponse({"error": {"code": "not_found", "message": MESSAGES_FA["not_found"]}}, status=404)
 
 
 def spa(request):

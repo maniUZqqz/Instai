@@ -42,7 +42,7 @@ MEDIA_ROOT = DATA_DIR / "media"
 LOG_DIR = DATA_DIR / "logs"
 MODELS_DIR = Path(os.environ.get("INSTAI_MODELS_DIR") or BASE_DIR / "models").resolve()
 TOOLS_DIR = Path(os.environ.get("INSTAI_TOOLS_DIR") or BASE_DIR / "tools").resolve()
-for _d in (DATA_DIR, MEDIA_ROOT, LOG_DIR):
+for _d in (DATA_DIR, MEDIA_ROOT, LOG_DIR, DATA_DIR / "staticfiles"):
     _d.mkdir(parents=True, exist_ok=True)
 
 INSTALLED_APPS = [
@@ -92,10 +92,10 @@ USE_I18N = False
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS: list = []
+STATICFILES_DIRS = [BASE_DIR / "instai" / "static"]  # the built UI lives in instai/static/app
 STATIC_ROOT = DATA_DIR / "staticfiles"
 WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = DEBUG
+WHITENOISE_AUTOREFRESH = True  # the UI is rebuilt while the server may be running
 APPEND_SLASH = False
 
 REST_FRAMEWORK = {
