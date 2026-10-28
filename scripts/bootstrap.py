@@ -77,6 +77,11 @@ def main() -> int:
     if not install_requirements():
         return 2
     ensure_env()
+    if "--worker" in sys.argv:        # PC B: no UI, no database; only ffmpeg and the capability checklist
+        os.environ["INSTAI_WORKER_MODE"] = "1"
+        ensure_ffmpeg()
+        run([PY, "-m", "instai.core.checklist"])
+        return 0
     run([PY, os.path.join("scripts", "build_ui.py")])
     if run([PY, "manage.py", "migrate", "-v0"]) != 0:
         say("!!", "Database migration failed (see above)")

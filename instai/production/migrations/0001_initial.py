@@ -305,7 +305,7 @@ class Migration(migrations.Migration):
                     "episode",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
-                        related_name="retakes",
+                        related_name="video_retakes",
                         to="story.episode",
                     ),
                 ),

@@ -6,9 +6,9 @@ import { Async, AreaField, Badge, Button, Card, CardSkeletons, CheckField, Empty
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import type { CharacterVoices, EngineInfo, EnginesPayload, VoicePreviewResult, VoiceRef, WarningText } from './api'
 import { fileToBase64, licenceTone, PageCharacterPicker } from './shared'
-import { useS } from './useS'
-import type { StudioKey } from './i18n'
-import './studio.css'
+import { useL } from './useL'
+import type { LabKey } from './i18n'
+import './lab.css'
 
 const LANGS = ['fa', 'en'] as const
 type Lang = (typeof LANGS)[number]
@@ -18,11 +18,11 @@ const MAX_BYTES = 10 * 1024 * 1024
 
 /** The warning text in the UI language: the API's `warning_text` first, our own text as the fallback. */
 function useWarningText() {
-  const { s, lang } = useS()
+  const { s, lang } = useL()
   return (key: string | null | undefined, text?: WarningText | null): string => {
     if (!key) return ''
     if (text) return text[lang] || text.en
-    const own = `vc.warn_${key}` as StudioKey
+    const own = `vc.warn_${key}` as LabKey
     return s(own)
   }
 }
@@ -43,7 +43,7 @@ function EngineWarning({ engine, testid }: { engine: Pick<EngineInfo, 'warning' 
 
 // ---------------------------------------------------------------- engines and services overview
 function EnginesOverview({ data }: { data: EnginesPayload }) {
-  const { s } = useS()
+  const { s } = useL()
   return (
     <Card title={s('vc.engines')}>
       <div className="stack">
@@ -74,7 +74,7 @@ function EnginesOverview({ data }: { data: EnginesPayload }) {
               <div key={sv.id} className="card flat stack-sm" data-testid={`service-${sv.id}`}>
                 <div className="row between">
                   <span className="strong">{sv.label}</span>
-                  <Badge tone={sv.status === 'ready' ? 'ok' : sv.status === 'error' ? 'err' : sv.status === 'loading' ? 'info' : 'neutral'}>{s(`vc.sv_${sv.status}` as StudioKey)}</Badge>
+                  <Badge tone={sv.status === 'ready' ? 'ok' : sv.status === 'error' ? 'err' : sv.status === 'loading' ? 'info' : 'neutral'}>{s(`vc.sv_${sv.status}` as LabKey)}</Badge>
                 </div>
                 <div className="row">
                   <Badge tone={sv.installed ? 'ok' : 'warn'}>{sv.installed ? s('vc.installed') : s('vc.not_installed')}</Badge>
@@ -106,7 +106,7 @@ function CastCard({ lang, payload, cast, refs, characterId, onChanged }: {
   characterId: number
   onChanged: () => void
 }) {
-  const { s } = useS()
+  const { s } = useL()
   const wt = useWarningText()
   const act = useAction()
   const [engine, setEngine] = useState(cast?.engine ?? 'auto')           // never preselects Pocket / Edge: only what was saved
@@ -220,7 +220,7 @@ function readDuration(file: File): Promise<number | null> {
 }
 
 function RefsCard({ characterId, refs, templates, onChanged }: { characterId: number; refs: VoiceRef[]; templates: { fa: string; en: string }; onChanged: () => void }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const confirm = useConfirm()
   const act = useAction()
   const [lang, setLang] = useState<Lang>('fa')
@@ -294,7 +294,7 @@ function RefsCard({ characterId, refs, templates, onChanged }: { characterId: nu
         {refs.length === 0 ? (
           <Empty icon="users" title={s('vc.refs_empty')} text={s('vc.refs_empty_text')} />
         ) : (
-          <ul className="studio-refs" aria-label={s('vc.refs')}>
+          <ul className="lab-refs" aria-label={s('vc.refs')}>
             {refs.map((r) => (
               <li key={r.id} className="card flat stack-sm" data-testid="voice-ref">
                 <div className="row between">
@@ -345,7 +345,7 @@ function RefsCard({ characterId, refs, templates, onChanged }: { characterId: nu
 }
 
 function CharacterVoicesSection({ characterId, name, fa, en }: { characterId: number; name: string; fa: EnginesPayload; en: EnginesPayload }) {
-  const { s } = useS()
+  const { s } = useL()
   const q = useQuery<CharacterVoices>(`/characters/${characterId}/voices`)
   return (
     <Async q={q} skeleton={<CardSkeletons n={2} />}>
@@ -372,13 +372,13 @@ function CharacterVoicesSection({ characterId, name, fa, en }: { characterId: nu
 }
 
 export default function Voices() {
-  const { s } = useS()
+  const { s } = useL()
   useTitle(s('vc.title'))
   const fa = useQuery<EnginesPayload>('/voices/engines?language=fa', { interval: 15000 })
   const en = useQuery<EnginesPayload>('/voices/engines?language=en')
   return (
     <div className="stack-lg">
-      <PageHead title={s('vc.title')} crumbs={[{ label: s('studio.title'), to: '/studio' }, { label: s('vc.title') }]}>
+      <PageHead title={s('vc.title')} crumbs={[{ label: s('lab.title'), to: '/lab' }, { label: s('vc.title') }]}>
         <Button icon="refresh" onClick={() => { fa.reload(); en.reload() }}>{s('common.refresh')}</Button>
       </PageHead>
       <p className="muted">{s('vc.intro')}</p>

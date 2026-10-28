@@ -43,6 +43,7 @@ class Api:
     def get(self, p): return self.call("GET", p)
     def post(self, p, b=None): return self.call("POST", p, b or {})
     def put(self, p, b): return self.call("PUT", p, b)
+    def patch(self, p, b): return self.call("PATCH", p, b)
 
     def wait_job(self, resp, timeout=180):
         job = resp["job"] if "job" in resp else resp
@@ -62,6 +63,7 @@ def server():
     port = _free_port()
     env = {**os.environ, "INSTAI_DATA_DIR": os.path.join(data, "data"), "INSTAI_PORT": str(port), "INSTAI_SECRET_KEY": "ui-test-key",
            "INSTAI_LLM_PROVIDER": "fake", "INSTAI_TTS_ENGINE": "fake", "INSTAI_IMAGE_ENGINE": "placeholder", "INSTAI_RESEARCH_FETCH": "fake",
+           "INSTAI_SFX_ENGINE": "fake", "INSTAI_MUSIC_ENGINE": "fake",
            "INSTAI_OLLAMA_URL": "http://127.0.0.1:9", "INSTAI_COMFYUI_URL": "http://127.0.0.1:9", "PYTHONIOENCODING": "utf-8"}
     env.pop("INSTAI_TESTING", None)
     procs = [subprocess.Popen([str(PY), "-m", "instai.serve"], cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL),

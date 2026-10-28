@@ -6,7 +6,8 @@ import { useQuery } from '../hooks'
 import { useI18n } from '../i18n'
 import { Icon, type IconName } from './Icon'
 import { Link, NavLink, Progress, Button } from './ui'
-import { StudioNavLink } from '../studio/StudioNavLink'
+import { LabNavLink } from '../lab/LabNavLink'
+import { NotificationBell } from '../lab/NotificationBell'
 
 // ---------------------------------------------------------------- app-wide facts (demo mode)
 interface AppCtx {
@@ -156,7 +157,7 @@ export function Shell() {
                 {t(n.key)}
               </NavLink>
             ))}
-            <StudioNavLink />
+            <LabNavLink />
           </nav>
           <div className="sidebar-foot">{t('shell.tagline')}</div>
         </aside>
@@ -166,6 +167,7 @@ export function Shell() {
             <Button className="menu-btn" variant="ghost" iconOnly icon={open ? 'close' : 'menu'} aria-label={t('shell.menu')} aria-expanded={open} onClick={() => setOpen((o) => !o)} />
             <div className="spacer" />
             <JobIndicator />
+            <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => setLang(lang === 'fa' ? 'en' : 'fa')} aria-label={t('shell.lang_switch')} title={t('shell.lang_switch')}>
               <Icon name="globe" />
               {lang === 'fa' ? 'EN' : 'فارسی'}

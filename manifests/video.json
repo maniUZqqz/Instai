@@ -8,6 +8,18 @@
    "default": false,
    "licence": "Apache-2.0 (per Qasem notes)",
    "licence_verified": false
+  },
+  "anisora": {
+   "title": "Index-AniSora V3.2 GGUF Q4_0 high+low (anime I2V candidate, ~18 GB; needs the ComfyUI-GGUF custom node)",
+   "default": false,
+   "licence": "Apache-2.0 + extra restrictions for retraining/derivatives",
+   "licence_verified": false
+  },
+  "animegen": {
+   "title": "AnimeGen I2V GGUF Q4_K_M high+low (anime I2V candidate, ~19 GB; needs the ComfyUI-GGUF custom node)",
+   "default": false,
+   "licence": "Apache-2.0 (card tag commercial-use)",
+   "licence_verified": false
   }
  },
  "items": [
@@ -75,6 +87,58 @@
    "size": 738005744,
    "sha256": "85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3",
    "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "anisora:high_q4_0",
+   "package": "anisora",
+   "kind": "file",
+   "title": "AniSora V3.2 high-noise expert, GGUF Q4_0",
+   "urls": [
+    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/main/High/Index-Anisora-V3.2-High-Q4_0.gguf"
+   ],
+   "dest": "{COMFYUI}\\models\\unet\\Index-Anisora-V3.2-High-Q4_0.gguf",
+   "size": 9032587904,
+   "sha256": null,
+   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+  },
+  {
+   "id": "anisora:low_q4_0",
+   "package": "anisora",
+   "kind": "file",
+   "title": "AniSora V3.2 low-noise expert, GGUF Q4_0",
+   "urls": [
+    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/main/Low/Index-Anisora-V3.2-Low-Q4_0.gguf"
+   ],
+   "dest": "{COMFYUI}\\models\\unet\\Index-Anisora-V3.2-Low-Q4_0.gguf",
+   "size": 9032587904,
+   "sha256": null,
+   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+  },
+  {
+   "id": "animegen:high_q4km",
+   "package": "animegen",
+   "kind": "file",
+   "title": "AnimeGen I2V high-noise expert, GGUF Q4_K_M",
+   "urls": [
+    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/main/I2V_high_noise_Q4_K_M.gguf"
+   ],
+   "dest": "{COMFYUI}\\models\\unet\\I2V_high_noise_Q4_K_M.gguf",
+   "size": 9661569664,
+   "sha256": null,
+   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+  },
+  {
+   "id": "animegen:low_q4km",
+   "package": "animegen",
+   "kind": "file",
+   "title": "AnimeGen I2V low-noise expert, GGUF Q4_K_M",
+   "urls": [
+    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/main/I2V_low_noise_Q4_K_M.gguf"
+   ],
+   "dest": "{COMFYUI}\\models\\unet\\I2V_low_noise_Q4_K_M.gguf",
+   "size": 9661569664,
+   "sha256": null,
+   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
   }
  ]
 }

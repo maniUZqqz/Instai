@@ -1,4 +1,4 @@
-"""Helpers of the Studio screen tests: a browser context per language/size with problem collection, readiness waits, a tone WAV."""
+"""Helpers of the Production lab screen tests: a browser context per language/size with problem collection, readiness waits, a tone WAV."""
 from __future__ import annotations
 
 import io
@@ -16,7 +16,7 @@ PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
 PERSIAN = re.compile(r"[؀-ۿ]")
 
 
-def open_studio(browser, base: str, size: str, path: str, lang: str = "fa"):
+def open_lab(browser, base: str, size: str, path: str, lang: str = "fa"):
     """(context, page, problems): console errors, page errors and HTTP >= 400 are collected in `problems`."""
     ctx = browser.new_context(viewport=VIEWPORTS[size], locale="fa-IR" if lang == "fa" else "en-US", has_touch=(size == "phone"))
     ctx.add_init_script(f"try {{ localStorage.setItem('instai.lang', '{lang}'); }} catch (e) {{}}")

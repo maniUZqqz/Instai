@@ -5,11 +5,11 @@ import { Async, Badge, Button, Card, CardSkeletons, Empty, Notice, PageHead, Pro
 import { useAction, useQuery, useTitle } from '../hooks'
 import type { Device, LanStatus, PairingInfo, RemoteTaskRow, WorkerRow, WorkersOverview } from './api'
 import { CopyButton, useTicker } from './shared'
-import { useS } from './useS'
-import './studio.css'
+import { useL } from './useL'
+import './lab.css'
 
 function VramMeter({ total, free }: { total: number; free: number }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   if (!total) return <span className="small muted">{s('wk.vram_unknown')}</span>
   const used = Math.max(0, total - free)
   const frac = total ? used / total : 0
@@ -26,13 +26,13 @@ function VramMeter({ total, free }: { total: number; free: number }) {
 }
 
 function Caps({ caps }: { caps: string[] }) {
-  const { s } = useS()
+  const { s } = useL()
   if (caps.length === 0) return <span className="small muted">{s('wk.no_caps')}</span>
   const shown = caps.slice(0, 6)
   const rest = caps.slice(6)
   return (
     <div className="stack-sm">
-      <ul className="chips studio-caps" aria-label={s('wk.caps')}>
+      <ul className="chips lab-caps" aria-label={s('wk.caps')}>
         {shown.map((c) => (
           <li key={c} className="chip ltr small">{c}</li>
         ))}
@@ -40,7 +40,7 @@ function Caps({ caps }: { caps: string[] }) {
       {rest.length > 0 && (
         <details>
           <summary className="small" style={{ cursor: 'pointer' }}>{s('wk.more_caps', { n: rest.length })}</summary>
-          <ul className="chips studio-caps">
+          <ul className="chips lab-caps">
             {rest.map((c) => (
               <li key={c} className="chip ltr small">{c}</li>
             ))}
@@ -52,11 +52,11 @@ function Caps({ caps }: { caps: string[] }) {
 }
 
 function Speeds({ speed }: { speed: Record<string, { avg: number; n: number }> }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const rows = Object.entries(speed || {})
   if (rows.length === 0) return <span className="small muted">{s('wk.no_speed')}</span>
   return (
-    <ul className="studio-speeds small" aria-label={s('wk.speeds')}>
+    <ul className="lab-speeds small" aria-label={s('wk.speeds')}>
       {rows.map(([k, v]) => (
         <li key={k}>
           <span className="ltr">{k}</span>: <strong>{f.duration(v.avg)}</strong> <span className="muted">({s('wk.runs', { n: v.n })})</span>
@@ -67,13 +67,13 @@ function Speeds({ speed }: { speed: Record<string, { avg: number; n: number }> }
 }
 
 function BenchSummary({ worker }: { worker: WorkerRow }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const b = worker.measured?.bench
   if (!b) return null
   return (
     <details className="small">
       <summary style={{ cursor: 'pointer' }}>{s('wk.bench_report', { when: f.ago(b.at) })}</summary>
-      <ul className="studio-speeds">
+      <ul className="lab-speeds">
         {b.image && (
           <li>
             {s('wk.bench_image')}: {s('wk.bench_cold')} <strong>{f.duration(b.image.cold)}</strong>, {s('wk.bench_warm')} <strong>{f.duration(b.image.warm)}</strong>
@@ -95,7 +95,7 @@ function BenchSummary({ worker }: { worker: WorkerRow }) {
 }
 
 function DeviceCard({ d, w, tasks, onChanged }: { d: Device; w?: WorkerRow; tasks: RemoteTaskRow[]; onChanged: () => void }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const confirm = useConfirm()
   const act = useAction()
   const [renaming, setRenaming] = useState(false)
@@ -122,7 +122,7 @@ function DeviceCard({ d, w, tasks, onChanged }: { d: Device; w?: WorkerRow; task
     }, { success: s('wk.bench_started') })
 
   return (
-    <section className="card flat studio-device" aria-label={d.local ? s('wk.this_pc') : d.name} data-testid={d.local ? 'device-local' : 'device-worker'}>
+    <section className="card flat lab-device" aria-label={d.local ? s('wk.this_pc') : d.name} data-testid={d.local ? 'device-local' : 'device-worker'}>
       <div className="row between">
         <div className="row">
           <span className={'dot ' + (d.online ? 'ok' : 'err')} aria-hidden="true" />
@@ -183,21 +183,21 @@ function DeviceCard({ d, w, tasks, onChanged }: { d: Device; w?: WorkerRow; task
 }
 
 function PairingPanel({ pairing, lan, onClose }: { pairing: PairingInfo; lan: LanStatus; onClose: () => void }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const now = useTicker(1000)
   const left = Math.max(0, Math.floor((new Date(pairing.expires_at).getTime() - now) / 1000))
   const mm = Math.floor(left / 60)
   const two = (n: number) => (n < 10 ? f.num(0) : '') + f.num(n)
   const urls = pairing.urls.length ? pairing.urls : pairing.addresses.map((a) => `http://${a}:${pairing.port}`)
   return (
-    <section className="card studio-pairing" aria-label={s('wk.pair_title')} data-testid="pairing-panel">
+    <section className="card lab-pairing" aria-label={s('wk.pair_title')} data-testid="pairing-panel">
       <div className="row between">
         <h3 style={{ fontSize: '1.05rem' }}>{s('wk.pair_title')}</h3>
         <Button size="sm" variant="ghost" iconOnly icon="close" aria-label={s('common.close')} onClick={onClose} />
       </div>
-      <div className="studio-code-wrap">
+      <div className="lab-code-wrap">
         <div className="small muted">{s('wk.pair_code')}</div>
-        <div className="studio-code ltr" data-testid="pairing-code" aria-label={s('wk.pair_code')}>{pairing.code}</div>
+        <div className="lab-code ltr" data-testid="pairing-code" aria-label={s('wk.pair_code')}>{pairing.code}</div>
         <div className="row" style={{ justifyContent: 'center' }}>
           <CopyButton text={pairing.code} label={s('wk.copy_code')} />
           <Badge tone={left > 0 ? 'info' : 'err'}>
@@ -210,7 +210,7 @@ function PairingPanel({ pairing, lan, onClose }: { pairing: PairingInfo; lan: La
         {urls.length === 0 ? (
           <Notice tone="warn">{s('wk.pair_no_address', { port: pairing.port })}</Notice>
         ) : (
-          <ul className="studio-addresses">
+          <ul className="lab-addresses">
             {urls.map((u) => {
               const short = u.replace(/^https?:\/\//, '')
               return (
@@ -226,7 +226,7 @@ function PairingPanel({ pairing, lan, onClose }: { pairing: PairingInfo; lan: La
       </div>
       <div className="stack-sm">
         <div className="strong">{s('wk.steps_title')}</div>
-        <ol className="studio-steps-list" data-testid="pairing-steps">
+        <ol className="lab-steps-list" data-testid="pairing-steps">
           <li>{s('wk.step1')}</li>
           <li>{s('wk.step2')}</li>
           <li>{s('wk.step3')}</li>
@@ -239,7 +239,7 @@ function PairingPanel({ pairing, lan, onClose }: { pairing: PairingInfo; lan: La
 }
 
 function TasksTable({ tasks }: { tasks: RemoteTaskRow[] }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   if (tasks.length === 0) return <Empty icon="list" title={s('wk.tasks_empty')} text={s('wk.tasks_empty_text')} />
   const tone = (st: string) => (st === 'succeeded' ? 'ok' : st === 'failed' ? 'err' : st === 'running' ? 'info' : 'neutral')
   return (
@@ -278,7 +278,7 @@ function TasksTable({ tasks }: { tasks: RemoteTaskRow[] }) {
 }
 
 export default function Workers() {
-  const { s } = useS()
+  const { s } = useL()
   useTitle(s('wk.title'))
   const q = useQuery<WorkersOverview>('/workers', { interval: 3000 })
   const act = useAction()
@@ -299,7 +299,7 @@ export default function Workers() {
 
   return (
     <div className="stack-lg">
-      <PageHead title={s('wk.title')} crumbs={[{ label: s('studio.title'), to: '/studio' }, { label: s('wk.title') }]}>
+      <PageHead title={s('wk.title')} crumbs={[{ label: s('lab.title'), to: '/lab' }, { label: s('wk.title') }]}>
         <Button icon="refresh" onClick={q.reload}>{s('common.refresh')}</Button>
       </PageHead>
       <p className="muted">{s('wk.intro')}</p>

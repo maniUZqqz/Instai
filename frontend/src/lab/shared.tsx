@@ -5,7 +5,7 @@ import { Button, Empty, LinkButton, Loading, Notice, SelectField, TextField } fr
 import { useToast } from '../components/feedback'
 import { useAction, useQuery } from '../hooks'
 import type { CharacterLite, PageLite } from './api'
-import { useS } from './useS'
+import { useL } from './useL'
 
 /** Re-render every `ms` while mounted (countdowns). */
 export function useTicker(ms = 1000): number {
@@ -30,7 +30,7 @@ export function fileToBase64(file: File): Promise<string> {
 }
 
 export function CopyButton({ text, label }: { text: string; label?: string }) {
-  const { s } = useS()
+  const { s } = useL()
   const toast = useToast()
   const [done, setDone] = useState(false)
   const copy = async () => {
@@ -75,7 +75,7 @@ export interface Picked {
  * when a character is chosen. A character can be added inline (a name) so nobody is stuck on an empty page.
  */
 export function PageCharacterPicker({ children }: { children: (p: Picked & { reloadCharacters: () => void }) => ReactNode }) {
-  const { s } = useS()
+  const { s } = useL()
   const [params, setParams] = useSearchParams()
   const pages = useQuery<PageLite[]>('/pages')
   const pageParam = Number(params.get('page')) || null

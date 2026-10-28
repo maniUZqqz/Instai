@@ -37,7 +37,7 @@ def episode_video_retakes(request, pk):
                                           title=f"بازسازی بازه {r.start_sec:.1f}–{r.end_sec:.1f} ثانیه", max_attempts=1))
         resp.data["retake"] = retake_dict(r)
         return resp
-    return Response([retake_dict(r) for r in ep.retakes.select_related("result_asset")[:30]])
+    return Response([retake_dict(r) for r in ep.video_retakes.select_related("result_asset")[:30]])
 
 
 @api_view(["GET"])

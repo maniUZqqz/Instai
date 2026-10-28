@@ -6,14 +6,14 @@ import { Async, Badge, Button, Card, CardSkeletons, Empty, Notice, PageHead, Sel
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import type { CharacterLite, MotionInfo, Rig, RigPart } from './api'
 import { fileToBase64, PageCharacterPicker } from './shared'
-import { useS } from './useS'
-import './studio.css'
+import { useL } from './useL'
+import './lab.css'
 
 const MOUTHS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'X']
 type Edit = { pivot?: [number, number]; pos?: [number, number]; z?: number }
 
 function PartsEditor({ rig, onSaved }: { rig: Rig; onSaved: () => void }) {
-  const { s } = useS()
+  const { s } = useL()
   const act = useAction()
   const [edits, setEdits] = useState<Record<string, Edit>>({})
   const names = Object.keys(rig.parts).sort((a, b) => rig.parts[a].z - rig.parts[b].z || a.localeCompare(b))
@@ -35,12 +35,12 @@ function PartsEditor({ rig, onSaved }: { rig: Rig; onSaved: () => void }) {
     }, { success: s('rg.parts_saved') })
   const num = (v: number | undefined, fallback: number) => (v === undefined || Number.isNaN(v) ? fallback : v)
   return (
-    <details className="studio-parts" data-testid={`parts-${rig.id}`}>
+    <details className="lab-parts" data-testid={`parts-${rig.id}`}>
       <summary style={{ cursor: 'pointer' }}>{s('rg.edit_parts', { n: names.length })}</summary>
       <div className="stack-sm" style={{ marginBlockStart: '0.6rem' }}>
         <p className="small muted">{s('rg.edit_hint')}</p>
         <div className="table-wrap">
-          <table className="table studio-parts-table">
+          <table className="table lab-parts-table">
             <thead>
               <tr>
                 <th>{s('rg.col_part')}</th>
@@ -57,10 +57,10 @@ function PartsEditor({ rig, onSaved }: { rig: Rig; onSaved: () => void }) {
                 const pos = (e.pos ?? p.pos) as [number, number]
                 const z = e.z ?? p.z
                 return (
-                  <tr key={n} className={edits[n] ? 'studio-dirty' : undefined}>
+                  <tr key={n} className={edits[n] ? 'lab-dirty' : undefined}>
                     <td>
                       <div className="row nw">
-                        {p.url && <img className="studio-thumb" src={p.url} alt="" loading="lazy" />}
+                        {p.url && <img className="lab-thumb" src={p.url} alt="" loading="lazy" />}
                         <div>
                           <div className="ltr strong small">{n}</div>
                           <div className="small muted ltr">{p.parent ? `↳ ${p.parent}` : s('rg.root')}</div>
@@ -68,19 +68,19 @@ function PartsEditor({ rig, onSaved }: { rig: Rig; onSaved: () => void }) {
                       </div>
                     </td>
                     <td>
-                      <div className="studio-pair">
+                      <div className="lab-pair">
                         <input type="number" className="ltr" aria-label={`${n} ${s('rg.pivot')} x`} value={pivot[0]} step={1} onChange={(ev) => set(n, p, 'pivot', 0, num(ev.target.valueAsNumber, pivot[0]))} />
                         <input type="number" className="ltr" aria-label={`${n} ${s('rg.pivot')} y`} value={pivot[1]} step={1} onChange={(ev) => set(n, p, 'pivot', 1, num(ev.target.valueAsNumber, pivot[1]))} />
                       </div>
                     </td>
                     <td>
-                      <div className="studio-pair">
+                      <div className="lab-pair">
                         <input type="number" className="ltr" aria-label={`${n} ${s('rg.pos')} x`} value={pos[0]} step={1} onChange={(ev) => set(n, p, 'pos', 0, num(ev.target.valueAsNumber, pos[0]))} />
                         <input type="number" className="ltr" aria-label={`${n} ${s('rg.pos')} y`} value={pos[1]} step={1} onChange={(ev) => set(n, p, 'pos', 1, num(ev.target.valueAsNumber, pos[1]))} />
                       </div>
                     </td>
                     <td>
-                      <input type="number" className="ltr studio-z" aria-label={`${n} z`} value={z} step={1} onChange={(ev) => set(n, p, 'z', 0, num(ev.target.valueAsNumber, z))} />
+                      <input type="number" className="ltr lab-z" aria-label={`${n} z`} value={z} step={1} onChange={(ev) => set(n, p, 'z', 0, num(ev.target.valueAsNumber, z))} />
                     </td>
                   </tr>
                 )
@@ -98,7 +98,7 @@ function PartsEditor({ rig, onSaved }: { rig: Rig; onSaved: () => void }) {
 }
 
 function Completeness({ rig }: { rig: Rig }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const c = rig.completeness
   if (!c) return null
   const have = new Set(c.mouth_shapes)
@@ -108,9 +108,9 @@ function Completeness({ rig }: { rig: Rig }) {
       <div className="row">
         <span className="small muted">{s('rg.mouths')}:</span>
         <Badge tone={done === MOUTHS.length ? 'ok' : 'warn'}><span data-testid={`mouth-count-${rig.id}`}>{f.num(done)} / {f.num(MOUTHS.length)}</span></Badge>
-        <ul className="chips studio-mouths" aria-label={s('rg.mouths')}>
+        <ul className="chips lab-mouths" aria-label={s('rg.mouths')}>
           {MOUTHS.map((m) => (
-            <li key={m} className={'chip ltr ' + (have.has(m) ? 'studio-chip-ok' : 'studio-chip-missing')} title={have.has(m) ? s('rg.mouth_present') : s('rg.mouth_missing')}>
+            <li key={m} className={'chip ltr ' + (have.has(m) ? 'lab-chip-ok' : 'lab-chip-missing')} title={have.has(m) ? s('rg.mouth_present') : s('rg.mouth_missing')}>
               {m}
               <span className="sr-only"> {have.has(m) ? s('rg.mouth_present') : s('rg.mouth_missing')}</span>
             </li>
@@ -129,7 +129,7 @@ function Completeness({ rig }: { rig: Rig }) {
 }
 
 function RigCard({ rig, motions, onChanged }: { rig: Rig; motions: MotionInfo[]; onChanged: () => void }) {
-  const { s, f } = useS()
+  const { s, f } = useL()
   const confirm = useConfirm()
   const act = useAction()
   const [motion, setMotion] = useState('')
@@ -161,11 +161,11 @@ function RigCard({ rig, motions, onChanged }: { rig: Rig; motions: MotionInfo[];
         <span className="small muted">{f.ago(rig.created_at)}</span>
       </div>
       <Completeness rig={rig} />
-      <ul className="studio-thumbs" aria-label={s('rg.parts')}>
+      <ul className="lab-thumbs" aria-label={s('rg.parts')}>
         {parts.map(([n, p]) => (
           <li key={n} title={n}>
             {p.url ? <img src={p.url} alt={n} loading="lazy" /> : <span className="small">{n}</span>}
-            <span className="small muted ltr studio-thumb-name">{n}</span>
+            <span className="small muted ltr lab-thumb-name">{n}</span>
           </li>
         ))}
       </ul>
@@ -202,7 +202,7 @@ function RigCard({ rig, motions, onChanged }: { rig: Rig; motions: MotionInfo[];
 }
 
 function CreateCard({ characterId, sheets, onCreated }: { characterId: number; sheets: { id: number; label: string }[]; onCreated: () => void }) {
-  const { s } = useS()
+  const { s } = useL()
   const act = useAction()
   const [sheet, setSheet] = useState('')
   const fromSheet = useJobRunner<{ rig_id?: number }>({ onSucceeded: () => onCreated() })
@@ -265,7 +265,7 @@ function CreateCard({ characterId, sheets, onCreated }: { characterId: number; s
 }
 
 function RigsSection({ characterId, name }: { characterId: number; name: string }) {
-  const { s } = useS()
+  const { s } = useL()
   const q = useQuery<Rig[]>(`/characters/${characterId}/rigs`)
   const motions = useQuery<MotionInfo[]>('/puppet/motions')
   const detail = useQuery<CharacterLite>(`/characters/${characterId}`)
@@ -291,11 +291,11 @@ function RigsSection({ characterId, name }: { characterId: number; name: string 
 }
 
 export default function Rigs() {
-  const { s } = useS()
+  const { s } = useL()
   useTitle(s('rg.title'))
   return (
     <div className="stack-lg">
-      <PageHead title={s('rg.title')} crumbs={[{ label: s('studio.title'), to: '/studio' }, { label: s('rg.title') }]} />
+      <PageHead title={s('rg.title')} crumbs={[{ label: s('lab.title'), to: '/lab' }, { label: s('rg.title') }]} />
       <p className="muted">{s('rg.intro')}</p>
       <PageCharacterPicker>{(p) => <RigsSection characterId={p.character!.id} name={p.character!.name} />}</PageCharacterPicker>
     </div>

@@ -1,4 +1,4 @@
-// Shapes of the Studio API (workers, voices, rigs). Mirrors instai/jobs/api_workers.py, instai/production/api_voices.py, api_rigs.py.
+// Shapes of the Production lab API (workers, voices, rigs). Mirrors instai/jobs/api_workers.py, instai/production/api_voices.py, api_rigs.py.
 
 export interface SpeedRow {
   avg: number

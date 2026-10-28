@@ -184,7 +184,7 @@ class Retake(models.Model):
     """Regenerate a time range of a rendered episode (first/last-frame Wan + seamless stitch + audio replace/mute/cut)."""
 
     AUDIO = [("keep", "keep"), ("replace", "replace"), ("mute", "mute"), ("cut", "cut")]
-    episode = models.ForeignKey("story.Episode", related_name="retakes", on_delete=models.CASCADE)
+    episode = models.ForeignKey("story.Episode", related_name="video_retakes", on_delete=models.CASCADE)
     source_asset = models.ForeignKey("assets.Asset", related_name="+", on_delete=models.CASCADE)
     start_sec = models.FloatField()
     end_sec = models.FloatField()

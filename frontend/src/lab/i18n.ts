@@ -1,7 +1,8 @@
-// Texts of the Studio screens (workers, voices, rigs, hub). Own namespace: independent of the app-wide dictionaries (see useS.ts).
+// Texts of the Production lab screens (hub, workers, voices, rigs; the round-2 screens are in i18n2.ts). Own namespace: independent of the app-wide dictionaries (see useL.ts).
+import { lab2En, lab2Fa } from './i18n2'
 // Persian is the default; English must define every key (the type below enforces it).
 
-export const studioFa = {
+const baseFa = {
   // ---- common
   'common.cancel': 'انصراف',
   'common.close': 'بستن',
@@ -11,27 +12,17 @@ export const studioFa = {
   'common.save': 'ذخیره',
 
   // ---- hub
-  'studio.nav': 'استودیو',
-  'studio.title': 'استودیو',
-  'studio.intro': 'ابزارهای تولید پیشرفته: رایانهٔ دوم، صداها، شخصیت‌های پاپت دوبعدی و بقیهٔ امکانات فاز ۳ و ۴ از همین‌جا باز می‌شوند.',
-  'studio.soon': 'در گام بعد',
-  'studio.note': 'صفحه‌هایی که «در گام بعد» دارند هنوز در این نسخه نیستند و به‌زودی فعال می‌شوند.',
+  'lab.nav': 'آزمایشگاه تولید',
+  'lab.title': 'آزمایشگاه تولید',
+  'lab.intro': 'ابزارهای تولید پیشرفته: رایانهٔ دوم، صداها، شخصیت‌های پاپت دوبعدی و بقیهٔ امکانات فاز ۳ و ۴ از همین‌جا باز می‌شوند.',
+  'lab.soon': 'در گام بعد',
+  'lab.note': 'صفحه‌هایی که «در گام بعد» دارند هنوز در این نسخه نیستند و به‌زودی فعال می‌شوند.',
   'title.workers': 'رایانه‌های کارگر',
   'desc.workers': 'رایانهٔ دوم را وصل کنید تا هر دو کارت گرافیک هم‌زمان کار کنند.',
   'title.voices': 'صداها',
   'desc.voices': 'گویندهٔ هر شخصیت را به فارسی و انگلیسی انتخاب کنید؛ هشدار مجوز هر صدا را ببینید.',
   'title.rigs': 'شخصیت‌های پاپت',
   'desc.rigs': 'ساخت و تأیید رِیگ دوبعدی (اجزا، لب، پلک) و پیش‌نمایش حرکت.',
-  'title.comparison': 'مقایسهٔ مدل‌های انیمه',
-  'desc.comparison': 'یک تصویر و یک بذر یکسان از چند مدل ویدئو؛ رأی شما پیش‌فرض صفحه می‌شود.',
-  'title.retake': 'بازسازی یک تکه',
-  'desc.retake': 'یک بازهٔ زمانی از قسمت را دوباره بسازید و بی‌درز جایگزین کنید.',
-  'title.scheduler': 'زمان‌بندی',
-  'desc.scheduler': 'تعداد قسمت در هفته و پنجرهٔ ساعتی رندر (مثلاً فقط شب‌ها).',
-  'title.publishing': 'انتشار و خودکارسازی',
-  'desc.publishing': 'سطح خودکارسازی، بودجه و آداپتور انتشار.',
-  'title.notifications': 'اعلان‌ها',
-  'desc.notifications': 'چیزهایی که به تصمیم یا توجه شما نیاز دارند.',
 
   // ---- pickers
   'pick.page': 'صفحه',
@@ -277,9 +268,8 @@ export const studioFa = {
   'rg.preview_failed': 'ساخت پیش‌نمایش ناموفق بود.',
 } as const
 
-export type StudioKey = keyof typeof studioFa
 
-export const studioEn: Record<StudioKey, string> = {
+const baseEn: Record<keyof typeof baseFa, string> = {
   'common.cancel': 'Cancel',
   'common.close': 'Close',
   'common.copy': 'Copy',
@@ -287,27 +277,17 @@ export const studioEn: Record<StudioKey, string> = {
   'common.refresh': 'Refresh',
   'common.save': 'Save',
 
-  'studio.nav': 'Studio',
-  'studio.title': 'Studio',
-  'studio.intro': 'Advanced production tools: the second PC, voices, 2D puppet characters and the rest of the Phase 3 and 4 features open from here.',
-  'studio.soon': 'Next step',
-  'studio.note': 'Tiles marked "Next step" are not in this version yet and will switch on soon.',
+  'lab.nav': 'Production lab',
+  'lab.title': 'Production lab',
+  'lab.intro': 'Advanced production tools: the second PC, voices, 2D puppet characters and the rest of the Phase 3 and 4 features open from here.',
+  'lab.soon': 'Next step',
+  'lab.note': 'Tiles marked "Next step" are not in this version yet and will switch on soon.',
   'title.workers': 'Worker PCs',
   'desc.workers': 'Connect the second PC so both graphics cards work at the same time.',
   'title.voices': 'Voices',
   'desc.voices': 'Choose each character\'s voice in Persian and English; see every voice\'s licence warning.',
   'title.rigs': 'Puppet characters',
   'desc.rigs': 'Build and approve a 2D rig (parts, lips, blink) and preview its motion.',
-  'title.comparison': 'Anime model comparison',
-  'desc.comparison': 'Same still and seed through several video models; your vote becomes the page default.',
-  'title.retake': 'Retake a segment',
-  'desc.retake': 'Regenerate a time range of an episode and stitch it back seamlessly.',
-  'title.scheduler': 'Scheduler',
-  'desc.scheduler': 'Episodes per week and render windows (for example nights only).',
-  'title.publishing': 'Publishing and automation',
-  'desc.publishing': 'Automation level, budgets and the publishing adapter.',
-  'title.notifications': 'Notifications',
-  'desc.notifications': 'Things that need your decision or attention.',
 
   'pick.page': 'Page',
   'pick.character': 'Character',
@@ -548,3 +528,7 @@ export const studioEn: Record<StudioKey, string> = {
   'rg.preview_video': 'Rig preview',
   'rg.preview_failed': 'The preview could not be made.',
 }
+
+export const labFa = { ...baseFa, ...lab2Fa } as const
+export type LabKey = keyof typeof labFa
+export const labEn: Record<LabKey, string> = { ...baseEn, ...lab2En }

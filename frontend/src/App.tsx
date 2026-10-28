@@ -15,7 +15,7 @@ import { CharactersTab } from './pages/workspace/CharactersTab'
 import PublishingCentre, { PublishingTab } from './pages/workspace/Publishing'
 import { ProfilesTab } from './pages/workspace/ProfilesTab'
 import { EpisodesTab, HistoryTab, Overview, SeriesTab, Workspace } from './pages/workspace/Workspace'
-import { studioRoutes } from './studio/routes'
+import { labRoutes } from './lab/routes'
 
 function NotFound() {
   const { t } = useI18n()
@@ -56,7 +56,7 @@ export default function App() {
         <Route path="monitor" element={<Monitor />} />
         <Route path="settings" element={<Settings />} />
         <Route path="system" element={<System />} />
-        {studioRoutes}
+        {labRoutes}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

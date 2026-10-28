@@ -40,3 +40,9 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 ## Handy commands (developer only)
 - Tests: `.venv\Scripts\python -m pytest -q` (GPU/Playwright/slow markers: see `pytest.ini`).
 - UI build: `cd frontend && npm install && npm run build` (writes to `instai/static/app/`).
+
+## Phase 3/4 notes
+- Two-PC design (worker agent, LAN gate, GPU task router): `docs/DECISIONS.md` section "Phase 3 / 4". PC B runs `START-WORKER.bat`; only `/api/worker/*` is ever exposed to the LAN.
+- GPU work goes through `instai/gpu/compute.py` (`run_task` / `fan_out`), never straight to ComfyUI, so a worker PC can take it.
+- The UI area for this work is the "Production lab" (`/lab`, `frontend/src/lab/`, own i18n namespace). Do not commit the built UI (`instai/static/app`) from worker sessions; the lead builds it.
+- Never auto-publish: automatic posting needs per-page enablement + the adapter flag + every requirement (`publishing/adapters.can_auto_publish`).

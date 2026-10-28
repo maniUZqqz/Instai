@@ -5,7 +5,7 @@ script and storyboard with an LLM, render 9:16 episodes (stills with 2.5D camera
 Wan video, puppet 2D and lip-sync in Phase 3), review and approve everything, export a package for manual upload.
 Separate product from NMarketing (`Qasem`); it never runs on a server. Full brief: [`docs/BRIEF.md`](docs/BRIEF.md). Working rules: [`CLAUDE.md`](CLAUDE.md).
 
-Status: **Phase 0 and Phase 1 complete, Phase 2 foundation built** (job queue, GPU arbiter, ComfyUI/TTS adapters, FFmpeg assembly). Everything is tested
+Status: **Phases 0-4 built** (puppet 2D, Wan hero shots, voices, two-GPU workers, automation/scheduling/publishing adapters); real GPU behaviour is unmeasured until the owner runs it. Everything is tested
 with fake providers; real GPU behaviour is measured by the benchmark on the owner's machine (see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)).
 
 ---
@@ -60,6 +60,18 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 
 ---
 
+## رایانهٔ دوم (PC B) به‌عنوان کارگر GPU (فارسی)
+
+با دو رایانه‌ی RTX 3060 می‌توان دو کار سنگین را هم‌زمان انجام داد (هر کارت جدا کار می‌کند؛ حافظهٔ کارت‌ها جمع نمی‌شود).
+
+**روی رایانهٔ اصلی (A):** برنامه را با `START.bat` اجرا کنید ← «آزمایشگاه تولید» ← «کارگرها» ← «نمایش کدِ جفت‌سازی». آدرس (مثل `192.168.1.20:8766`) و کدِ ۹ نویسه‌ای (مثل `K7QX-93MF`) نشان داده می‌شود. (ویندوز یک بار می‌پرسد اجازهٔ شبکه بدهد؛ «Private» را تأیید کنید.)
+
+**روی رایانهٔ دوم (B):** همین پوشهٔ پروژه را بگیرید (یا کپی کنید)، ComfyUI و مدل‌های لازم (Wan/FLUX، صدا) را روی همان رایانه آماده کنید، و روی `START-WORKER.bat` دو بار کلیک کنید. بار اول آدرس و کد را فقط یک بار می‌پرسد؛ بعد خودش منتظر کار می‌ماند و نتیجه را به A می‌فرستد.
+
+نکات: از A می‌توانید کارگر را غیرفعال، تغییر نام یا حذف کنید و «بنچمارک» همان رایانه را بزنید (زمان‌های واقعی برای مسیریابی ثبت می‌شود). فقط درگاه کارگر از شبکه باز است و با توکن کار می‌کند؛ بقیهٔ برنامه فقط روی همان رایانهٔ A در دسترس است. اگر B خاموش شد، کارِ آن خودکار به A برمی‌گردد.
+
+---
+
 ## For developers (English)
 
 ```
@@ -77,6 +89,11 @@ instai/research_series.py      real-series lookup: AniList / Wikipedia / Fandom 
 instai/production/pipeline.py  what is missing -> next job (hash-based, resumable, partial regeneration)
 instai/render/                 ffmpeg helpers, 2.5D camera filters, ASS subtitles, assembly, QC, placeholders
 instai/gpu/arbiter.py          one heavy GPU job at a time, unload/wait logic
+instai/gpu/compute.py          routes GPU tasks to this PC or a paired worker PC (capability, VRAM, busy, speed); executors.py = the tasks
+instai/remote/agent.py         the worker agent of PC B (START-WORKER.bat); instai/lan.py = LAN listener (worker API only)
+instai/render/puppet/          2D puppet engine (rig, motions, lip-sync, parallax renderer); render/retake.py = time-range retake
+instai/production/             hero shots, voices, rigs, anime comparison, LoRA, mix, automation, scheduling (+ api_*.py)
+instai/publishing/             export package, adapters (manual / Instagram Graph skeleton), notifications
 frontend/                      React + TS + Vite (build: python scripts/build_ui.py --force -> instai/static/app, committed)
                                texts: src/i18n/fa.ts + en.ts + src/i18n/packs/*.ts (a workstream adds its own pack file; tests/test_i18n.py checks both languages)
 docs/                          BRIEF, DECISIONS, MODELS (licences), BENCHMARKS, STUDIO_PIPELINE (how real studios work -> InstAI stages)
