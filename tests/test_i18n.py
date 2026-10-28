@@ -45,8 +45,9 @@ def dictionaries() -> tuple[dict[str, str], dict[str, str]]:
 
 
 def _sources() -> list[tuple[Path, str]]:
-    # src/studio/ is the production workstream's screens with their own dictionary (src/studio/i18n.ts); it checks itself
-    own = SRC / "studio"
+    # src/lab/ (renamed from src/studio/) is the production workstream's screens with their own dictionaries
+    # (src/lab/i18n.ts, i18n2.ts); it checks itself
+    own = SRC / "lab"
     return [(p, p.read_text(encoding="utf-8")) for p in SRC.rglob("*.ts*")
             if "i18n" not in p.parts and p.suffix in (".ts", ".tsx") and own not in p.parents]
 
