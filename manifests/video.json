@@ -1,0 +1,80 @@
+{
+ "group": "video",
+ "title": "Video: Wan 2.2 I2V A14B fp8 (high/low noise) + umT5 + VAE + lightx2v 8-step LoRA, for ComfyUI",
+ "licence_note": "Qasem notes say Apache-2.0 for all of these; InstAI has not re-verified (docs/MODELS.md). Files ComfyUI already has anywhere under COMFYUI_DIR\\models are reused, never downloaded again.",
+ "packages": {
+  "wan22": {
+   "title": "Wan 2.2 I2V A14B fp8 + 8-step LoRA (~36 GB; usually already on the owner's ComfyUI)",
+   "default": false,
+   "licence": "Apache-2.0 (per Qasem notes)",
+   "licence_verified": false
+  }
+ },
+ "items": [
+  {
+   "id": "wan22-flf:i2v_high_noise_fp8",
+   "package": "wan22",
+   "kind": "file",
+   "title": "Wan 2.2 I2V A14B high-noise expert, fp8_scaled (Apache-2.0)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\diffusion_models\\wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+   "size": 14294742832,
+   "sha256": "6122e79d55e0f235698d11d657f3b196c5273c830da00b2b013c5a048d5e6a42",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "wan22-flf:i2v_low_noise_fp8",
+   "package": "wan22",
+   "kind": "file",
+   "title": "Wan 2.2 I2V A14B low-noise expert, fp8_scaled (Apache-2.0)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\diffusion_models\\wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+   "size": 14294742832,
+   "sha256": "5471a457b6ac404202a5fbe6c11595a3d5641fc766b00f38763f72303fffc21e",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "wan22-flf:umt5_xxl_fp8",
+   "package": "wan22",
+   "kind": "file",
+   "title": "umT5-XXL text encoder fp8 (shared by every Wan model, Apache-2.0)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\text_encoders\\umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+   "size": 6735906897,
+   "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "wan22-flf:wan21_vae",
+   "package": "wan22",
+   "kind": "file",
+   "title": "Wan 2.1 VAE (used by Wan 2.2 A14B and Fun-InP 1.3B, Apache-2.0)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/vae/wan_2.1_vae.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\vae\\wan_2.1_vae.safetensors",
+   "size": 253815318,
+   "sha256": "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "wan-i2v-legacy:lightx2v_rank64",
+   "package": "wan22",
+   "kind": "file",
+   "title": "lightx2v I2V 14B 480p step-distill LoRA rank64 (Kijai repack; original lightx2v, Apache-2.0)",
+   "urls": [
+    "{HF}/Kijai/WanVideo_comfy/resolve/8260d429d19fd7a72304cad059160b95d843913f/Lightx2v/lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\loras\\lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors",
+   "size": 738005744,
+   "sha256": "85c4a61c30e0497aa44b91d93a893b624708461a56fe5485183b28fa07e2dfb3",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  }
+ ]
+}

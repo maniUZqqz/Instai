@@ -1,0 +1,51 @@
+{
+ "group": "runtime",
+ "title": "Runtime tools: FFmpeg (video assembly) and Python (installed only when START.bat finds none)",
+ "packages": {
+  "ffmpeg": {
+   "title": "FFmpeg 7.1.1 essentials build (static; libass, libx264, zoompan, xfade, loudnorm)",
+   "default": true,
+   "licence": "GPL-3.0 build; InstAI only runs it as a separate program",
+   "licence_verified": false
+  },
+  "python312": {
+   "title": "Python 3.12.10 per-user installer (used only when no Python 3.10-3.13 exists)",
+   "default": false,
+   "licence": "PSF License",
+   "licence_verified": true
+  }
+ },
+ "items": [
+  {
+   "id": "ffmpeg:essentials-7.1.1",
+   "package": "ffmpeg",
+   "kind": "zip",
+   "title": "FFmpeg 7.1.1 essentials (only ffmpeg.exe + ffprobe.exe are kept)",
+   "urls": [
+    "https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip"
+   ],
+   "dest": "{TOOLS}\\ffmpeg\\bin",
+   "marker": "ffmpeg.exe",
+   "size": 92234348,
+   "sha256": null,
+   "pick": {
+    "/bin/ffmpeg.exe": "ffmpeg.exe",
+    "/bin/ffprobe.exe": "ffprobe.exe"
+   }
+  },
+  {
+   "id": "python312",
+   "package": "python312",
+   "kind": "python",
+   "version": "3.12",
+   "title": "Python 3.12.10 (only installed when no Python 3.12 is found; per-user, into {NM_HOME}\\python312)",
+   "urls": [
+    "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"
+   ],
+   "size": 26964224,
+   "sha256": "67b5635e80ea51072b87941312d00ec8927c4db9ba18938f7ad2d27b328b95fb",
+   "dest": "{HOME}\\tools\\python312",
+   "source": "Adapted from Qasem processing-server/downloads/voice.json (python312)"
+  }
+ ]
+}

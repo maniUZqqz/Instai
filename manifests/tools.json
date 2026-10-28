@@ -1,0 +1,27 @@
+{
+ "group": "tools",
+ "title": "Extra tools for later phases",
+ "packages": {
+  "rhubarb": {
+   "title": "Rhubarb Lip Sync 1.13.0 (mouth shapes for puppet 2D animation, Phase 3)",
+   "default": false,
+   "licence": "MIT",
+   "licence_verified": false
+  }
+ },
+ "items": [
+  {
+   "id": "rhubarb:1.13.0-win",
+   "package": "rhubarb",
+   "kind": "zip",
+   "title": "Rhubarb Lip Sync 1.13.0 (Windows)",
+   "urls": [
+    "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/Rhubarb-Lip-Sync-1.13.0-Windows.zip"
+   ],
+   "dest": "{TOOLS}\\rhubarb",
+   "marker": "Rhubarb-Lip-Sync-1.13.0-Windows\\rhubarb.exe",
+   "size": 88700994,
+   "sha256": null
+  }
+ ]
+}

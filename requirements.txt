@@ -1,0 +1,7 @@
+# Runtime dependencies (pinned). Python 3.10 - 3.13.
+Django==5.2.18
+djangorestframework==3.18.3
+requests==2.34.2
+Pillow==12.3.0
+waitress==3.0.2
+whitenoise==6.12.0

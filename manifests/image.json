@@ -1,0 +1,46 @@
+{
+ "group": "image",
+ "title": "Image: FLUX.1 [dev] FP8 (licence decision pending), BiRefNet-lite (background removal for parallax layers)",
+ "licence_note": "FLUX.1 [dev] weights use a non-commercial licence; whether the owner's use is acceptable is an OPEN owner decision (docs/MODELS.md). Apache alternatives (Qwen-Image, Z-Image) are to be benchmarked first. Nothing here is default.",
+ "packages": {
+  "flux": {
+   "title": "FLUX.1 [dev] FP8 checkpoint (~12 GB; the owner's ComfyUI usually has it already)",
+   "default": false,
+   "licence": "FLUX.1 [dev] Non-Commercial License",
+   "licence_verified": false
+  },
+  "birefnet": {
+   "title": "BiRefNet-lite background removal (parallax layers, Phase 3)",
+   "default": false,
+   "licence": "MIT (per BiRefNet repo; unverified)",
+   "licence_verified": false
+  }
+ },
+ "items": [
+  {
+   "id": "flux:flux1-dev-fp8",
+   "package": "flux",
+   "kind": "file",
+   "title": "FLUX.1 [dev] FP8 (Comfy-Org repack)",
+   "urls": [
+    "{HF}/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\flux1-dev-fp8.safetensors",
+   "size": 17246524772,
+   "sha256": null
+  },
+  {
+   "id": "photo:birefnet-lite",
+   "package": "birefnet",
+   "kind": "file",
+   "title": "BiRefNet-lite (AI background removal for «ادیتور عکس»)",
+   "urls": [
+    "{HF}/onnx-community/BiRefNet_lite-ONNX/resolve/de15b22ba131738a16dff04aab8bdf8dc32e3ac1/onnx/model.onnx"
+   ],
+   "dest": "{MODELS}\\birefnet\\birefnet-lite.onnx",
+   "size": 224005088,
+   "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
+   "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  }
+ ]
+}
