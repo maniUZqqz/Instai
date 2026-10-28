@@ -114,6 +114,48 @@ def amplitude_cues(path: str | Path, window: float = 0.02) -> list[Cue]:
     return merge([(k * window, (k + 1) * window, s) for k, s in enumerate(shapes)])
 
 
+def silent_intervals(path: str | Path, window: float = 0.02, min_len: float = 0.12, floor: float = 0.10) -> list[tuple[float, float]]:
+    """Stretches of at least `min_len` seconds where the audio is quiet (below `floor` of its loud level): real pauses."""
+    samples, rate = read_mono(path)
+    env = envelope(samples, rate, window)
+    if not env:
+        return []
+    loud = sorted(env)
+    ref = loud[int(len(loud) * 0.95)] or max(loud) or 1.0
+    out, start = [], None
+    for i, e in enumerate(env + [ref]):                      # sentinel: a loud window closes the last run
+        quiet = e / ref < floor and i < len(env)
+        if quiet and start is None:
+            start = i
+        elif not quiet and start is not None:
+            if (i - start) * window >= min_len:
+                out.append((start * window, i * window))
+            start = None
+    return out
+
+
+def mask_silence(cues: list[Cue], silent: list[tuple[float, float]]) -> list[Cue]:
+    """Closed mouth (X) over real pauses. Measured on Persian speech: Rhubarb's `phonetic` recogniser labels pauses as speech (see DECISIONS)."""
+    out: list[Cue] = []
+    for s, e, v in cues:
+        pieces = [(s, e)]
+        for a, b in silent:
+            nxt = []
+            for ps, pe in pieces:
+                if b <= ps or a >= pe:
+                    nxt.append((ps, pe))
+                    continue
+                if a > ps:
+                    nxt.append((ps, a))
+                if b < pe:
+                    nxt.append((b, pe))
+            pieces = nxt
+        out += [(ps, pe, v) for ps, pe in pieces]
+    for a, b in silent:
+        out.append((a, b, "X"))
+    return merge(sorted(out, key=lambda c: c[0]))
+
+
 # ------------------------------------------------------------------ Rhubarb
 
 def rhubarb_exe() -> str | None:
@@ -155,8 +197,13 @@ def visemes(path: str | Path, *, language: str = "fa", text: str = "", engine: s
     note = ""
     if engine in ("auto", "rhubarb") and rhubarb_exe():
         try:
-            return {"cues": rhubarb_cues(path, language=language, text=text), "engine": "rhubarb",
-                    "note": "recogniser=" + ("pocketSphinx" if language[:2] == "en" else "phonetic")}
+            cues = rhubarb_cues(path, language=language, text=text)
+            try:
+                silent = silent_intervals(path)
+                cues = mask_silence(cues, silent)
+            except (ValueError, OSError, wave.Error):      # not a 8/16-bit WAV: keep Rhubarb's own cues
+                pass
+            return {"cues": cues, "engine": "rhubarb", "note": "recogniser=" + ("pocketSphinx" if language[:2] == "en" else "phonetic")}
         except RuntimeError as e:
             note = f"Rhubarb failed ({e}); amplitude-driven mouth used instead"
             if engine == "rhubarb":

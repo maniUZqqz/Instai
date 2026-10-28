@@ -85,7 +85,11 @@ def monitor(request):
                      "worker_alive": any(w["alive"] for w in workers)})
 
 
+from . import api_workers, worker_api  # noqa: E402  (worker PCs: pairing, tasks, devices)
+
 urlpatterns = [
+    *api_workers.urlpatterns,
+    *worker_api.urlpatterns,
     path("jobs", jobs),
     path("jobs/<int:pk>", job_detail),
     path("jobs/<int:pk>/logs", job_logs),

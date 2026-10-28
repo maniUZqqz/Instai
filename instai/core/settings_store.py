@@ -32,6 +32,8 @@ PUBLIC_KEYS = tuple(DEFAULTS)
 
 
 def get_setting(key: str, default: Any = None) -> Any:
+    if os.environ.get("INSTAI_WORKER_MODE"):      # a worker PC has no database: its settings come from .env
+        return default
     now = time.monotonic()
     hit = _CACHE.get(key)
     if hit and now - hit[0] < TTL:

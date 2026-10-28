@@ -215,6 +215,7 @@ class ComfyHandler(_H):
             if o.reject:
                 return self.send_json({"error": {"message": "Prompt outputs failed validation"}, "node_errors": {"4": {"class_type": "CLIPTextEncode"}}}, 400)
             pid = f"p{len(o.history) + 1}"
+            o.prompt_times.append(time.time())
             outputs, errors = {}, None
             for nid, node in graph.items():
                 if node["class_type"] == "SaveImage":
@@ -224,7 +225,7 @@ class ComfyHandler(_H):
                     outputs[nid] = {"images": [{"filename": fn, "subfolder": "", "type": "output"}]}
                 elif node["class_type"] == "SaveVideo":
                     fn = f"vid_{pid}_{nid}.mp4"
-                    o.files[fn] = b"not-a-real-mp4"
+                    o.files[fn] = o.video_bytes(graph) if getattr(o, "video_bytes", None) else b"not-a-real-mp4"
                     outputs[nid] = {"images": [{"filename": fn, "subfolder": "", "type": "output"}], "animated": [True]}
             entry = {"outputs": outputs, "status": {"status_str": "success", "completed": True, "messages": []}, "polls_left": o.polls}
             if o.execution_error:
@@ -248,7 +249,7 @@ def comfy_server(missing_models=(), polls=0, reject=False, execution_error=False
     from instai.providers.comfy.workflows import WORKFLOWS
 
     s = _Server(ComfyHandler)
-    s.history, s.files, s.prompts = {}, {}, []
+    s.history, s.files, s.prompts, s.prompt_times, s.video_bytes = {}, {}, [], [], None
     s.freed = s.interrupted = s.uploads = 0
     s.polls, s.reject, s.execution_error = polls, reject, execution_error
 
@@ -307,3 +308,24 @@ def wait_until(pred, timeout=5.0, step=0.02):
             return True
         time.sleep(step)
     return False
+
+
+def make_test_video(width: int, height: int, frames: int, fps: float = 16.0, color_shift: int = 0) -> bytes:
+    """A real small H.264 clip (ffmpeg testsrc) - what a fake Wan returns so retake/stitch code runs on real video."""
+    import subprocess
+    import tempfile
+    from pathlib import Path
+
+    from instai.core import runtime
+
+    ff = runtime.ffmpeg_info()["ffmpeg"]
+    d = Path(tempfile.mkdtemp(prefix="fakevid-"))
+    out = d / "v.mp4"
+    vf = f"hue=h={color_shift}" if color_shift else "null"
+    subprocess.run([ff, "-y", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", f"testsrc2=s={width}x{height}:r={fps}", "-vf", vf, "-frames:v", str(frames),
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "ultrafast", str(out)], check=True)
+    data = out.read_bytes()
+    import shutil
+
+    shutil.rmtree(d, ignore_errors=True)
+    return data

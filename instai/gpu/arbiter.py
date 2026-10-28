@@ -68,6 +68,11 @@ class GPUArbiter:
         self.holder: int | None = None   # job id currently holding the GPU
         self.busy_reason = ""
 
+    @property
+    def busy(self) -> bool:
+        """True while a GPU job of this process holds the card (one heavy job per GPU)."""
+        return self._lock.locked()
+
     # --- injectable pieces (tests replace them)
     def probe(self) -> dict | None:
         if self._probe is not None:
