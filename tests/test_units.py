@@ -206,5 +206,5 @@ def test_licence_table_is_honest_about_what_is_verified():
     assert by["ltx2"]["excluded"] and by["hunyuan15"]["excluded"]
     assert by["pocket-tts"]["warning"] and by["edge-tts"]["warning"] and not by["pocket-tts"].get("excluded") and not by["edge-tts"].get("excluded")   # owner asked for them
     assert by["flux-dev"]["decision"] is True and by["flux-dev"]["commercial"] == "conditional"
-    assert by["anisora"]["verified"] is None and by["animegen"]["verified"] is None
+    assert "not audited" in by["anisora"]["verified"] and "licence line only" in by["animegen"]["verified"]      # read on 2026-10-28, never audited
     assert "NOT verified" in licences.markdown() and "OWNER DECISION" in licences.markdown() and "WARNING" in licences.markdown()
