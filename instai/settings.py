@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "instai.assets",
     "instai.jobs",
     "instai.publishing",
+    "instai.production",
 ]
 
 MIDDLEWARE = [

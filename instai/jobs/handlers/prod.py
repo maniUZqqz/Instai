@@ -19,8 +19,10 @@ def _image_resource(payload: dict) -> str:
 
 def _tts_resource(payload: dict) -> str:
     eng = str(settings_store.effective("tts_engine") or "auto")
-    if eng in ("fake", "piper"):
+    if eng in ("fake", "piper", "pocket"):
         return "cpu"
+    if eng == "edge":
+        return "net"
     if eng == "moss":
         return "gpu"
     try:

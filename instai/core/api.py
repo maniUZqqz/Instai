@@ -62,7 +62,7 @@ def benchmark_report(request, pk):
 DEMO = {"llm_provider": "fake", "tts_engine": "fake", "image_engine": "placeholder", "research_fetch": "fake"}
 LIVE = {"llm_provider": "ollama", "tts_engine": "auto", "image_engine": "auto", "research_fetch": "off"}
 ENUMS = {"llm_provider": ["fake", "ollama", "openai"], "openai_json_mode": ["json_schema", "json_object", "none"],
-         "tts_engine": ["auto", "moss", "piper", "fake"], "image_engine": ["auto", "comfyui", "placeholder"],
+         "tts_engine": ["auto", "moss", "piper", "pocket", "edge", "fake"], "image_engine": ["auto", "comfyui", "placeholder"],
          "research_fetch": ["off", "wikipedia", "fake"]}
 
 

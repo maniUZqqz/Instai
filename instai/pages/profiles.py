@@ -34,7 +34,7 @@ ENUMS = {
     ("visual", "aspect_ratio"): ["9:16", "1:1", "16:9", "4:5"],
     ("visual", "realism"): ["realistic", "semi_realistic", "anime_like", "anime", "cartoon", "cartoon_3d", "graphic", "stylized_art"],
     ("production", "preset"): ["preview", "balanced", "quality", "overnight"],
-    ("audio", "narration_engine"): ["auto", "moss", "piper", "fake"],
+    ("audio", "narration_engine"): ["auto", "moss", "piper", "pocket", "edge", "fake"],
 }
 INT_RANGES = {
     ("production", "episodes_per_series"): (1, 60), ("production", "episode_length_sec"): (10, 180),

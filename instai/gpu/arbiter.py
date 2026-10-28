@@ -91,9 +91,15 @@ class GPUArbiter:
             if c.is_up():
                 c.free()
 
-        return {"llm": llm, "comfy": comfy}
+        def voice():  # the voice servers this process started (never a server another program runs)
+            from instai.providers.audio import services
+
+            services.unload_voice()
+
+        return {"llm": llm, "comfy": comfy, "voice": voice}
 
     def unload_others(self, occupant: str) -> None:
+        occupant = "voice" if occupant in ("tts", "sfx", "music") else occupant
         for name, fn in self.unloaders().items():
             if name != occupant:
                 try:

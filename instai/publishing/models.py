@@ -35,3 +35,23 @@ class Publication(models.Model):
 
     class Meta:
         ordering = ["-id"]
+
+
+class Notification(models.Model):
+    """Something the owner should know about (shown in the UI bell): a decision is needed, a render finished, a budget ran out,
+    a publication is due. `key` de-duplicates repeated notices (the same event is stored once)."""
+
+    LEVELS = [(s, s) for s in ("info", "ok", "warn", "error")]
+    kind = models.CharField(max_length=40, default="info")
+    level = models.CharField(max_length=6, choices=LEVELS, default="info")
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, default="")
+    link = models.CharField(max_length=200, blank=True, default="")        # app route, e.g. /episodes/12
+    page = models.ForeignKey("pages.ContentPage", null=True, blank=True, on_delete=models.CASCADE, related_name="notifications")
+    episode = models.ForeignKey("story.Episode", null=True, blank=True, on_delete=models.CASCADE, related_name="notifications")
+    key = models.CharField(max_length=160, blank=True, default="", db_index=True)
+    read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-id"]

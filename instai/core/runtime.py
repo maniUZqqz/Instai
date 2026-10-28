@@ -54,6 +54,18 @@ def moss_tts_url() -> str:
     return _setting("moss_tts_url", "INSTAI_MOSS_TTS_URL", "")
 
 
+def pocket_url() -> str:
+    return _setting("pocket_url", "INSTAI_POCKET_URL", "http://127.0.0.1:5620")
+
+
+def moss_sfx_url() -> str:
+    return _setting("moss_sfx_url", "INSTAI_MOSS_SFX_URL", "")
+
+
+def acestep_url() -> str:
+    return _setting("acestep_url", "INSTAI_ACESTEP_URL", "")
+
+
 def comfyui_dir() -> str:
     return _setting("comfyui_dir", "COMFYUI_DIR", "")
 

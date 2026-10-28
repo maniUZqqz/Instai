@@ -46,10 +46,13 @@ MODELS: list[dict] = [
      "notes": "The voice licence must be checked on its model card before publishing commercially."},
     {"id": "vosk", "name": "Vosk (ASR)", "role": "speech recognition", "licence": "Apache-2.0 (per brief)", "commercial": "yes", "verified": "brief", "vram": "CPU",
      "package": None, "notes": "Used later for subtitle timing checks."},
-    {"id": "pocket-tts", "name": "Pocket-TTS", "role": "speech", "licence": "non-commercial", "commercial": "no", "verified": "brief", "excluded": True,
-     "vram": "-", "package": None, "notes": "EXCLUDED for published content."},
+    {"id": "pocket-tts", "name": "Pocket-TTS (voice kit)", "role": "speech", "licence": "CC-BY-NC-4.0 - NON-COMMERCIAL", "commercial": "no", "verified": "brief",
+     "warning": True, "vram": "CPU", "package": None,
+     "notes": "AVAILABLE ON REQUEST of the owner, with a visible warning wherever it is chosen and in the QC report. Never selected automatically; "
+              "do not use it for content you publish commercially."},
     {"id": "edge-tts", "name": "Edge TTS (unofficial online endpoint)", "role": "speech", "licence": "unofficial endpoint, not for commercial use", "commercial": "no",
-     "verified": "brief", "excluded": True, "vram": "-", "package": None, "notes": "EXCLUDED: not a licensed service."},
+     "verified": "brief", "warning": True, "vram": "-", "package": None,
+     "notes": "AVAILABLE ON REQUEST of the owner, with a visible warning (needs internet; not a licensed service). Never selected automatically."},
     # ---- tools
     {"id": "rhubarb", "name": "Rhubarb Lip Sync 1.13", "role": "mouth shapes", "licence": "MIT", "commercial": "yes", "verified": "brief", "vram": "CPU",
      "package": "rhubarb", "notes": "Phase 3: drives puppet-2D mouths from the narration."},
@@ -84,6 +87,6 @@ def table() -> list[dict]:
 def markdown() -> str:
     lines = ["| Model / tool | Role | Licence | Commercial use | Verified | VRAM | Notes |", "|---|---|---|---|---|---|---|"]
     for m in MODELS:
-        flag = " **(EXCLUDED)**" if m.get("excluded") else (" **(OWNER DECISION)**" if m.get("decision") else "")
+        flag = " **(EXCLUDED)**" if m.get("excluded") else (" **(OWNER DECISION)**" if m.get("decision") else (" **(WARNING: owner-enabled, not for commercial use)**" if m.get("warning") else ""))
         lines.append(f"| {m['name']}{flag} | {m['role']} | {m['licence']} | {m['commercial']} | {m['verified'] or 'NOT verified'} | {m['vram']} | {m['notes']} |")
     return "\n".join(lines) + "\n"

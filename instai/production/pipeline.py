@@ -76,13 +76,14 @@ def narration_hash(shot: Shot, ep: Episode) -> str:
 
 
 def voice_for(shot: Shot, ep: Episode) -> dict:
-    """Voice of a shot: the speaking character's voice, else the page's narration voice."""
+    """Voice of a shot: VoiceCast of the speaking character (per language), else the character's older voice setting, else the page's
+    narration voice (see production/voices.py)."""
+    from . import voices
+
     page = page_of(ep)
-    aud = page.profile("audio")
     char = page.characters.filter(name=shot.speaker).first() if shot.speaker else None
-    cv = (char.voice if char else None) or {}
-    return {"engine": cv.get("engine") or aud["narration_engine"] or "auto", "voice": cv.get("voice_id") or aud["narration_voice"],
-            "reference": cv.get("reference") or ""}
+    v = voices.resolve(char, voices.language_of(page), page)
+    return {"engine": v["engine"], "voice": v["voice"], "reference": v["reference"], "speed": v["speed"], "consent_ok": v["consent_ok"]}
 
 
 def current(shot: Shot, role: str) -> Asset | None:
@@ -293,23 +294,31 @@ def step_tts(ctx, ep: Episode, mode: str) -> dict:
         ctx.check()
         ctx.progress(i / max(1, len(shots)), f"narration {i + 1}/{len(shots)}")
         voice = voice_for(shot, ep)
+        if not voice["consent_ok"]:
+            raise ProviderError("The cloned voice of this character has no recorded consent; it will not be used.", retryable=False, code="consent_missing")
         tts = get_tts(voice["engine"] if voice["engine"] != "auto" else None)
         hsh = narration_hash(shot, ep)
         tmp = Path(tempfile.mkdtemp(prefix="tts-", dir=settings.MEDIA_ROOT)) / "n.wav"
-        if tts.resource == "gpu":
-            from instai.gpu.arbiter import ARBITER
-
-            with ARBITER.hold(ctx, "tts"):
-                res = tts.synthesize(shot.narration, tmp, voice=voice["voice"] or None, language=lang, seed=shot.seed, reference=voice["reference"] or None)
-        else:
-            res = tts.synthesize(shot.narration, tmp, voice=voice["voice"] or None, language=lang, seed=shot.seed, reference=voice["reference"] or None)
+        res = _speak(ctx, tts, shot.narration, tmp, voice, lang, shot.seed)
         rel = f"episodes/{ep.pk}/audio/shot{shot.pk}-{hsh[:8]}.wav"
         asset_storage.register(tmp, rel, kind="audio", role="narration", page=page_of(ep), episode=ep, shot=shot, input_hash=hsh,
-                               provenance={"engine": res.engine, "voice": res.voice, "provider": res.engine, "job_id": ctx.job.pk,
-                                           "render_seconds": round(res.render_seconds, 2), "text": shot.narration[:200]})
+                               provenance={"engine": res.engine, "voice": res.voice, "provider": res.engine, "job_id": ctx.job.pk, "language": lang,
+                                           "speaker": shot.speaker, "render_seconds": round(res.render_seconds, 2), "text": shot.narration[:200],
+                                           "licence": res.licence, "device": getattr(res, "device", "local")})
         _cleanup(tmp.parent)
         done += 1
     return {"generated": done}
+
+
+def _speak(ctx, tts, text: str, out: Path, voice: dict, lang: str, seed):
+    """One line of speech. GPU engines (MOSS) hold the arbiter; CPU/online engines (Piper, Pocket, Edge) run in parallel with it."""
+    kw = dict(voice=voice["voice"] or None, language=lang, seed=seed, reference=voice["reference"] or None)
+    if tts.resource == "gpu":
+        from instai.gpu.arbiter import ARBITER
+
+        with ARBITER.hold(ctx, "voice"):
+            return tts.synthesize(text, out, **kw)
+    return tts.synthesize(text, out, **kw)
 
 
 def step_clips(ctx, ep: Episode, mode: str) -> dict:
@@ -441,6 +450,12 @@ def run_qc(ep: Episode, video: Asset) -> dict:
     unknown = sorted({s.speaker for s in services.all_shots(ep) if s.speaker not in chars})
     checks.append({"name": "continuity", "level": "warn" if unknown else "ok", "value": unknown,
                    "message": "گوینده‌هایی که در لیست شخصیت‌ها نیستند: " + "، ".join(unknown) if unknown else "هماهنگی با شخصیت‌ها و حافظه‌ی داستان"})
+    used = _voice_engines_used(ep)
+    flagged = [e for e in used if e["commercial"] == "no"]
+    checks.append({"name": "voice_licence", "level": "warn" if flagged else "ok", "value": {"engines": [e["engine"] for e in used], "warnings": flagged},
+                   "message": ("صدای غیرتجاری یا غیررسمی در این قسمت به کار رفته است: " + "، ".join(e["engine"] for e in flagged)
+                               + " — برای انتشار تجاری از MOSS یا Piper (با مجوز بررسی‌شدهٔ صدا) استفاده کنید.") if flagged else
+                   "موتورهای صدا: " + ("، ".join(e["engine"] for e in used) or "—")})
     mem = services.memory_digest(ep.series, before_episode=ep.number)
     checks.append({"name": "open_threads", "level": "info", "value": len(mem["open_threads"]),
                    "message": f"{len(mem['open_threads'])} رشته‌ی باز داستان از قسمت‌های قبل"})
@@ -453,6 +468,18 @@ def run_qc(ep: Episode, video: Asset) -> dict:
     report["ok"] = not any(c["level"] == "fail" for c in checks)
     report["warnings"] = sum(1 for c in checks if c["level"] == "warn")
     return report
+
+
+def _voice_engines_used(ep: Episode) -> list[dict]:
+    """Licence facts of every speech engine behind the current narration assets of the episode (from asset provenance)."""
+    from instai.providers.tts import licence_of
+
+    seen: dict[str, dict] = {}
+    for a in Asset.objects.filter(episode=ep, role="narration", is_current=True):
+        eng = (a.provenance or {}).get("engine")
+        if eng and eng not in seen:
+            seen[eng] = licence_of(eng)
+    return list(seen.values())
 
 
 def _expected_duration(ep: Episode, video: Asset) -> float:

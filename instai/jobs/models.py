@@ -71,3 +71,69 @@ class Worker(models.Model):
     last_seen = models.DateTimeField(null=True, blank=True)
     current_jobs = models.JSONField(default=list, blank=True)
     info = models.JSONField(default=dict, blank=True)
+
+
+class WorkerNode(models.Model):
+    """A second computer (PC B) paired over the LAN. It pulls RemoteTasks over HTTP with a token (never the other way round).
+    Only the SHA-256 of the token is stored."""
+
+    name = models.CharField(max_length=80, unique=True)
+    token_hash = models.CharField(max_length=64, db_index=True)
+    enabled = models.BooleanField(default=True)
+    address = models.CharField(max_length=80, blank=True, default="")      # last seen client address
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    gpu_name = models.CharField(max_length=120, blank=True, default="")
+    vram_total_mb = models.IntegerField(default=0)
+    vram_free_mb = models.IntegerField(default=0)
+    capabilities = models.JSONField(default=list, blank=True)             # ["comfy:wan22_i2v_a14b_fp8", "voice:moss", ...]
+    models_info = models.JSONField(default=dict, blank=True)              # what the worker reported it has
+    measured = models.JSONField(default=dict, blank=True)                 # measured speeds from the per-worker benchmark
+    info = models.JSONField(default=dict, blank=True)                     # agent version, os, python
+    current_task = models.IntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+
+class PairingCode(models.Model):
+    """A short-lived one-time code shown on PC A and typed once on PC B. Only a hash is stored."""
+
+    code_hash = models.CharField(max_length=64, db_index=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class RemoteTask(models.Model):
+    """Pure compute work (a ComfyUI graph, a voice call, a benchmark) with explicit input and output FILES, claimed atomically by a
+    worker with a lease and a heartbeat. The user-facing unit stays the local Job; its handler waits for the task."""
+
+    QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED = "queued", "running", "succeeded", "failed", "cancelled"
+    STATUS = [(s, s) for s in (QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED)]
+    kind = models.CharField(max_length=40)                                 # comfy.graph | voice.tts | voice.sfx | voice.music | bench.node
+    status = models.CharField(max_length=10, choices=STATUS, default=QUEUED, db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    needs = models.JSONField(default=list, blank=True)                     # capabilities the worker must have
+    vram_mb = models.IntegerField(default=0)                               # free VRAM the task needs on that PC
+    priority = models.IntegerField(default=0)
+    target_worker = models.ForeignKey(WorkerNode, null=True, blank=True, on_delete=models.SET_NULL, related_name="pinned_tasks")
+    job = models.ForeignKey(Job, null=True, blank=True, on_delete=models.SET_NULL, related_name="remote_tasks")
+    worker = models.ForeignKey(WorkerNode, null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks")
+    lease_expires = models.DateTimeField(null=True, blank=True)
+    attempts = models.IntegerField(default=0)
+    max_attempts = models.IntegerField(default=2)
+    cancel_requested = models.BooleanField(default=False)
+    progress = models.FloatField(default=0.0)
+    progress_text = models.CharField(max_length=300, blank=True, default="")
+    result = models.JSONField(default=dict, blank=True)
+    error = models.TextField(blank=True, default="")
+    retryable = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    seconds = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-priority", "id"]
+        indexes = [models.Index(fields=["status", "priority", "id"])]
