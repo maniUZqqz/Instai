@@ -3,6 +3,7 @@ import { Shell } from './components/Shell'
 import { Empty, LinkButton } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
+import LibraryPage from './pages/Library'
 import Monitor from './pages/Monitor'
 import PagesList from './pages/PagesList'
 import Settings from './pages/Settings'
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="series/:id" element={<SeriesBuilder />} />
         <Route path="episodes/:id" element={<EpisodeEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
+        <Route path="library" element={<LibraryPage />} />
         <Route path="monitor" element={<Monitor />} />
         <Route path="settings" element={<Settings />} />
         <Route path="system" element={<System />} />

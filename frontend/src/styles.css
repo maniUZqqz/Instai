@@ -1518,3 +1518,383 @@ a.skip-link:focus {
 .claim.unsupported {
   border-inline-start-color: var(--err);
 }
+
+/* ================================================================ studio: style library, development room, pre-production (logical properties only) */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.filter-chip {
+  min-height: 40px;
+  padding: 0.25rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.filter-chip:hover {
+  background: var(--surface-2);
+}
+.filter-chip.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+.filter-chip.on .muted {
+  color: inherit;
+  opacity: 0.85;
+}
+.filter-chip:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+.chip-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.chip-color i {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+}
+.style-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+}
+.theme-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+}
+.style-card,
+.theme-card {
+  padding: 0.6rem;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+}
+.choice.as-button {
+  width: 100%;
+}
+.swatch {
+  position: relative;
+  overflow: hidden;
+  min-height: 34px;
+}
+.swatch-chips {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  display: flex;
+}
+.swatch-chips i {
+  flex: 1;
+  height: 8px;
+}
+.cover-thumb {
+  width: 64px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  flex: none;
+  background: var(--surface-2);
+}
+.cand-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.steps-list {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+.steps-edit {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.narrow {
+  max-inline-size: 8rem;
+}
+.nw {
+  flex-wrap: nowrap;
+}
+
+/* development room */
+.dev-room {
+  display: grid;
+  grid-template-columns: minmax(200px, 270px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.dev-stepper ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  position: sticky;
+  inset-block-start: 4.5rem;
+}
+.dev-step {
+  display: grid;
+  grid-template-columns: 1.9rem 1fr;
+  grid-template-areas: 'num lbl' 'num st';
+  column-gap: 0.6rem;
+  width: 100%;
+  min-height: 52px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.dev-step:hover {
+  border-color: var(--border-strong);
+}
+.dev-step:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+.dev-step.current {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.dev-step .num {
+  grid-area: num;
+  align-self: center;
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--surface-3);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.dev-step.st-done .num {
+  background: var(--ok);
+  color: #fff;
+}
+.dev-step.st-review .num {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.dev-step.st-active .num {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.dev-step .lbl {
+  grid-area: lbl;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.dev-step .st {
+  grid-area: st;
+}
+.dev-main {
+  min-width: 0;
+}
+.dev-panel > * {
+  min-width: 0;
+}
+.dev-gatebar {
+  padding-block: 0.75rem;
+  border-block-start: 1px solid var(--border);
+  align-items: center;
+}
+.dev-head {
+  gap: 0.75rem;
+}
+
+/* idea cards */
+.idea-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+}
+.idea {
+  min-width: 0;
+}
+.idea.approved {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok-soft);
+}
+.idea.rejected {
+  opacity: 0.65;
+}
+.idea-title {
+  font-size: 1.05rem;
+}
+.idea-actions {
+  gap: 0.35rem;
+}
+.stars {
+  display: inline-flex;
+  gap: 0.1rem;
+}
+.star {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--border-strong);
+  cursor: pointer;
+  border-radius: 50%;
+}
+.star.on {
+  color: #d99a00;
+}
+.star.on svg {
+  fill: currentColor;
+}
+.star:hover {
+  background: var(--surface-2);
+}
+.star:focus-visible {
+  outline: 3px solid var(--ring);
+}
+
+/* consequence map */
+.map-node {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-inline-start: 4px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.map-node.kind-divergence {
+  border-inline-start-color: var(--err);
+}
+.map-node.kind-direct {
+  border-inline-start-color: var(--warn);
+}
+.map-node.kind-ripple {
+  border-inline-start-color: var(--info);
+}
+.map-node.kind-character {
+  border-inline-start-color: var(--primary);
+}
+.map-node.kind-world {
+  border-inline-start-color: var(--ok);
+}
+
+/* pre-production stage board, animatic, design sheets */
+.stage-board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
+  gap: 0.6rem;
+}
+.stage {
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.stage.st-approved,
+.stage.st-auto {
+  border-color: var(--ok);
+}
+.stage.st-stale {
+  border-color: var(--err);
+}
+.stage.st-ready {
+  border-color: var(--warn);
+}
+.stage .num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--surface-3);
+  font-size: 0.8rem;
+}
+.animatic-video {
+  inline-size: 100%;
+  max-inline-size: 360px;
+  aspect-ratio: 9 / 16;
+  max-block-size: 70vh;
+  background: #000;
+  border-radius: var(--radius-sm);
+}
+.sheet {
+  min-width: 0;
+}
+.sheet-img {
+  inline-size: 100%;
+  max-block-size: 260px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.cast-row {
+  padding-block: 0.4rem;
+  border-block-end: 1px solid var(--border);
+}
+.cast-select {
+  min-width: 220px;
+}
+.llm-row {
+  align-items: end;
+}
+
+@media (max-width: 900px) {
+  .dev-room {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dev-stepper ol {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-block-end: 0.4rem;
+    scroll-snap-type: x proximity;
+  }
+  .dev-stepper li {
+    flex: 0 0 min(72vw, 240px);
+    scroll-snap-align: start;
+  }
+  .cast-select {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+  .narrow {
+    max-inline-size: none;
+  }
+}
+
+/* narrow screens: label above value so long values (badges, prompts) have the full width */
+@media (max-width: 560px) {
+  .kv {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+  .kv dt {
+    margin-block-start: 0.5rem;
+  }
+}

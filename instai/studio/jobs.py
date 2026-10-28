@@ -176,7 +176,7 @@ def idea_merge_job(ctx):
     series = Series.objects.select_related("page").get(pk=p["series_id"])
     cards = list(Idea.objects.filter(series=series, pk__in=p["ids"]))
     if len(cards) < 2:
-        raise DomainError("validation_error", "برای ادغام حداقل دو ایده لازم است.", http_status=400)
+        raise DomainError("validation_error", "برای ادغام حداقل دو ایده لازم است.", message_en="Merging needs at least two ideas.", http_status=400)
     lang = _lang(p, series.page)
     meta = dev_meta(series, lang)
     meta.update(ideas=[idea_card(c) for c in cards], instruction=str(p.get("instruction") or ""))
@@ -219,7 +219,7 @@ def _canon(ctx, series: Series, lang: str, key: str, manual: list[Source], p: di
     if src.get("notes") and not any(f.get("title") == "Owner notes" for f in fetched):
         fetched.append({"id": len(fetched) + 1, "title": "Owner notes", "url": "", "publisher": "owner", "extract": src["notes"], "verified": False})
     if not fetched:
-        raise DomainError("not_ready", "هیچ منبعی به دست نیامد (اینترنت کند یا مسدود است؟). متنِ منبع را دستی در بخش «منبع‌ها» اضافه کنید یا یادداشت بنویسید؛ سپس دوباره اجرا کنید.")
+        raise DomainError("not_ready", "هیچ منبعی به دست نیامد (اینترنت کند یا مسدود است؟). متنِ منبع را دستی در بخش «منبع‌ها» اضافه کنید یا یادداشت بنویسید؛ سپس دوباره اجرا کنید.", message_en="No source could be collected (is the internet slow or blocked?). Add source text by hand in the Sources panel or write a note, then run it again.")
     ctx.progress(0.45, "analysing the canon")
     meta = dev_meta(series, lang)
     meta["sources"] = _numbered(fetched)
@@ -274,7 +274,7 @@ def map_job(ctx):
     key = _step_key(series, p, "map")
     div = _divergence(series)
     if not div:
-        raise DomainError("not_ready", "ابتدا یک ایدهٔ نقطهٔ انشعاب را تأیید کنید.")
+        raise DomainError("not_ready", "ابتدا یک ایدهٔ نقطهٔ انشعاب را تأیید کنید.", message_en="Approve a divergence-point idea first.")
     lang = _lang(p, series.page)
     meta = dev_meta(series, lang)
     meta.update(divergence=div, instruction=str(p.get("instruction") or ""), episodes_count=series.target_episodes)
@@ -309,7 +309,7 @@ def profile_job(ctx):
     step = services.get_step(series, key)
     brief = str(p.get("brief") or (step.data or {}).get("brief") or series.page.idea or "").strip()
     if not brief:
-        raise DomainError("not_ready", "ابتدا یادداشت طراحی شخصیت را بنویسید.")
+        raise DomainError("not_ready", "ابتدا یادداشت طراحی شخصیت را بنویسید.", message_en="Write the character design brief first.")
     lang = _lang(p, series.page)
     meta = dev_meta(series, lang)
     meta["brief"] = brief
@@ -373,12 +373,12 @@ def casting_job(ctx):
     lang = _lang(p, page)
     voices = [{"id": v["id"], "label": v["label"], "language": v["language"], "tags": v["tags"]} for v in preprod.voice_options(page.language) if v["installed"]]
     if not voices:
-        raise DomainError("not_ready", "هیچ صدایی در این رایانه آماده نیست؛ در «سیستم» موتور صدا را آماده کنید یا حالت آزمایشی را روشن کنید.")
+        raise DomainError("not_ready", "هیچ صدایی در این رایانه آماده نیست؛ در «سیستم» موتور صدا را آماده کنید یا حالت آزمایشی را روشن کنید.", message_en="No voice is ready on this computer; prepare a speech engine in System or turn on demo mode.")
     chars = preprod.episode_characters(ep)
     meta = {"language": lang, "format": page.format, "voices": voices,
             "characters_detail": [{"name": c.name, "role": c.role, "personality": c.personality, "appearance": c.appearance} for c in chars]}
     if not chars:
-        raise DomainError("not_ready", "در این قسمت شخصیتی با دیالوگ نیست؛ راوی از صدای پیش‌فرض صفحه استفاده می‌کند.")
+        raise DomainError("not_ready", "در این قسمت شخصیتی با دیالوگ نیست؛ راوی از صدای پیش‌فرض صفحه استفاده می‌کند.", message_en="No character speaks in this episode; the narrator uses the page's default voice.")
     with _Llm(ctx, page, "casting") as prov:
         res = roles.voice_caster(meta, provider=prov)
     by_name = {c.name: c for c in chars}
@@ -399,12 +399,12 @@ def translate_job(ctx):
     page = ep.series.page
     target = str(p.get("language") or "")[:2]
     if target not in LANGS:
-        raise DomainError("validation_error", "زبان مقصد نامعتبر است.", http_status=400)
+        raise DomainError("validation_error", "زبان مقصد نامعتبر است.", message_en="Invalid target language.", http_status=400)
     source_lang = (ep.script or {}).get("language") or page.language
     if target == source_lang[:2]:
-        raise DomainError("validation_error", "زبان مقصد با زبان فیلم‌نامه یکی است.", http_status=400)
+        raise DomainError("validation_error", "زبان مقصد با زبان فیلم‌نامه یکی است.", message_en="The target language is the script's own language.", http_status=400)
     if not ep.script:
-        raise DomainError("not_ready", "ابتدا فیلم‌نامه را بسازید.")
+        raise DomainError("not_ready", "ابتدا فیلم‌نامه را بسازید.", message_en="Build the script first.")
     base = {"language": target, "target_language": target, "format": page.format}
     ctx.progress(0.1, "script")
     with _Llm(ctx, page, "translate") as prov:

@@ -65,7 +65,8 @@ export function useNow(active: boolean): number {
 
 /** Progress of one background job: bar, text, GPU wait reason, ETA (estimate vs elapsed), error. */
 export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; offline?: boolean; onCancel?: () => void; compact?: boolean; extra?: ReactNode }) {
-  const { t, f } = useI18n()
+  const { t, f, tr } = useI18n()
+  const title = tr('job.kind.' + job.kind, job.title || job.kind)
   const active = job.status === 'queued' || job.status === 'running'
   const now = useNow(job.status === 'running')
   const elapsed = job.started_at && job.status === 'running' ? Math.max(0, (now - new Date(job.started_at).getTime()) / 1000) : job.duration_sec
@@ -73,14 +74,14 @@ export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; 
   return (
     <div className={'job' + (compact ? ' compact' : '')}>
       <span className="sr-only" role="status" aria-live="polite">
-        {job.title || job.kind}: {t(('job.status.' + job.status) as 'job.status.queued')}
+        {title}: {t(('job.status.' + job.status) as 'job.status.queued')}
         {job.status === 'running' ? ` ${f.percent(Math.round(job.progress * 10) / 10)}` : ''}
       </span>
       <div className="row between" style={{ flexWrap: 'nowrap' }}>
-        <div className="grow strong">{job.title || job.kind}</div>
+        <div className="grow strong">{title}</div>
         <JobStatusBadge status={job.status} />
       </div>
-      {active && <Progress value={job.progress} indeterminate={indeterminate} label={job.title} />}
+      {active && <Progress value={job.progress} indeterminate={indeterminate} label={title} />}
       {active && job.status === 'running' && <div className="small muted">{f.percent(job.progress)}</div>}
       {job.progress_text && active && <div className="small">{job.progress_text}</div>}
       {job.waiting_reason && active && (

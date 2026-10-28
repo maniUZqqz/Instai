@@ -33,7 +33,7 @@ def build(ctx, ep: Episode) -> dict:
 
     shots = story_services.all_shots(ep)
     if not shots:
-        raise DomainError("not_ready", "ابتدا استوری‌بورد را بسازید.")
+        raise DomainError("not_ready", "ابتدا استوری‌بورد را بسازید.", message_en="Build the storyboard first.")
     page = ep.series.page
     prod, vis, aud = page.profile("production"), page.profile("visual"), page.profile("audio")
     opts = asm.RenderOptions.for_mode("preview", final_height=prod["final_height"], preview_height=prod["preview_height"], fps=prod["fps"],

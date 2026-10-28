@@ -457,3 +457,20 @@ def test_animatic_renders_a_video(api, worker, ffmpeg_available):
     assert st["animatic"]["status"] == "fresh" and st["animatic"]["asset"]["url"].endswith(".mp4")
     ep_state = api.get(f"/api/episodes/{ep}").json()["state"]
     assert ep_state == "storyboarding", "the animatic never changes the episode's state"
+
+
+def test_errors_are_answered_in_english_when_the_browser_asks(api):
+    import re
+
+    page = make_page(api, "custom")
+    s = make_series(api, page["id"])
+    fa = api.post(f"/api/series/{s['id']}/development/approve").json()["error"]
+    en = api.post(f"/api/series/{s['id']}/development/approve", HTTP_X_LANG="en").json()["error"]
+    assert fa["code"] == en["code"] == "not_ready"
+    assert re.search("[؀-ۿ]", fa["message"]) and not re.search("[؀-ۿ]", en["message"]), (fa, en)
+    assert en["message"] == "The series bible is not approved yet."
+    # a code without a specific English text falls back to the generic English text of the code
+    assert api.get("/api/pages/99999", HTTP_X_LANG="en").json()["error"]["message"] == "The requested item was not found."
+    assert "پیدا نشد" in api.get("/api/pages/99999").json()["error"]["message"]
+    r = api.post(f"/api/series/{s['id']}/ideas", {"title": ""}, format="json", HTTP_X_LANG="en")
+    assert r.status_code == 400 and r.json()["error"]["message"] in ("The idea needs a title.", "The idea board is not specified.")

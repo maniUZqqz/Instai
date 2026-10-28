@@ -31,6 +31,7 @@ DEFAULTS: dict[str, tuple[str, Any]] = {
     "image_engine": ("INSTAI_IMAGE_ENGINE", "auto"),
     "research_fetch": ("INSTAI_RESEARCH_FETCH", "off"),
     "comfyui_dir": ("COMFYUI_DIR", ""),
+    "ui_language": ("INSTAI_UI_LANGUAGE", "fa"),
 }
 PUBLIC_KEYS = tuple(DEFAULTS)
 

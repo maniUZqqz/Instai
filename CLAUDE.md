@@ -29,7 +29,13 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - Python 3.10-3.13 compatible (no `datetime.UTC`, `tomllib`, `StrEnum`, `typing.Self`).
 - Everything must be testable with the **fake** providers; hardware/model detection degrades to "not found".
 - The project is local-only (single user, no server). Never put API keys in code or logs; they live in `.env`.
-- Built UI is committed in `instai/static/app/`; sources in `frontend/`.
+- Built UI is committed in `instai/static/app/`; sources in `frontend/`. Feature workstreams do NOT commit the built UI (it is rebuilt once at the end).
+
+## The studio workflow (read `docs/STUDIO_PIPELINE.md`)
+- Series go through a **development room** (template steps -> bible -> composition -> approval) and episodes through **pre-production** (script, storyboard, animatic, design, casting, gate) before production; gates follow the page's automation level.
+- Apps: `instai/styles` (style & theme library), `instai/studio` (templates, boards, research docs, bible, design sheets, retakes, animatic, jobs), `instai/research_series.py` (real-series lookup), `instai/agents/llm.py` (text model per page and task).
+- **Every UI text exists in Persian and English**: `frontend/src/i18n/fa.ts`, `en.ts` and `packs/*.ts`; `tests/test_i18n.py` enforces it. Never put a studio, franchise, artist or character name in a style prompt.
+- A new job kind needs a `job.kind.<kind>` title in both languages; a new API error with a specific English text passes `message_en`.
 
 ## Handy commands (developer only)
 - Tests: `.venv\Scripts\python -m pytest -q` (GPU/Playwright/slow markers: see `pytest.ini`).

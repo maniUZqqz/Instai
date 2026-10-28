@@ -68,7 +68,7 @@ def server():
              subprocess.Popen([str(PY), "manage.py", "run_worker"], cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)]
     # (run_worker waits for the migration the server performs at start-up)
     base = f"http://127.0.0.1:{port}"
-    end = time.time() + 90
+    end = time.time() + 240  # generous: other test runs on the same PC can slow the first start-up (migrations) a lot
     while time.time() < end:
         try:
             urllib.request.urlopen(base + "/api/health", timeout=2)
@@ -122,9 +122,25 @@ def seeded(server):
 def browser():
     pw = pytest.importorskip("playwright.sync_api")
     with pw.sync_playwright() as p:
-        try:
-            b = p.chromium.launch(channel="chromium")
-        except Exception:  # noqa: BLE001
-            b = p.chromium.launch()
+        b = None
+        for attempt in (lambda: p.chromium.launch(channel="chromium"), lambda: p.chromium.launch(),
+                        lambda: p.chromium.launch(executable_path=_any_chromium())):
+            try:
+                b = attempt()
+                break
+            except Exception:  # noqa: BLE001 - the installed browser may be an older Playwright build: fall through to the next way
+                continue
+        if b is None:
+            pytest.skip("no chromium available (run: python -m playwright install chromium)")
         yield b
         b.close()
+
+
+def _any_chromium() -> str | None:
+    """A chromium that an earlier Playwright already installed (a different build than this Playwright expects still drives fine)."""
+    env = os.environ.get("INSTAI_UI_CHROMIUM")
+    if env and Path(env).exists():
+        return env
+    base = Path(os.environ.get("LOCALAPPDATA", "")) / "ms-playwright"
+    found = sorted(base.glob("chromium-*/chrome-win*/chrome.exe"), reverse=True)
+    return str(found[0]) if found else None

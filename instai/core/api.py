@@ -63,7 +63,7 @@ DEMO = {"llm_provider": "fake", "tts_engine": "fake", "image_engine": "placehold
 LIVE = {"llm_provider": "ollama", "tts_engine": "auto", "image_engine": "auto", "research_fetch": "off", "sfx_engine": "auto", "music_engine": "auto"}
 ENUMS = {"llm_provider": ["fake", "ollama", "openai"], "openai_json_mode": ["json_schema", "json_object", "none"],
          "tts_engine": ["auto", "moss", "piper", "pocket", "edge", "fake"], "image_engine": ["auto", "comfyui", "placeholder"],
-         "research_fetch": ["off", "wikipedia", "fake"], "sfx_engine": ["auto", "fake"], "music_engine": ["auto", "fake"]}
+         "research_fetch": ["off", "wikipedia", "fake"], "sfx_engine": ["auto", "fake"], "music_engine": ["auto", "fake"], "ui_language": ["fa", "en"]}
 
 
 def is_demo_mode() -> bool:

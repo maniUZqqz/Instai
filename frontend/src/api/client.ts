@@ -1,4 +1,4 @@
-import { translate } from '../i18n'
+import { currentLang, translate } from '../i18n'
 
 /** Error from the API (`{"error": {"code", "message", "details"}}`) or from the network (`code: 'network'`). */
 export class ApiError extends Error {
@@ -18,7 +18,7 @@ async function request<T>(method: string, path: string, body?: unknown, signal?:
   try {
     res = await fetch('/api' + path, {
       method,
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+      headers: { 'X-Lang': currentLang(), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal,
     })

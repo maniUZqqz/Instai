@@ -72,7 +72,7 @@ def episode_dict(e: Episode) -> dict:
     d.update({
         "series_title": e.series.title, "page": e.series.page_id, "page_format": e.series.page.format, "language": e.series.page.language,
         "script": e.script, "script_checks": e.script_checks, "scenes": scenes, "estimate": e.estimate or costs.episode_estimate([]), "qc": e.qc,
-        "research": e.research, "notes": e.notes, "failed_state": e.failed_state,
+        "research": e.research, "notes": e.notes, "failed_state": e.failed_state, "translations": e.translations,
         "allowed_next": [{"state": s, "label": states.LABELS_FA.get(s, s)} for s in states.allowed_next(e.state, e.failed_state)],
         "videos": [{"id": v.pk, "role": v.role, "url": v.url, "duration_sec": v.duration_sec, "width": v.width, "height": v.height, "fps": v.fps,
                     "codec": v.codec, "loudness_lufs": v.loudness_lufs, "size_bytes": v.size_bytes, "created_at": v.created_at,

@@ -8,18 +8,19 @@ import { PlanEditor } from '../components/PlanEditor'
 import { SourcesPanel } from '../components/SourcesPanel'
 import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ErrorState, Link, LinkButton, Loading, Notice, NumberField, PageHead, SelectField, StringListField, SwitchField, Tabs, TextField } from '../components/ui'
 import { ANIME, EXPLAINER } from '../formats'
-import { useAction, useHashTab, useJobRunner, useQuery, useTitle } from '../hooks'
+import { useAction, useHashTabOpt, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import Develop from './series/Develop'
 
-const TABS = ['info', 'arcs', 'episodes', 'plan', 'memory', 'sources'] as const
+const TABS = ['develop', 'info', 'arcs', 'episodes', 'plan', 'memory', 'sources'] as const
 type Tab = (typeof TABS)[number]
 
 export default function SeriesBuilder() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const { id } = useParams()
   const q = useQuery<SeriesDetail>(`/series/${id}`)
   const page = useQuery<PageDetail>(q.data ? `/pages/${q.data.page}` : null)
-  const [tab, setTab] = useHashTab(TABS, 'info')
+  const [hashTab, setTab] = useHashTabOpt(TABS)
   useTitle(q.data?.title)
   if (q.error && !q.data) return <ErrorState error={q.error} onRetry={q.reload} />
   if (!q.data) return <Loading />
@@ -27,7 +28,10 @@ export default function SeriesBuilder() {
   const isAnime = s.format === ANIME
   const isExplainer = s.format === EXPLAINER
   const tabs = TABS.filter((k) => k !== 'sources' || isExplainer)
-  const labels: Record<Tab, string> = { info: t('sb.tab_info'), arcs: t('sb.tab_arcs'), episodes: t('sb.tab_episodes'), plan: t('sb.tab_plan'), memory: t('sb.tab_memory'), sources: t('sb.tab_sources') }
+  // a series still in development opens in the development room; older series that already have episodes open on their info
+  const dflt: Tab = s.dev_status === 'developing' || (s.dev_status === 'none' && s.episodes.length === 0) ? 'develop' : 'info'
+  const tab: Tab = hashTab && tabs.includes(hashTab) ? hashTab : dflt
+  const labels: Record<Tab, string> = { develop: t('sb.tab_develop'), info: t('sb.tab_info'), arcs: t('sb.tab_arcs'), episodes: t('sb.tab_episodes'), plan: t('sb.tab_plan'), memory: t('sb.tab_memory'), sources: t('sb.tab_sources') }
   const crumbs = [{ label: t('nav.pages'), to: '/pages' }, { label: page.data?.name ?? '…', to: `/pages/${s.page}` }, { label: t('ws.tab_series'), to: `/pages/${s.page}/series` }, { label: s.title }]
   return (
     <div className="stack">
@@ -35,13 +39,15 @@ export default function SeriesBuilder() {
         <div className="row">
           <Badge tone="info">{t(('series.status.' + (['draft', 'planned', 'running', 'done'].includes(s.status) ? s.status : 'draft')) as 'series.status.draft')}</Badge>
           <Badge>{t('series.episodes_n', { n: s.episodes.length })}</Badge>
+          {s.dev_status === 'approved' && <Badge tone="ok">{t('dev.st_approved')}</Badge>}
           {s.is_fan_content && <Badge tone="warn">{t('series.fan_badge')}</Badge>}
         </div>
       </PageHead>
       {s.notices.map((n) => (
-        <Notice key={n.key} tone="warn">{n.text}</Notice>
+        <Notice key={n.key} tone="warn">{lang === 'en' ? n.text_en ?? n.text : n.text}</Notice>
       ))}
-      <Tabs tabs={tabs.map((k) => ({ key: k, label: labels[k] }))} value={tabs.includes(tab) ? tab : 'info'} onChange={setTab} label={t('sb.tabs')} />
+      <Tabs tabs={tabs.map((k) => ({ key: k, label: labels[k] }))} value={tab} onChange={setTab} label={t('sb.tabs')} />
+      {tab === 'develop' && <Develop seriesId={s.id} />}
       {tab === 'info' && <InfoTab s={s} isAnime={isAnime} onSaved={(d) => q.setData(d)} />}
       {tab === 'arcs' && <ArcsTab s={s} reload={q.reload} />}
       {tab === 'episodes' && <EpisodesTab s={s} reload={q.reload} />}
@@ -248,7 +254,7 @@ function EpisodeCard({ e, arcs, reload }: { e: EpisodeBrief; arcs: Arc[]; reload
 }
 
 // ---------------------------------------------------------------- AI plan proposal
-function PlanTab({ s, isAnime, onApplied }: { s: SeriesDetail; isAnime: boolean; onApplied: (d: SeriesDetail) => void }) {
+export function PlanTab({ s, isAnime, onApplied }: { s: SeriesDetail; isAnime: boolean; onApplied: (d: SeriesDetail) => void }) {
   const { t } = useI18n()
   const confirm = useConfirm()
   const [count, setCount] = useState<number | null>(s.target_episodes)

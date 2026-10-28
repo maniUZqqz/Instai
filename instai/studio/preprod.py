@@ -150,7 +150,7 @@ def set_voice(character: Character, option_id: str, language: str = "") -> Chara
     else:
         o = opts.get(option_id)
         if not o:
-            raise DomainError("validation_error", "این صدا در این رایانه در دسترس نیست.", http_status=400, details={"voice_id": ["unknown"]})
+            raise DomainError("validation_error", "این صدا در این رایانه در دسترس نیست.", message_en="This voice is not available on this computer.", http_status=400, details={"voice_id": ["unknown"]})
         voice = dict(character.voice or {})
         by = dict(voice.get("voices_by_language") or {})
         by[language or o["language"]] = {"engine": o["engine"], "voice_id": o["voice"]}
@@ -175,7 +175,7 @@ def add_sheet(ep: Episode, data: dict, *, author: str = "human") -> DesignSheet:
     kind = data.get("kind") if data.get("kind") in dict(DesignSheet.KINDS) else "character"
     subject = str(data.get("subject") or "").strip()
     if not subject:
-        raise DomainError("validation_error", "موضوع برگهٔ طراحی لازم است.", http_status=400, details={"subject": ["required"]})
+        raise DomainError("validation_error", "موضوع برگهٔ طراحی لازم است.", message_en="The design sheet needs a subject.", http_status=400, details={"subject": ["required"]})
     chars = {c.name: c for c in ep.series.page.characters.all()}
     sheet = DesignSheet.objects.create(page=ep.series.page, series=ep.series, episode=ep, character=chars.get(subject) if kind in ("character", "expression") else None,
                                        kind=kind, subject=subject[:200], prompt=str(data.get("prompt") or "").strip(), negative=str(data.get("negative") or "").strip(),
@@ -289,9 +289,11 @@ def approve_stage(ep: Episode, key: str) -> dict:
     row = next(r for r in rep["stages"] if r["key"] == key)
     if key == "gate":
         if rep["blocking"]:
-            raise DomainError("not_ready", "مرحله‌های زیر هنوز آماده یا تأیید نشده‌اند: " + "، ".join(rep["blocking"]))
+            raise DomainError("not_ready", "مرحله‌های زیر هنوز آماده یا تأیید نشده‌اند: " + "، ".join(rep["blocking"]),
+                              message_en="These stages are not ready or approved yet: " + ", ".join(rep["blocking"]))
     elif row["status"] in ("todo", "stale"):
-        raise DomainError("not_ready", "این مرحله هنوز آماده نیست." if row["status"] == "todo" else "انیماتیک کهنه است؛ دوباره بسازید.")
+        raise DomainError("not_ready", "این مرحله هنوز آماده نیست." if row["status"] == "todo" else "انیماتیک کهنه است؛ دوباره بسازید.",
+                          message_en="This stage is not ready yet." if row["status"] == "todo" else "The animatic is stale; build it again.")
     ap = approvals(ep)
     ap[key] = timezone.now().isoformat()
     _save(ep, approvals=ap)
@@ -310,7 +312,7 @@ def assert_gate(ep: Episode) -> None:
     if not studio_mode(ep):
         return
     if not stage_report(ep)["gate_approved"]:
-        raise DomainError("not_ready", "پیش‌تولید هنوز تأیید نشده است (انیماتیک، طراحی، انتخاب صدا و تأیید نهایی).")
+        raise DomainError("not_ready", "پیش‌تولید هنوز تأیید نشده است (انیماتیک، طراحی، انتخاب صدا و تأیید نهایی).", message_en="Pre-production is not approved yet (animatic, design, casting and the final approval).")
 
 
 def studio_payload(ep: Episode) -> dict:

@@ -1,10 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { fa } from './fa'
-import { en } from './en'
+import { fa as faBase } from './fa'
+import { en as enBase } from './en'
 
 export type Lang = 'fa' | 'en'
-export type Key = keyof typeof fa
+// Keys are checked by tests/test_i18n.py (every t('...') used in the sources exists in both languages).
+export type Key = string
 export type Params = Record<string, string | number>
+
+// Each workstream drops its own dictionary into src/i18n/packs/*.ts (exports `fa` and `en`); they are merged here without editing this file.
+type Pack = { fa?: Record<string, string>; en?: Record<string, string> }
+const packs = Object.values(import.meta.glob('./packs/*.ts', { eager: true })) as Pack[]
+const fa: Record<string, string> = Object.assign({}, faBase, ...packs.map((p) => p.fa ?? {}))
+const en: Record<string, string> = Object.assign({}, enBase, ...packs.map((p) => p.en ?? {}))
 
 const LS_LANG = 'instai.lang'
 
@@ -29,8 +36,8 @@ function locale(lang: Lang): string {
 
 /** Look a key up in the active dictionary; English falls back to Persian, then to the key itself. */
 export function translate(key: string, params?: Params): string {
-  const own = current === 'en' ? (en as Record<string, string>)[key] : undefined
-  let s = own ?? (fa as Record<string, string>)[key] ?? key
+  const own = current === 'en' ? en[key] : undefined
+  let s = own ?? fa[key] ?? key
   if (params) {
     const nf = new Intl.NumberFormat(locale(current))
     s = s.replace(/\{(\w+)\}/g, (_, k: string) => {
@@ -57,8 +64,8 @@ export function makeFormatters(lang: Lang) {
   const timeF = new Intl.DateTimeFormat(loc, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const rel = new Intl.RelativeTimeFormat(loc, { numeric: 'auto' })
   const tr = (key: string, p?: Params) => {
-    const own = lang === 'en' ? (en as Record<string, string>)[key] : undefined
-    let s = own ?? (fa as Record<string, string>)[key] ?? key
+    const own = lang === 'en' ? en[key] : undefined
+    let s = own ?? fa[key] ?? key
     if (p) s = s.replace(/\{(\w+)\}/g, (_, k: string) => (p[k] === undefined ? '' : String(p[k])))
     return s
   }
@@ -138,6 +145,27 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       /* storage blocked: the choice just lasts for this visit */
     }
     setLangState(l)
+    // also remembered by the server, so a new browser (or cleared storage) opens in the same language
+    fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ui_language: l }) }).catch(() => undefined)
+  }, [])
+  useEffect(() => {
+    let stored: string | null = null
+    try {
+      stored = localStorage.getItem(LS_LANG)
+    } catch {
+      /* ignore */
+    }
+    if (stored) return
+    fetch('/api/settings')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        const v = s?.values?.ui_language
+        if (v === 'en' && current !== 'en') {
+          current = 'en'
+          setLangState('en')
+        }
+      })
+      .catch(() => undefined)
   }, [])
   useEffect(() => {
     document.documentElement.lang = lang

@@ -51,17 +51,21 @@ export interface FormatDef {
   default_series: { episodes: number; episode_length_sec: number }
   policy: { original_default: boolean; fan_notice: boolean; sourced: boolean; synthetic_presenter_only: boolean }
   idea_hint_fa: string
+  description_en?: string
+  idea_hint_en?: string
 }
 export interface StyleDef {
   key: string
   label_fa: string
+  label_en?: string
   prompt: string
 }
 export interface Formats {
   formats: FormatDef[]
   styles: StyleDef[]
-  presets: Record<string, { label_fa: string; note_fa: string }>
+  presets: Record<string, { label_fa: string; note_fa: string; label_en?: string; note_en?: string }>
   notices: { fan: string; explainer: string; presenter: string }
+  notices_en?: { fan: string; explainer: string; presenter: string }
   profile_defaults: Record<ProfileKind, Record<string, any>>
   techniques: string[]
 }
@@ -72,6 +76,7 @@ export const PROFILE_KINDS: ProfileKind[] = ['identity', 'strategy', 'visual', '
 export interface Notice {
   key: string
   text: string
+  text_en?: string
 }
 
 export interface PageBrief {
@@ -89,6 +94,7 @@ export interface PageBrief {
   series_count: number
   episode_count: number
   episodes_approved: number
+  template_key?: string
 }
 
 export interface Reference {
@@ -185,6 +191,11 @@ export interface SeriesBrief {
   episode_count: number
   format: FormatKey
   notices: Notice[]
+  template_key?: string
+  dev_status?: string
+  languages?: string[]
+  look?: Record<string, string>
+  source?: Record<string, any>
 }
 export interface SeriesDetail extends SeriesBrief {
   arcs: Arc[]
@@ -338,6 +349,7 @@ export interface Episode extends EpisodeBrief {
   sources: Source[]
   jobs: Job[]
   stale: { keyframes_preview?: number; keyframes_final?: number; narration?: number; shots?: number }
+  translations?: Record<string, { script?: Script; shots?: Record<string, string>; at?: string; provider?: string; model?: string }>
 }
 
 export interface EpisodeEvent {
@@ -573,3 +585,5 @@ export interface HistoryEvent {
   actor: string
   at: string
 }
+
+export * from './studioTypes'

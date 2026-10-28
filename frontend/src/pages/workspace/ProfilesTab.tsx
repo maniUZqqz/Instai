@@ -10,6 +10,9 @@ import { IMPLEMENTED_TECHNIQUES, WEEKDAYS, useFormats } from '../../formats'
 import { useAction, useJobRunner, useQuery } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { useWs } from './Workspace'
+import { StylePicker } from '../../components/StylePicker'
+import { schemaSubtitle, useLibrary } from '../../library'
+import { TextModelsCard } from './LlmCard'
 
 type Draft = Record<string, any>
 
@@ -185,10 +188,23 @@ function VisualForm({ draft, set, formats }: FormProps & { formats: Formats }) {
   const { t } = useI18n()
   const sub = draft.subtitle ?? {}
   const setSub = (patch: Draft) => set({ subtitle: { ...sub, ...patch } })
-  const style = formats.styles.find((s) => s.key === draft.style_key)
+  const lib = useLibrary()
+  void formats
+  // picking a style or theme also fills what depends on it: the palette, the negative prompt and the subtitle look of the theme
+  const pick = (v: { style_key: string; realism: string; theme_key: string }) => {
+    const st = lib.style(v.style_key)
+    const th = lib.theme(v.theme_key)
+    const patch: Draft = { ...v }
+    if (st) {
+      patch.negative_prompt = [st.image_negative, th?.negative_fragment].filter(Boolean).join(', ')
+      patch.palette = th?.palette ?? st.palette
+    }
+    if (th) patch.subtitle = { ...sub, ...schemaSubtitle(th) }
+    set(patch)
+  }
   return (
     <>
-      <SelectField label={t('pf.style')} value={draft.style_key ?? ''} onChange={(v) => set({ style_key: v })} options={formats.styles.map((s) => ({ value: s.key, label: s.label_fa }))} hint={style ? <span className="ltr">{style.prompt}</span> : undefined} />
+      <StylePicker value={{ style_key: draft.style_key ?? '', realism: draft.realism ?? '', theme_key: draft.theme_key ?? '' }} onChange={pick} name="page-look" />
       <AreaField label={t('wiz.style_notes')} value={draft.style_notes ?? ''} onChange={(v) => set({ style_notes: v })} compact />
       <div className="grid-2">
         <SelectField label={t('pf.aspect')} value={draft.aspect_ratio ?? '9:16'} onChange={(v) => set({ aspect_ratio: v })} options={['9:16', '1:1', '16:9', '4:5'].map((x) => ({ value: x, label: x }))} />
@@ -244,11 +260,11 @@ function AudioForm({ draft, set }: FormProps) {
 }
 
 function ProductionForm({ draft, set, formats }: FormProps & { formats: Formats }) {
-  const { t, tr } = useI18n()
+  const { t, tr, lang } = useI18n()
   const allowed: string[] = draft.allowed_techniques ?? []
   return (
     <>
-      <SelectField label={t('wiz.preset')} value={draft.preset ?? 'balanced'} onChange={(v) => set({ preset: v })} options={Object.entries(formats.presets).map(([k, p]) => ({ value: k, label: `${p.label_fa} — ${p.note_fa}` }))} />
+      <SelectField label={t('wiz.preset')} value={draft.preset ?? 'balanced'} onChange={(v) => set({ preset: v })} options={Object.entries(formats.presets).map(([k, p]) => ({ value: k, label: lang === 'en' ? `${p.label_en ?? p.label_fa} — ${p.note_en ?? p.note_fa}` : `${p.label_fa} — ${p.note_fa}` }))} />
       <div className="grid-3">
         <NumberField label={t('pf.eps_per_series')} min={1} max={60} value={draft.episodes_per_series} onChange={(v) => set({ episodes_per_series: v ?? 5 })} />
         <NumberField label={t('wiz.length')} min={10} max={180} value={draft.episode_length_sec} onChange={(v) => set({ episode_length_sec: v ?? 45 })} />
@@ -258,6 +274,8 @@ function ProductionForm({ draft, set, formats }: FormProps & { formats: Formats 
         <NumberField label={t('pf.final_h')} min={480} max={2560} value={draft.final_height} onChange={(v) => set({ final_height: v ?? 1920 })} />
       </div>
       <SwitchField label={t('pf.preview_default')} hint={t('pf.preview_default_hint')} checked={!!draft.preview_default} onChange={(v) => set({ preview_default: v })} />
+      <SwitchField label={t('wiz.studio')} hint={t('wiz.studio_hint')} checked={!!draft.studio_mode} onChange={(v) => set({ studio_mode: v })} />
+      <TextModelsCard value={draft.llm} onChange={(v) => set({ llm: v })} />
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="field-label">{t('pf.techniques')}</legend>
         <p className="field-hint">{t('pf.techniques_hint')}</p>

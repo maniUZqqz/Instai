@@ -8,6 +8,7 @@ import { useConfirm } from '../../components/feedback'
 import { useAction, useQuery, useTitle } from '../../hooks'
 import { ANIME, EXPLAINER, useFormats } from '../../formats'
 import { useI18n } from '../../i18n'
+import { nm, useTemplates } from '../../library'
 import { Outlet } from 'react-router-dom'
 import { useState } from 'react'
 
@@ -74,7 +75,10 @@ export function Overview() {
   const count = (s: string) => list.filter((e) => e.state === s).length
   const actions: { tone: 'warn' | 'err' | 'info'; text: string; to: string; label: string }[] = []
   if (page.series_count === 0) actions.push({ tone: 'info', text: t('ov.no_series'), to: `${base}/series`, label: t('ov.create_series') })
-  else if (page.episode_count === 0 && series.data?.[0]) actions.push({ tone: 'info', text: t('ov.no_episodes'), to: `/series/${series.data[0].id}#plan`, label: t('ov.make_plan') })
+  else if (series.data?.some((x) => x.dev_status === 'developing')) {
+    const dv = series.data.find((x) => x.dev_status === 'developing')!
+    actions.push({ tone: 'info', text: t('ov.developing', { title: dv.title }), to: `/series/${dv.id}#develop`, label: t('ov.open_develop') })
+  } else if (page.episode_count === 0 && series.data?.[0]) actions.push({ tone: 'info', text: t('ov.no_episodes'), to: `/series/${series.data[0].id}#plan`, label: t('ov.make_plan') })
   if (page.profiles.strategy.positioning === '') actions.push({ tone: 'info', text: t('ov.no_strategy'), to: `${base}/settings`, label: t('ov.open_strategy') })
   if (page.format !== EXPLAINER && page.characters.length === 0) actions.push({ tone: 'info', text: t('ov.no_chars'), to: `${base}/characters`, label: t('ov.add_chars') })
   const first = (s: string) => list.find((e) => e.state === s)
@@ -211,9 +215,13 @@ export function SeriesTab() {
   const [premise, setPremise] = useState('')
   const [branch, setBranch] = useState('')
   const [n, setN] = useState<number | null>(page.profiles.production.episodes_per_series ?? 5)
+  const tpl = useTemplates()
+  const { lang } = useI18n()
+  const pageTpl = page.template_key || page.format
+  const [tplKey, setTplKey] = useState(pageTpl)
   const act = useAction()
   const create = async () => {
-    const s = await act.run(() => api.post<{ id: number }>(`/pages/${page.id}/series`, { title: title.trim(), premise, branch_point: branch, target_episodes: n ?? 5 }), { success: t('series.created') })
+    const s = await act.run(() => api.post<{ id: number }>(`/pages/${page.id}/series`, { title: title.trim(), premise, branch_point: branch, target_episodes: n ?? 5, template_key: tplKey === pageTpl ? '' : tplKey }), { success: t('series.created') })
     if (s) {
       reload()
       nav(`/series/${s.id}`)
@@ -231,6 +239,7 @@ export function SeriesTab() {
         <Card title={t('series.new')}>
           <div className="stack">
             <TextField label={t('wiz.series_title')} required value={title} onChange={setTitle} autoFocus />
+            {tpl.data && <SelectField label={t('series.template')} value={tplKey} onChange={setTplKey} options={tpl.data.templates.map((x) => ({ value: x.key, label: nm(x, lang) }))} hint={t('series.template_hint')} />}
             <AreaField label={t('wiz.series_premise')} value={premise} onChange={setPremise} compact />
             {page.format === ANIME && <AreaField label={t('wiz.series_branch')} value={branch} onChange={setBranch} compact />}
             <NumberField label={t('wiz.series_episodes')} min={1} max={60} value={n} onChange={setN} />

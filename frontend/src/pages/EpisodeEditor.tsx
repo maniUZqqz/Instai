@@ -13,8 +13,9 @@ import { Production, activeProdJobs } from './episode/Production'
 import { Events, Research, Versions } from './episode/Research'
 import { ScriptEditor } from './episode/ScriptEditor'
 import { StoryboardEditor } from './episode/StoryboardEditor'
+import { Studio } from './episode/Studio'
 
-const TABS = ['script', 'storyboard', 'production', 'research', 'versions', 'events'] as const
+const TABS = ['script', 'storyboard', 'studio', 'production', 'research', 'versions', 'events'] as const
 type Tab = (typeof TABS)[number]
 const isActive = (j: Job) => j.status === 'queued' || j.status === 'running'
 
@@ -75,7 +76,7 @@ export default function EpisodeEditor() {
   const isExplainer = ep.page_format === EXPLAINER
   const tabs = TABS.filter((k) => k !== 'research' || isExplainer)
   const tab: Tab = hashTab && tabs.includes(hashTab) ? hashTab : defaultTab(ep.state)
-  const labels: Record<Tab, string> = { script: t('ed.tab_script'), storyboard: t('ed.tab_storyboard'), production: t('ed.tab_production'), research: t('ed.tab_research'), versions: t('ed.tab_versions'), events: t('ed.tab_events') }
+  const labels: Record<Tab, string> = { script: t('ed.tab_script'), storyboard: t('ed.tab_storyboard'), studio: t('ed.tab_studio'), production: t('ed.tab_production'), research: t('ed.tab_research'), versions: t('ed.tab_versions'), events: t('ed.tab_events') }
   const characters = page.data?.characters ?? []
   const shots = ep.scenes.flatMap((s) => s.shots)
   const hasMedia = shots.some((s) => s.keyframe || s.narration_asset)
@@ -150,6 +151,7 @@ export default function EpisodeEditor() {
             onRegenerate={refresh}
           />
         ))}
+      {tab === 'studio' && <Studio ep={ep} page={page.data} onChanged={refresh} />}
       {tab === 'production' && <Production ep={ep} page={page.data} onChanged={refresh} onProduced={refresh} />}
       {tab === 'research' && isExplainer && <Research ep={ep} onChanged={refresh} />}
       {tab === 'versions' && <Versions ep={ep} onRestored={(e) => { q.setData(e); rebuild() }} />}

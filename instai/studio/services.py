@@ -16,12 +16,21 @@ from instai.story.models import Series, Source
 from . import gates, templates
 from .models import DevStep, Idea, ResearchDoc, SeriesBible
 
+# English texts for the Persian reasons returned by _can_complete
+EN = {
+    "این مرحله هنوز خروجی ندارد.": "This step has no output yet.",
+    "حداقل یک ایده را تأیید کنید.": "Approve at least one idea first.",
+    "ابتدا کتاب سریال را تأیید کنید.": "Approve the series bible first.",
+    "ادعاهای «مسلم» بدون منبع وجود دارد.": "Some claims are marked 'established' but have no source.",
+    "کتاب سریال هنوز تأیید نشده است.": "The series bible is not approved yet.",
+    "ساختار قسمت‌ها هنوز ساخته نشده است.": "The episode outline has not been made yet.",
+}
 STEP_STATUSES = ["todo", "active", "review", "done", "skipped"]
 IDEA_STATUSES = ["proposed", "liked", "approved", "rejected"]
 
 
-def bad(msg: str, **details) -> DomainError:
-    return DomainError("validation_error", msg, http_status=400, details=details or None)
+def bad(msg: str, en: str | None = None, **details) -> DomainError:
+    return DomainError("validation_error", msg, http_status=400, details=details or None, message_en=en)
 
 
 # ------------------------------------------------------------------ steps
@@ -114,13 +123,13 @@ def _can_complete(series: Series, step: DevStep, sdef: dict) -> tuple[bool, str]
 @transaction.atomic
 def set_step_status(series: Series, key: str, status: str, *, auto: bool = False) -> DevStep:
     if status not in STEP_STATUSES:
-        raise bad("وضعیت مرحله نامعتبر است.", status=["invalid"])
+        raise bad("وضعیت مرحله نامعتبر است.", "Invalid step status.", status=["invalid"])
     step = get_step(series, key)
     sdef = step_def(series, key)
     if status == "done":
         ok, why = _can_complete(series, step, sdef)
         if not ok:
-            raise DomainError("not_ready", why)
+            raise DomainError("not_ready", why, message_en=EN.get(why))
         step.approved_at = timezone.now()
         step.auto_approved = auto
     elif status in ("todo", "active", "review"):
@@ -207,7 +216,7 @@ def set_source(series: Series, src: dict) -> Series:
     """Remember the chosen source series (from a search candidate or typed by hand). A real franchise makes the series fan content."""
     title = _s(src.get("title"), 200)
     if not title:
-        raise bad("نام سریال منبع لازم است.", title=["required"])
+        raise bad("نام سریال منبع لازم است.", "The source series name is required.", title=["required"])
     keep = ("provider", "id", "url", "year", "format", "episodes", "status", "genres", "description", "title_romaji", "title_native", "cover_url", "fandom_wiki")
     data = {k: src[k] for k in keep if k in src and src[k] not in (None, "")}
     data.update(title=title, manual=bool(src.get("manual") or not src.get("provider")), notes=_s(src.get("notes"), 1500))
@@ -241,7 +250,7 @@ def _clean_details(d: Any) -> dict:
 def add_idea(series: Series, board: str, data: dict, *, author: str = "human", parent: Idea | None = None, language: str = "") -> Idea:
     title = _s(data.get("title"), 200)
     if not title:
-        raise bad("عنوان ایده لازم است.", title=["required"])
+        raise bad("عنوان ایده لازم است.", "The idea needs a title.", title=["required"])
     pos = (series.ideas.filter(board=board).order_by("-position").values_list("position", flat=True).first() or 0) + 1
     idea = Idea.objects.create(series=series, board=board, title=title, logline=_s(data.get("logline")), why=_s(data.get("why") or data.get("why_it_works")),
                                details=_clean_details(data.get("details")), tags=[_s(t, 40) for t in (data.get("tags") or []) if _s(t)][:8], author=author,
@@ -285,7 +294,7 @@ def update_idea(idea: Idea, data: dict) -> Idea:
     if "tags" in data:
         idea.tags = [_s(t, 40) for t in (data["tags"] or []) if _s(t)][:8]
     if not idea.title:
-        raise bad("عنوان ایده لازم است.", title=["required"])
+        raise bad("عنوان ایده لازم است.", "The idea needs a title.", title=["required"])
     if idea.author == "ai":
         idea.author = "refined"  # edited by a human: no longer pure AI output
     idea.save()
@@ -294,7 +303,7 @@ def update_idea(idea: Idea, data: dict) -> Idea:
 
 def set_idea_status(idea: Idea, status: str) -> Idea:
     if status not in IDEA_STATUSES:
-        raise bad("وضعیت ایده نامعتبر است.", status=["invalid"])
+        raise bad("وضعیت ایده نامعتبر است.", "Invalid idea status.", status=["invalid"])
     idea.status = status
     idea.save(update_fields=["status", "updated_at"])
     return idea
@@ -310,9 +319,9 @@ def rate_idea(idea: Idea, rating: int) -> Idea:
 def merge_ideas(series: Series, ids: list[int], merged: dict, *, language: str = "") -> Idea:
     srcs = list(Idea.objects.filter(series=series, pk__in=ids))
     if len(srcs) < 2:
-        raise bad("برای ادغام حداقل دو ایده لازم است.", ids=["too_few"])
+        raise bad("برای ادغام حداقل دو ایده لازم است.", "Merging needs at least two ideas.", ids=["too_few"])
     if len({s.board for s in srcs}) != 1:
-        raise bad("ایده‌های یک تخته را می‌توان ادغام کرد.", ids=["mixed_boards"])
+        raise bad("ایده‌های یک تخته را می‌توان ادغام کرد.", "Only ideas from the same board can be merged.", ids=["mixed_boards"])
     card = add_idea(series, srcs[0].board, merged, author="merged", parent=srcs[0], language=language)
     card.rating = max(s.rating for s in srcs)
     card.save(update_fields=["rating"])
@@ -455,7 +464,7 @@ def save_bible(series: Series, data: dict, *, by_ai: bool = False) -> SeriesBibl
 def approve_bible(series: Series, *, auto: bool = False) -> dict:
     b = SeriesBible.objects.filter(series=series).first()
     if not b or not normalize_bible(b.data).get("premise"):
-        raise DomainError("not_ready", "کتاب سریال هنوز نوشته نشده است.")
+        raise DomainError("not_ready", "کتاب سریال هنوز نوشته نشده است.", message_en="The series bible has not been written yet.")
     b.status, b.approved_at = "approved", timezone.now()
     b.save()
     synced = sync_bible_to_series(series, b)
@@ -527,7 +536,7 @@ def approve_development(series: Series, *, auto: bool = False) -> Series:
     ensure_steps(series)
     ok, why = _can_complete(series, get_step(series, _first_key(series, "gate")), {"params": {}})
     if not ok:
-        raise DomainError("not_ready", why)
+        raise DomainError("not_ready", why, message_en=EN.get(why))
     for step in series.dev_steps.exclude(status__in=("done", "skipped")):
         if step.kind != "gate" and step.status in ("todo", "active", "review"):
             step.status = "skipped" if not has_content(series, step) else "done"

@@ -119,7 +119,7 @@ def test_wizard_idea_to_strategy_creates_a_page(browser, server):
         for _ in range(6):  # walk the steps until the idea step
             if page.get_by_role("button", name="پیشنهاد استراتژی").count():
                 break
-            page.get_by_role("button", name="بعدی").click()
+            page.get_by_role("button", name="بعدی", exact=True).click()
             page.wait_for_timeout(250)
         page.get_by_label(re.compile("^ایده")).first.fill("اگر قهرمان تصمیم دیگری می‌گرفت")
         page.get_by_role("button", name="پیشنهاد استراتژی").click()

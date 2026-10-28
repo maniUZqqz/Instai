@@ -69,6 +69,19 @@ const ICONS: Record<string, ReactNode> = {
   copy: <path d="M9 9h11v11H9zM5 15V4h11" />,
   stop: <path d="M6 6h12v12H6z" />,
   list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+  upload: <path d="M12 16V4M7 9l5-5 5 5M4 20h16" />,
+  star: <path d="M12 3l2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 17l-5.6 3 1.3-6.2L3 9.5l6.3-.7z" />,
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.4-2.2-.6-1.2.1-2.3 1.4-2.3H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z" />
+      <path d="M7.5 11h.01M10 7.5h.01M14.5 7.5h.01M17 11h.01" />
+    </>
+  ),
+  mic: <path d="M12 3a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" />,
+  image: <path d="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9.5h.01" />,
+  merge: <path d="M6 4v5a6 6 0 0 0 6 6h0a6 6 0 0 1 6 6M18 4v5a6 6 0 0 1-6 6M12 15v6" />,
+  flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
+  lib: <path d="M4 4h4v16H4zM10 4h4v16h-4zM16.5 5l3.5 1-4 14.5-3.5-1z" />,
   link: <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />,
 }
 

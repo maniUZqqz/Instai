@@ -46,7 +46,7 @@ function useTheme() {
 
 // ---------------------------------------------------------------- job indicator (all queued/running jobs, any screen)
 function JobIndicator() {
-  const { t, f } = useI18n()
+  const { t, f, tr } = useI18n()
   const q = useQuery<Job[]>('/jobs?status=queued,running&limit=50', { interval: 3000 })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -80,8 +80,8 @@ function JobIndicator() {
           <div className="strong">{label}</div>
           {jobs.slice(0, 6).map((j) => (
             <div key={j.id} className="stack-sm">
-              <div className="small">{j.title || j.kind}</div>
-              <Progress value={j.progress} indeterminate={j.status === 'queued' || j.progress <= 0} label={j.title} />
+              <div className="small">{tr('job.kind.' + j.kind, j.title || j.kind)}</div>
+              <Progress value={j.progress} indeterminate={j.status === 'queued' || j.progress <= 0} label={tr('job.kind.' + j.kind, j.title)} />
               {j.waiting_reason && <div className="small muted">{j.waiting_reason}</div>}
             </div>
           ))}
@@ -99,6 +99,7 @@ function JobIndicator() {
 const NAV: { to: string; key: Parameters<ReturnType<typeof useI18n>['t']>[0]; icon: IconName; end?: boolean }[] = [
   { to: '/', key: 'nav.dashboard', icon: 'home', end: true },
   { to: '/pages', key: 'nav.pages', icon: 'pages' },
+  { to: '/library', key: 'nav.library', icon: 'palette' },
   { to: '/monitor', key: 'nav.monitor', icon: 'monitor' },
   { to: '/publishing', key: 'nav.publishing', icon: 'publish' },
   { to: '/system', key: 'nav.system', icon: 'system' },

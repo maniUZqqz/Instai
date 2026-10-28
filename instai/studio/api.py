@@ -24,8 +24,8 @@ from .models import DesignSheet, FormatTemplate, Idea, ResearchDoc, RetakeReques
 LANGS = ("fa", "en")
 
 
-def bad(msg: str, **details) -> DomainError:
-    return services.bad(msg, **details)
+def bad(msg: str, en: str | None = None, **details) -> DomainError:
+    return services.bad(msg, en, **details)
 
 
 def _series(pk) -> Series:
@@ -57,7 +57,7 @@ def templates_view(request):
         d = request.data if isinstance(request.data, dict) else {}
         name = str(d.get("name_en") or d.get("name_fa") or "").strip()
         if not name:
-            raise bad("نام قالب لازم است.", name_en=["required"])
+            raise bad("نام قالب لازم است.", "The template needs a name.", name_en=["required"])
         key = _unique_template_key(d.get("key") or name)
         FormatTemplate.objects.create(key=key, data=templates.normalize_template(d, key=key))
         return Response(templates.get_template(key), status=201)
@@ -73,7 +73,7 @@ def template_detail(request, key):
             raise DomainError("not_found", http_status=404)
         return Response(t)
     if key in templates.BUILTIN_TEMPLATES:
-        raise DomainError("conflict", "قالب‌های پیش‌فرض را نمی‌توان تغییر داد؛ از آن کپی بگیرید.")
+        raise DomainError("conflict", "قالب‌های پیش‌فرض را نمی‌توان تغییر داد؛ از آن کپی بگیرید.", message_en="Built-in templates cannot be changed; duplicate one instead.")
     row = FormatTemplate.objects.filter(key=key).first()
     if not row:
         raise DomainError("not_found", http_status=404)
@@ -144,12 +144,12 @@ def development(request, pk):
         d = request.data
         if "template_key" in d:
             if d["template_key"] and templates.get_template(d["template_key"])["key"] != d["template_key"]:
-                raise bad("قالب نامعتبر است.", template_key=["invalid"])
+                raise bad("قالب نامعتبر است.", "Invalid template.", template_key=["invalid"])
             s.template_key = d["template_key"] or ""
         if "languages" in d:
             langs = [l for l in (d["languages"] or []) if l in LANGS]
             if d["languages"] and not langs:
-                raise bad("زبان نامعتبر است.", languages=["invalid"])
+                raise bad("زبان نامعتبر است.", "Invalid language.", languages=["invalid"])
             s.languages = langs
         if "look" in d:
             look = d["look"] if isinstance(d["look"], dict) else {}
@@ -181,7 +181,7 @@ def step_generate(request, pk, key):
     services.ensure_steps(s)
     sdef = services.step_def(s, key)
     if sdef["kind"] not in GENERATE_JOBS:
-        raise bad("این مرحله تولید خودکار ندارد.")
+        raise bad("این مرحله تولید خودکار ندارد.", "This step has no automatic generation.")
     kind, title = GENERATE_JOBS[sdef["kind"]]
     payload = {"series_id": s.pk, "step_key": key, "instruction": str(request.data.get("instruction") or ""), "language": _lang(request)}
     if sdef["kind"] == "profile":
@@ -194,7 +194,7 @@ def source_search(request, pk):
     s = _series(pk)
     q = str(request.data.get("query") or "").strip()
     if not q:
-        raise bad("نامِ سریال را بنویسید.", query=["required"])
+        raise bad("نامِ سریال را بنویسید.", "Type the series name.", query=["required"])
     providers = [p for p in (request.data.get("providers") or []) if isinstance(p, str)]
     job = queue.enqueue("studio.source_search", {"series_id": s.pk, "query": q, "providers": providers, "language": _lang(request) or "en",
                                                   "fandom_wiki": str(request.data.get("fandom_wiki") or "")}, page=s.page_id, title=f"جست‌وجوی سریال: {q}"[:120])
@@ -245,7 +245,7 @@ def series_ideas(request, pk):
     board = str(request.query_params.get("board") or request.data.get("board") or "")
     if request.method == "POST":
         if not board:
-            raise bad("تختهٔ ایده مشخص نیست.", board=["required"])
+            raise bad("تختهٔ ایده مشخص نیست.", "The idea board is not specified.", board=["required"])
         idea = services.add_idea(s, board, request.data, author="human", language=_lang(request))
         return Response(services.idea_dict(idea), status=201)
     qs = s.ideas.filter(board=board) if board else s.ideas.all()
@@ -279,7 +279,7 @@ def ideas_generate(request, pk):
     board = str(request.data.get("board") or "")
     services.ensure_steps(s)
     if not services.step_for_board(s, board):
-        raise bad("تختهٔ ایده نامعتبر است.", board=["invalid"])
+        raise bad("تختهٔ ایده نامعتبر است.", "Invalid idea board.", board=["invalid"])
     payload = {"series_id": s.pk, "board": board, "count": int(request.data.get("count") or 0), "instruction": str(request.data.get("instruction") or ""),
                "more_like": [int(x) for x in (request.data.get("more_like") or []) if str(x).isdigit()], "language": _lang(request)}
     return job_response(queue.enqueue("studio.ideas", payload, page=s.page_id, title="ایده‌پردازی"))
@@ -298,7 +298,7 @@ def ideas_merge(request, pk):
     ids = [int(x) for x in (request.data.get("ids") or []) if str(x).isdigit()]
     cards = list(Idea.objects.filter(series=s, pk__in=ids))
     if len(cards) < 2:
-        raise bad("برای ادغام حداقل دو ایده لازم است.", ids=["too_few"])
+        raise bad("برای ادغام حداقل دو ایده لازم است.", "Merging needs at least two ideas.", ids=["too_few"])
     if request.data.get("ai"):
         return job_response(queue.enqueue("studio.idea_merge", {"series_id": s.pk, "ids": ids, "instruction": str(request.data.get("instruction") or ""),
                                                                 "language": _lang(request)}, page=s.page_id, title="ادغام ایده‌ها"))
@@ -365,7 +365,7 @@ def episode_studio(request, pk):
 def animatic_build(request, pk):
     e = _ep(pk)
     if not story_services.all_shots(e):
-        raise DomainError("not_ready", "ابتدا استوری‌بورد را بسازید.")
+        raise DomainError("not_ready", "ابتدا استوری‌بورد را بسازید.", message_en="Build the storyboard first.")
     return job_response(queue.enqueue("studio.animatic", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"انیماتیک قسمت {e.number}"))
 
 
@@ -442,7 +442,7 @@ def episode_translate(request, pk):
     e = _ep(pk)
     lang = str(request.data.get("language") or "")[:2]
     if lang not in LANGS:
-        raise bad("زبان مقصد نامعتبر است.", language=["invalid"])
+        raise bad("زبان مقصد نامعتبر است.", "Invalid target language.", language=["invalid"])
     return job_response(queue.enqueue("studio.translate", {"episode_id": e.pk, "language": lang}, episode=e, page=e.series.page_id, title=f"ترجمهٔ قسمت {e.number}"))
 
 
@@ -451,7 +451,7 @@ def shot_retake(request, pk):
     s = get_object_or_404(Shot.objects.select_related("scene__episode__series__page"), pk=pk)
     reason = str(request.data.get("reason") or "").strip()
     if not reason:
-        raise bad("دلیل بازسازی را بنویسید.", reason=["required"])
+        raise bad("دلیل بازسازی را بنویسید.", "Write the reason for the retake.", reason=["required"])
     r, jobs = preprod.request_retake(s, str(request.data.get("scope") or "keyframe"), reason, mode=str(request.data.get("mode") or "preview"))
     return Response({"retake": preprod.retake_dict(r), "jobs": JobSerializer(jobs, many=True).data}, status=202)
 

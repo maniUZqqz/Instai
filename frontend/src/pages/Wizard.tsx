@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import type { FormatDef, Formats, PageDetail, Strategy } from '../api/types'
+import type { DevTemplate, FormatDef, Formats, PageDetail, Strategy } from '../api/types'
 import { CharacterFields, emptyChar, type CharDraft } from '../components/CharacterFields'
 import { JobView } from '../components/domain'
 import { Icon } from '../components/Icon'
@@ -10,6 +10,8 @@ import { AreaField, Button, Card, CheckField, ChoiceGrid, ErrorState, Loading, N
 import { useAction, useJobRunner, useTitle } from '../hooks'
 import { ANIME, EXPLAINER, useFormats } from '../formats'
 import { useI18n } from '../i18n'
+import { StylePicker } from '../components/StylePicker'
+import { desc, nm, useTemplates } from '../library'
 
 type Level = 'manual' | 'assisted' | 'automatic'
 interface Idea {
@@ -27,6 +29,10 @@ interface WState {
   tone: string
   niche: string
   styleKey: string
+  realism: string
+  themeKey: string
+  templateKey: string
+  studio: boolean
   styleNotes: string
   characters: CharDraft[]
   automation: Level
@@ -41,26 +47,27 @@ interface WState {
   franchise: string
 }
 
-const DEFAULT_STYLE: Record<string, string> = { anime_whatif: 'anime_soft', recurring_character: 'cartoon_flat', concept_explainer: 'infographic' }
-const STEPS = ['wiz.step1', 'wiz.step2', 'wiz.step3', 'wiz.step4', 'wiz.step5', 'wiz.step6'] as const
-
-function hue(key: string): number {
-  let h = 0
-  for (const c of key) h = (h * 31 + c.charCodeAt(0)) % 360
-  return h
+const DEFAULT_STYLE: Record<string, { style: string; realism: string; theme: string }> = {
+  anime_whatif: { style: 'modern_tv_anime', realism: 'anime', theme: 'pastel_dream' },
+  recurring_character: { style: 'western_2d_tv', realism: 'cartoon', theme: 'candy_bright' },
+  concept_explainer: { style: 'flat_vector_motion', realism: 'graphic', theme: 'ocean_calm' },
 }
+const FALLBACK_STYLE = { style: 'modern_tv_anime', realism: 'anime', theme: 'pastel_dream' }
+const STEPS = ['wiz.step1', 'wiz.step2', 'wiz.step3', 'wiz.step4', 'wiz.step5', 'wiz.step6'] as const
 
 export default function Wizard() {
   const { t } = useI18n()
   useTitle(t('wiz.title'))
   const nav = useNavigate()
   const fm = useFormats()
+  const tpl = useTemplates()
   if (fm.error) return <ErrorState error={fm.error} />
-  if (!fm.data) return <Loading />
-  return <WizardBody formats={fm.data} navigate={nav} />
+  if (tpl.error) return <ErrorState error={tpl.error} onRetry={tpl.reload} />
+  if (!fm.data || !tpl.data) return <Loading />
+  return <WizardBody formats={fm.data} templates={tpl.data.templates} navigate={nav} />
 }
 
-function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: string) => void }) {
+function WizardBody({ formats, templates, navigate }: { formats: Formats; templates: DevTemplate[]; navigate: (to: string) => void }) {
   const { t, lang } = useI18n()
   const first = formats.formats[0]
   const [step, setStep] = useState(0)
@@ -74,7 +81,11 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
     audience: '',
     tone: '',
     niche: '',
-    styleKey: DEFAULT_STYLE[first.key] ?? 'anime_soft',
+    styleKey: (DEFAULT_STYLE[first.key] ?? FALLBACK_STYLE).style,
+    realism: (DEFAULT_STYLE[first.key] ?? FALLBACK_STYLE).realism,
+    themeKey: (DEFAULT_STYLE[first.key] ?? FALLBACK_STYLE).theme,
+    templateKey: '',
+    studio: true,
     styleNotes: '',
     characters: [],
     automation: 'manual',
@@ -92,13 +103,19 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
   const fmt: FormatDef = formats.formats.find((f) => f.key === s.format) ?? first
   const headRef = useRef<HTMLHeadingElement>(null)
 
-  const pickFormat = (key: string) => {
-    const f = formats.formats.find((x) => x.key === key)!
-    const patch: Partial<WState> = { format: key, strategy: null, ideas: [] }
-    if (!touched.current.style) patch.styleKey = DEFAULT_STYLE[key] ?? 'anime_soft'
+  // A template decides the development steps; its base format decides the policy notices (fan content, sources, presenter).
+  const pickTemplate = (tkey: string) => {
+    const tp = templates.find((x) => x.key === tkey)!
+    const key = tp.base_format
+    const f = formats.formats.find((x) => x.key === key) ?? first
+    const patch: Partial<WState> = { format: key, templateKey: tp.builtin ? '' : tp.key, strategy: null, ideas: [] }
+    if (!touched.current.style) {
+      const d = DEFAULT_STYLE[key] ?? FALLBACK_STYLE
+      Object.assign(patch, { styleKey: d.style, realism: d.realism, themeKey: d.theme })
+    }
     if (!touched.current.series) {
-      patch.episodes = f.default_series.episodes
-      patch.episodeLength = f.default_series.episode_length_sec
+      patch.episodes = tp.default_series.episodes ?? f.default_series.episodes
+      patch.episodeLength = tp.default_series.episode_length_sec ?? f.default_series.episode_length_sec
     }
     if (key !== ANIME) patch.isFan = false
     set(patch)
@@ -158,14 +175,15 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
       name: s.name.trim(),
       handle: s.handle.trim().replace(/^@/, ''),
       format: s.format,
+      template_key: s.templateKey,
       languages: s.languages,
       idea: s.idea,
       automation_level: s.automation,
       profiles: {
         identity: { display_name: s.name.trim(), handle: s.handle.trim().replace(/^@/, ''), niche: s.niche, audience: s.audience, tone: s.tone, languages: s.languages },
-        visual: { style_key: s.styleKey, style_notes: s.styleNotes },
+        visual: { style_key: s.styleKey, realism: s.realism, theme_key: s.themeKey, style_notes: s.styleNotes },
         audio: { language: s.languages[0] },
-        production: { preset: s.preset, episodes_per_series: s.episodes, episode_length_sec: s.episodeLength },
+        production: { preset: s.preset, episodes_per_series: s.episodes, episode_length_sec: s.episodeLength, studio_mode: s.studio },
         publishing: { platform: 'instagram', auto_publish: false },
       },
       characters: chars,
@@ -179,16 +197,23 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
           premise: idea.premise,
           branch_point: idea.branch_point,
           episodes: idea.episodes,
+          template_key: s.templateKey,
           is_fan_content: s.format === ANIME && s.isFan,
           franchise: s.format === ANIME && s.isFan ? s.franchise : '',
         }
       }
     }
-    const page = await create.run(() => api.post<PageDetail>('/pages', body), { success: t('wiz.created') })
+    const page = await create.run(async () => {
+      const p = await api.post<PageDetail>('/pages', body)
+      // one call writes the look consistently: realism, theme, subtitle look from the theme's typography, negative prompt and palette
+      await api.post(`/pages/${p.id}/apply-look`, { style_key: s.styleKey, theme_key: s.themeKey, style_notes: s.styleNotes }).catch(() => undefined)
+      return p
+    }, { success: t('wiz.created') })
     if (page) navigate(`/pages/${page.id}`)
   }
 
   const policy = fmt.policy
+  const notices = lang === 'en' && formats.notices_en ? formats.notices_en : formats.notices
 
   return (
     <div className="stack" style={{ maxWidth: 920 }}>
@@ -219,19 +244,20 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
           <ChoiceGrid
             legend={t('wiz.format')}
             name="format"
-            value={s.format}
-            onChange={pickFormat}
-            options={formats.formats.map((f) => ({
-              value: f.key,
-              title: <span className="format-title">{lang === 'fa' ? f.label_fa : f.label_en}</span>,
-              text: f.description_fa,
+            value={s.templateKey || s.format}
+            onChange={pickTemplate}
+            options={templates.map((x) => ({
+              value: x.key,
+              title: <span className="format-title">{nm(x, lang)}</span>,
+              text: desc(x, lang),
             }))}
           />
+          <p className="field-hint">{t('wiz.template_hint')}</p>
           <div className="stack-sm" aria-live="polite">
-            {policy.fan_notice && <Notice tone="warn">{formats.notices.fan}</Notice>}
+            {policy.fan_notice && <Notice tone="warn">{notices.fan}</Notice>}
             {policy.original_default && fmt.key === ANIME && <Notice tone="info">{t('wiz.original_default')}</Notice>}
-            {policy.sourced && <Notice tone="info">{formats.notices.explainer}</Notice>}
-            {policy.synthetic_presenter_only && <Notice tone="warn">{formats.notices.presenter}</Notice>}
+            {policy.sourced && <Notice tone="info">{notices.explainer}</Notice>}
+            {policy.synthetic_presenter_only && <Notice tone="warn">{notices.presenter}</Notice>}
           </div>
         </div>
       )}
@@ -266,33 +292,14 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
 
       {step === 2 && (
         <div className="stack">
-          <p className="muted">{t('wiz.style_intro')}</p>
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            <legend className="sr-only">{t('wiz.step3')}</legend>
-            <div className="choice-grid">
-              {formats.styles.map((st) => {
-                const h = hue(st.key)
-                return (
-                  <label key={st.key} className={'choice' + (s.styleKey === st.key ? ' selected' : '')}>
-                    <input
-                      type="radio"
-                      name="style"
-                      checked={s.styleKey === st.key}
-                      onChange={() => {
-                        touched.current.style = true
-                        set({ styleKey: st.key })
-                      }}
-                    />
-                    <div className="swatch" style={{ background: `linear-gradient(135deg, hsl(${h} 70% 78%), hsl(${(h + 55) % 360} 65% 56%))` }} aria-hidden="true" />
-                    <span className="strong">{st.label_fa}</span>
-                    <span className="small muted">{t('wiz.style_prompt')}</span>
-                    <span className="small ltr">{st.prompt}</span>
-                  </label>
-                )
-              })}
-            </div>
-          </fieldset>
-          <p className="field-hint">{t('wiz.style_swatch_note')}</p>
+          <p className="muted">{t('wiz.look_intro')}</p>
+          <StylePicker
+            value={{ style_key: s.styleKey, realism: s.realism, theme_key: s.themeKey }}
+            onChange={(v) => {
+              touched.current.style = true
+              set({ styleKey: v.style_key, realism: v.realism, themeKey: v.theme_key })
+            }}
+          />
           <AreaField label={t('wiz.style_notes')} value={s.styleNotes} onChange={(v) => set({ styleNotes: v })} hint={t('wiz.style_notes_hint')} compact />
         </div>
       )}
@@ -315,12 +322,13 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
             ]}
           />
           <Notice tone="info">{t('wiz.auto_note')}</Notice>
+          <SwitchField label={t('wiz.studio')} hint={t('wiz.studio_hint')} checked={s.studio} onChange={(v) => set({ studio: v })} />
           <ChoiceGrid
             legend={t('wiz.preset')}
             name="preset"
             value={s.preset}
             onChange={(v) => set({ preset: v })}
-            options={Object.entries(formats.presets).map(([k, p]) => ({ value: k, title: p.label_fa, text: p.note_fa }))}
+            options={Object.entries(formats.presets).map(([k, p]) => ({ value: k, title: lang === 'en' ? p.label_en ?? p.label_fa : p.label_fa, text: lang === 'en' ? p.note_en ?? p.note_fa : p.note_fa }))}
           />
           <div className="grid-2">
             <NumberField
@@ -352,7 +360,7 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
       {step === 5 && (
         <div className="stack">
           <p className="muted">{t('wiz.idea_intro')}</p>
-          <AreaField label={t('wiz.idea')} value={s.idea} onChange={(v) => set({ idea: v })} placeholder={fmt.idea_hint_fa} hint={t('wiz.idea_hint')} />
+          <AreaField label={t('wiz.idea')} value={s.idea} onChange={(v) => set({ idea: v })} placeholder={lang === 'en' ? fmt.idea_hint_en ?? fmt.idea_hint_fa : fmt.idea_hint_fa} hint={t('wiz.idea_hint')} />
           <div className="row">
             <Button variant="primary" icon="spark" busy={runner.starting || (runner.busy && !runner.job)} disabled={runner.busy} onClick={propose}>
               {s.strategy ? t('wiz.propose_again') : t('wiz.propose')}
@@ -392,7 +400,7 @@ function WizardBody({ formats, navigate }: { formats: Formats; navigate: (to: st
                       <SwitchField label={t('wiz.fan')} hint={t('wiz.fan_hint')} checked={s.isFan} onChange={(v) => set({ isFan: v })} />
                       {s.isFan && (
                         <>
-                          <Notice tone="warn">{formats.notices.fan}</Notice>
+                          <Notice tone="warn">{notices.fan}</Notice>
                           <TextField label={t('wiz.franchise')} value={s.franchise} onChange={(v) => set({ franchise: v })} />
                         </>
                       )}
