@@ -53,6 +53,7 @@ def execute(job: Job, worker: str = "inline") -> str:
         queue.complete(job, result, ctx.gpu_seconds)
         if ctx.vram_peak_mb:
             Job.objects.filter(pk=job.pk).update(result={**result, "vram_peak_mb": ctx.vram_peak_mb})
+        _after_success(job)
         return Job.SUCCEEDED
     except JobCancelled:
         queue.mark_cancelled(job)
@@ -77,6 +78,21 @@ def execute(job: Job, worker: str = "inline") -> str:
         final = Job.objects.filter(pk=job.pk).values_list("status", flat=True).first()
         if final == Job.FAILED:
             _on_final_failure(job)
+
+
+def _after_success(job: Job) -> None:
+    """A finished production step lets the pipeline decide what comes next. Done AFTER the job is marked succeeded, so two
+    steps finishing at the same moment cannot both see the other as 'still running' (which would stall the episode)."""
+    if job.kind in ("prod.keyframes", "prod.tts", "prod.clips") and job.episode_id:
+        from instai.production import pipeline
+        from instai.story.models import Episode
+
+        ep = Episode.objects.filter(pk=job.episode_id).first()
+        if ep:
+            try:
+                pipeline.advance(ep, (job.payload or {}).get("mode", "final"))
+            except Exception:  # noqa: BLE001
+                log.exception("advance after job %s failed", job.pk)
 
 
 def _on_cancel(job: Job) -> None:

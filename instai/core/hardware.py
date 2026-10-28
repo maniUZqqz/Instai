@@ -37,7 +37,7 @@ def _run(cmd: list[str], timeout: float = 8) -> tuple[int, str]:
         return 127, ""
 
 
-def _get_json(url: str, timeout: float = 2.0) -> Any:
+def _get_json(url: str, timeout: float = 1.5) -> Any:
     r = requests.get(url, timeout=timeout)
     r.raise_for_status()
     return r.json()
@@ -168,7 +168,7 @@ def check_gpu() -> dict:
 def check_ollama(url: str | None = None) -> dict:
     url = (url or runtime.ollama_url()).rstrip("/")
     try:
-        tags = _get_json(url + "/api/tags", 3)
+        tags = _get_json(url + "/api/tags", 1.5)
     except Exception:
         return _item("ollama", "Ollama (مدل زبانی)", "missing", f"{url} پاسخ نداد", {"url": url},
                      "Ollama را اجرا کنید (یا در تنظیمات از سرویس API استفاده کنید).")
@@ -265,14 +265,14 @@ def detect_all(refresh: bool = False) -> dict:
     now = time.time()
     if not refresh and _CACHE["value"] and now - _CACHE["at"] < CACHE_SECONDS:
         return _CACHE["value"]
-    items: list[dict] = []
-    items += check_system()
-    items.append(check_gpu())
-    items.append(check_ollama())
-    items.append(check_comfyui())
-    items.append(check_ffmpeg())
-    items += check_tts()
-    items += check_tools()
+    from concurrent.futures import ThreadPoolExecutor
+
+    # network probes run in parallel: a closed local port can take ~2 s to be refused on Windows
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        f_gpu, f_ollama, f_comfy = ex.submit(check_gpu), ex.submit(check_ollama), ex.submit(check_comfyui)
+        f_tts = ex.submit(check_tts)
+        items: list[dict] = list(check_system())
+        items += [f_gpu.result(), f_ollama.result(), f_comfy.result(), check_ffmpeg()] + f_tts.result() + check_tools()
     summary = {s: sum(1 for i in items if i["status"] == s) for s in ("ok", "warn", "missing", "error")}
     value = {"checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "items": items, "summary": summary,
              "machine": machine_fingerprint(items)}

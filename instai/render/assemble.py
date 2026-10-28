@@ -122,15 +122,19 @@ def build_cues(shots: list[ShotSpec], timeline: list[dict]) -> list[subtitles.Cu
 def build_filter(shots: list[ShotSpec], timeline: list[dict], opts: RenderOptions, n_clips: int, audio_first_input: int,
                  has_subs: bool) -> str:
     parts: list[str] = []
-    # video: chain clips with cut (concat) or crossfade (xfade)
-    acc, acc_len = "[0:v]", timeline[0]["duration"]
+    # video: chain clips with cut (concat) or crossfade (xfade). Every stream gets the same fps/timebase first: ffmpeg 7.1's
+    # xfade refuses inputs whose timebases differ (a concat output has 1/1000000, an mp4 clip 1/15360).
+    norm = f"settb=AVTB,setpts=PTS-STARTPTS,fps={opts.fps},setsar=1,format=yuv420p"
+    for i in range(len(shots)):
+        parts.append(f"[{i}:v]{norm}[c{i}]")
+    acc, acc_len = "[c0]", timeline[0]["duration"]
     for i in range(1, len(shots)):
         ov = timeline[i - 1]["overlap_next"]
         nxt = f"[v{i}]"
         if ov > 0:
-            parts.append(f"{acc}[{i}:v]xfade=transition=fade:duration={ov:.3f}:offset={acc_len - ov:.3f}{nxt}")
+            parts.append(f"{acc}[c{i}]xfade=transition=fade:duration={ov:.3f}:offset={acc_len - ov:.3f},{norm}{nxt}")
         else:
-            parts.append(f"{acc}[{i}:v]concat=n=2:v=1:a=0{nxt}")
+            parts.append(f"{acc}[c{i}]concat=n=2:v=1:a=0,{norm}{nxt}")
         acc_len += timeline[i]["duration"] - ov
         acc = nxt
     parts.append(f"{acc}ass=sub.ass:fontsdir=fonts[vout]" if has_subs else f"{acc}null[vout]")

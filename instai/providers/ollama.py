@@ -26,7 +26,7 @@ class OllamaProvider(TextProvider):
 
     def health(self) -> dict:
         try:
-            r = requests.get(self.base_url + "/api/tags", timeout=3)
+            r = requests.get(self.base_url + "/api/tags", timeout=1.5)
             r.raise_for_status()
             names = [m["name"] for m in r.json().get("models", [])]
             return {"ok": True, "detail": f"{len(names)} models", "models": names}

@@ -200,6 +200,46 @@ def character_references(request, pk):
     return Response(CharacterSerializer(c).data, status=201)
 
 
+@api_view(["POST"])
+def character_reference_upload(request, pk):
+    """Upload a reference image (character sheet, pose, expression) as base64 JSON: {data, kind, label}. Stored as an Asset."""
+    import base64
+    import io
+    import tempfile
+    import uuid
+    from pathlib import Path
+
+    from django.conf import settings
+    from PIL import Image, UnidentifiedImageError
+
+    from instai.assets import storage as asset_storage
+
+    c = get_object_or_404(Character, pk=pk)
+    raw = request.data.get("data") or ""
+    if "," in raw[:80]:
+        raw = raw.split(",", 1)[1]
+    try:
+        blob = base64.b64decode(raw, validate=False)
+        if not blob or len(blob) > 10 * 1024 * 1024:
+            raise ValueError("size")
+        im = Image.open(io.BytesIO(blob))
+        im.load()
+    except (ValueError, UnidentifiedImageError, OSError):
+        raise DomainError("validation_error", "تصویر نامعتبر است (فرمت png/jpg/webp و حداکثر ۱۰ مگابایت).", http_status=400)
+    tmpdir = Path(tempfile.mkdtemp(prefix="ref-", dir=settings.MEDIA_ROOT))
+    tmp = tmpdir / "ref.png"
+    im.convert("RGBA" if im.mode in ("RGBA", "LA", "P") else "RGB").save(tmp)
+    kind = request.data.get("kind", "image")
+    kind = kind if kind in dict(CharacterReference.KINDS) else "image"
+    asset = asset_storage.register(tmp, f"characters/{c.pk}/{uuid.uuid4().hex[:10]}.png", kind="image", role="reference", page=c.page,
+                                   provenance={"source": "uploaded by the owner", "character": c.pk})
+    import shutil
+
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    CharacterReference.objects.create(character=c, kind=kind, label=request.data.get("label", ""), asset=asset)
+    return Response(CharacterSerializer(c).data, status=201)
+
+
 @api_view(["PATCH", "DELETE"])
 def reference_detail(request, pk):
     r = get_object_or_404(CharacterReference, pk=pk)
@@ -225,5 +265,6 @@ urlpatterns = [
     path("strategy", strategy_proposal),
     path("characters/<int:pk>", character_detail),
     path("characters/<int:pk>/references", character_references),
+    path("characters/<int:pk>/references/upload", character_reference_upload),
     path("references/<int:pk>", reference_detail),
 ]

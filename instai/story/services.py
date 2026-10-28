@@ -45,7 +45,8 @@ def create_page(data: dict) -> ContentPage:
     for ch in data.get("characters") or []:
         add_character(page, ch)
     if data.get("strategy"):
-        apply_strategy(page, data["strategy"], add_characters=not data.get("characters"))
+        apply_strategy(page, data["strategy"], add_characters=not data.get("characters"),
+                       set_length="episode_length_sec" not in (prof.get("production") or {}))
     if data.get("series"):
         s = data["series"]
         series = create_series(page, {"title": s.get("title") or page.name, "premise": s.get("premise") or page.idea,
@@ -66,7 +67,7 @@ def add_character(page: ContentPage, data: dict) -> Character:
         franchise=data.get("franchise", ""))
 
 
-def apply_strategy(page: ContentPage, strategy: dict, *, add_characters: bool = True) -> None:
+def apply_strategy(page: ContentPage, strategy: dict, *, add_characters: bool = True, set_length: bool = True) -> None:
     page.set_profile("strategy", {
         "positioning": strategy.get("positioning", ""), "audience_insight": strategy.get("audience_insight", ""),
         "tone_guidelines": strategy.get("tone_guidelines", ""),
@@ -75,7 +76,7 @@ def apply_strategy(page: ContentPage, strategy: dict, *, add_characters: bool = 
     plan = strategy.get("posting_plan") or {}
     if plan.get("per_week"):
         page.set_profile("publishing", {"per_week": plan["per_week"], "hashtags": strategy.get("hashtags", [])})
-    if plan.get("episode_length_sec"):
+    if plan.get("episode_length_sec") and set_length:
         page.set_profile("production", {"episode_length_sec": plan["episode_length_sec"]})
     if add_characters:
         have = {c.name for c in page.characters.all()}
@@ -261,12 +262,24 @@ def update_shot(shot: Shot, data: dict) -> Shot:
     """Edit one shot. Only this shot becomes stale (its asset hash changes); approval is cleared."""
     allowed = {"description", "image_prompt", "negative_prompt", "technique", "camera", "duration_sec", "narration", "speaker", "sfx",
                "transition", "seed"}
-    changed = False
+    from instai.assets.models import Asset
+
+    changed: set[str] = set()
     for k, v in data.items():
         if k in allowed and getattr(shot, k) != v:
             setattr(shot, k, v)
-            changed = True
+            changed.add(k)
     if changed:
+        # an approval belonged to the old content: clear it for the assets this edit makes stale
+        roles = []
+        if changed & {"image_prompt", "negative_prompt", "seed"}:
+            roles += ["keyframe", "shot_clip"]
+        if changed & {"narration", "speaker"}:
+            roles += ["narration"]
+        if changed & {"description", "duration_sec", "technique"}:
+            roles += ["shot_clip"]
+        if roles:
+            Asset.objects.filter(shot=shot, is_current=True, role__in=roles).update(approved=False)
         shot.approved = False
         shot.status = "ready"
         shot.est_gpu_seconds = costs.shot_estimate(shot.technique, shot.duration_sec)["gpu_seconds"]

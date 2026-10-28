@@ -66,12 +66,17 @@ ENUMS = {"llm_provider": ["fake", "ollama", "openai"], "openai_json_mode": ["jso
          "research_fetch": ["off", "wikipedia", "fake"]}
 
 
+def is_demo_mode() -> bool:
+    vals = settings_store.all_effective()
+    return all(vals.get(k) == v for k, v in DEMO.items())
+
+
 def settings_payload() -> dict:
     from instai.providers import registry
 
     vals = settings_store.all_effective()
     return {"values": vals, "api_key": registry.api_key_state(), "providers": registry.describe_text_providers(),
-            "demo_mode": all(vals.get(k) == v for k, v in DEMO.items()), "enums": ENUMS,
+            "demo_mode": is_demo_mode(), "enums": ENUMS,
             "paths": {"data": str(runtime.project_root() / "data"), "media": str(runtime.media_root()), "models": str(runtime.models_root()),
                       "tools": str(runtime.tools_root()), "env_file": str(ROOT / ".env")}}
 
@@ -200,7 +205,7 @@ def dashboard(request):
                 "used_mb": gpu["used_mb"] if gpu else None, "utilization": gpu["utilization"] if gpu else None,
                 "busy_job": running_gpu.pk if running_gpu else None, "busy_reason": running_gpu.waiting_reason if running_gpu else ""},
         "worker_alive": Worker.objects.filter(last_seen__gte=now - timedelta(seconds=30)).exists(),
-        "demo_mode": settings_payload()["demo_mode"],
+        "demo_mode": is_demo_mode(),
         "provider": settings_store.effective("llm_provider"),
     })
 

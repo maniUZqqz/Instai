@@ -61,7 +61,17 @@ def set_provider_for_tests(provider: TextProvider | None) -> None:
     _OVERRIDE = provider
 
 
+_DESCRIBE_CACHE: dict = {"at": 0.0, "key": None, "value": None}
+
+
 def describe_text_providers() -> list[dict]:
+    """Provider list with live health (cached 8 s: health checks of a missing local service are slow to fail)."""
+    import time
+
+    key = (active_provider_name(), settings_store.effective("ollama_url"), settings_store.effective("openai_base_url"),
+           settings_store.effective("ollama_model"), settings_store.effective("openai_model"), api_key_state()["set"])
+    if _DESCRIBE_CACHE["key"] == key and time.time() - _DESCRIBE_CACHE["at"] < 8 and _OVERRIDE is None:
+        return _DESCRIBE_CACHE["value"]
     active = active_provider_name()
     out = []
     for name, info in PROVIDER_INFO.items():
@@ -69,6 +79,7 @@ def describe_text_providers() -> list[dict]:
         h = p.health()
         out.append({"id": name, **info, "active": name == active, "ok": h["ok"], "detail": h["detail"], "models": h["models"],
                     "model": p.model})
+    _DESCRIBE_CACHE.update(at=time.time(), key=key, value=out)
     return out
 
 

@@ -97,6 +97,7 @@ STATIC_ROOT = DATA_DIR / "staticfiles"
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_AUTOREFRESH = True  # the UI is rebuilt while the server may be running
 APPEND_SLASH = False
+DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024  # reference images arrive as base64 JSON
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],

@@ -34,25 +34,19 @@ def _tts_resource(payload: dict) -> str:
 @handler("prod.keyframes", resource=_image_resource, timeout=6 * 3600)
 def keyframes(ctx):
     ep, mode = _ep(ctx)
-    res = pipeline.step_keyframes(ctx, ep, mode)
-    pipeline.advance(ep, mode)
-    return res
+    return pipeline.step_keyframes(ctx, ep, mode)  # the worker calls pipeline.advance() once this job is marked done
 
 
 @handler("prod.tts", resource=_tts_resource, timeout=3600)
 def tts(ctx):
     ep, mode = _ep(ctx)
-    res = pipeline.step_tts(ctx, ep, mode)
-    pipeline.advance(ep, mode)
-    return res
+    return pipeline.step_tts(ctx, ep, mode)
 
 
 @handler("prod.clips", resource="gpu", timeout=12 * 3600)
 def clips(ctx):
     ep, mode = _ep(ctx)
-    res = pipeline.step_clips(ctx, ep, mode)
-    pipeline.advance(ep, mode)
-    return res
+    return pipeline.step_clips(ctx, ep, mode)
 
 
 @handler("prod.assemble", resource="cpu", timeout=3 * 3600)

@@ -57,6 +57,6 @@ def ffmpeg_available():
     from instai.core import runtime
 
     info = runtime.ffmpeg_info()
-    if not (info["ffmpeg"] and info["ffprobe"]):
+    if not info["ffmpeg"]:
         pytest.skip("ffmpeg not found here; this test runs where START.bat has fetched it (the GPU PC)")
     return info
