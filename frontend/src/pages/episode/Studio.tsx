@@ -204,7 +204,7 @@ function SheetCard({ sheet, reload }: { sheet: DesignSheet; reload: () => void }
 
 // ---------------------------------------------------------------- casting
 function CastingCard({ ep, st, set, reload }: { ep: Episode; st: StudioPayload; set: (d: StudioPayload) => void; reload: () => void }) {
-  const { t, lang } = useI18n()
+  const { t, tr, lang } = useI18n()
   const act = useAction()
   const runner = useJobRunner({ onSucceeded: reload })
   const current = (r: CastingRow) => (r.engine && r.voice_id ? `${r.engine}:${r.voice_id}` : '')
@@ -217,7 +217,7 @@ function CastingCard({ ep, st, set, reload }: { ep: Episode; st: StudioPayload; 
     const d = await act.run(() => api.put<StudioPayload>(`/episodes/${ep.id}/studio/casting`, { casting }), { success: t('common.saved') })
     if (d) set(d)
   }
-  const opts = useMemo(() => [{ value: '', label: t('cast.none') }, ...st.voices.map((v) => ({ value: v.id, label: v.label + (v.installed ? '' : ' · ' + t('cast.not_installed')) + (v.commercial_ok === false ? ' · ' + t('cast.noncommercial') : ''), disabled: !v.installed }))], [st.voices, t])
+  const opts = useMemo(() => [{ value: '', label: t('cast.none') }, ...st.voices.map((v) => ({ value: v.id, label: `${tr('cast.eng.' + v.engine, v.engine)} · ${v.voice_label ?? v.voice}` + (v.installed ? '' : ' · ' + t('cast.not_installed')) + (v.commercial_ok === false ? ' · ' + t('cast.noncommercial') : ''), disabled: !v.installed }))], [st.voices, t, tr])
   return (
     <Card title={t('cast.title')}>
       <div className="stack">

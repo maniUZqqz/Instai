@@ -25,8 +25,9 @@ def tx(key: str, lang: str, **params) -> str:
 
 def stray_persian(text: str) -> str | None:
     """A Persian letter in English text, ignoring the language's own name ("فارسی" in a language picker is correct)."""
-    m = PERSIAN.search(text.replace("فارسی", ""))
-    return m.group(0) if m else None
+    clean = text.replace("فارسی", "")
+    m = PERSIAN.search(clean)
+    return " ".join(clean[max(0, m.start() - 25): m.end() + 25].split()) if m else None
 
 
 def exact(text: str):
@@ -127,7 +128,7 @@ def test_new_style_editor_saves_a_user_style(browser, server, lang):
         page.get_by_label(re.compile("^" + re.escape(tx("lib.name_en", lang)))).fill(f"UI made style {lang}")
         page.get_by_label(re.compile("^" + re.escape(tx("lib.image_pos", lang)))).fill("ui test prompt, soft light")
         page.get_by_role("button", name=exact(tx("common.save", lang))).click()
-        page.wait_for_function("document.body.innerText.includes('UI made style')", timeout=10000)
+        page.wait_for_function(f"document.body.innerText.includes('UI made style {lang}')", timeout=10000)
         names = [s["name_en"] for s in Api(server).get("/api/library")["styles"]]
         assert f"UI made style {lang}" in names
         assert not problems, problems

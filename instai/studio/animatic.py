@@ -99,9 +99,10 @@ def build(ctx, ep: Episode) -> dict:
 
 
 def _voice(shot, ep) -> dict:
-    """The speaking character's voice, else the page's narration voice (same rule production uses)."""
+    """The speaking character's voice, else the page's narration voice: the production voice stack decides (VoiceCast -> character -> page)."""
+    from instai.production import voices
+
     page = ep.series.page
-    aud = page.profile("audio")
     char = page.characters.filter(name=shot.speaker).first() if shot.speaker else None
-    cv = (char.voice if char else None) or {}
-    return {"engine": cv.get("engine") or aud["narration_engine"] or "auto", "voice": cv.get("voice_id") or aud["narration_voice"], "reference": cv.get("reference") or ""}
+    v = voices.resolve(char, voices.language_of(page), page)
+    return {"engine": v["engine"] or "auto", "voice": v["voice"], "reference": v["reference"] if v.get("consent_ok", True) else ""}

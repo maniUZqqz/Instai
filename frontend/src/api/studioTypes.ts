@@ -246,6 +246,7 @@ export interface VoiceOption {
   engine: string
   voice: string
   label: string
+  voice_label?: string
   language: string
   installed: boolean
   commercial?: string

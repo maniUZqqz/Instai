@@ -114,6 +114,7 @@ ENUMS = {
     "lib.role.": ["background", "primary", "secondary", "accent", "shadow", "highlight"],
     "src.prov_": ["anilist", "wikipedia", "fandom", "jikan"],
     "post.": ["assets", "assembly", "qc", "approval"],
+    "cast.eng.": ["moss", "piper", "pocket", "edge", "fake"],
     "tech.": ["still_kenburns", "parallax_25d", "puppet_2d", "motion_graphics", "wan_i2v", "wan_flf", "talking_video", "three_d"],
     "job.kind.": ["studio.source_search", "studio.ideas", "studio.idea_refine", "studio.idea_merge", "studio.research", "studio.map", "studio.timeline", "studio.profile",
                   "studio.bible", "studio.design", "studio.design_image", "studio.casting", "studio.translate", "studio.animatic", "story.strategy", "story.plan", "story.script",

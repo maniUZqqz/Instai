@@ -116,7 +116,7 @@ def voice_options(language: str = "") -> list[dict]:
         voices = e["voices"] or ([{"id": e["default_voice"] or e["id"], "label": e["label"], "language": lang}] if (e["available"] and not e["needs_reference"]) else [])
         for v in voices:
             vid = str(v.get("id") or "")
-            out.append({"id": f"{e['id']}:{vid}", "engine": e["id"], "voice": vid, "label": f"{e['label']} · {v.get('label') or vid}", "language": str(v.get("language") or lang),
+            out.append({"id": f"{e['id']}:{vid}", "engine": e["id"], "voice": vid, "label": f"{e['id']} · {v.get('label') or vid}", "voice_label": str(v.get("label") or vid), "language": str(v.get("language") or lang),
                         "installed": bool(e["available"]), "commercial": e["commercial"], "commercial_ok": e["commercial"] != "no", "online": bool(e["online"]),
                         "tags": [t for t in ("online" if e["online"] else "offline", e["resource"], "non-commercial" if e["commercial"] == "no" else "") if t]})
     return out
