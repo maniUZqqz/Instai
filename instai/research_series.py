@@ -53,8 +53,8 @@ def _check(resp, name: str) -> dict:
 
 
 def clean_text(s: str | None, limit: int = 0) -> str:
-    s = re.sub(r"<br\s*/?>", "\n", s or "", flags=re.I)
-    s = _html.unescape(re.sub(r"<[^>]+>", " ", s))
+    s = re.sub(r"<br\s*/?>|</?(?:p|div|li|ul|ol|h[1-6])\b[^>]*>", "\n", s or "", flags=re.I)
+    s = _html.unescape(re.sub(r"<[^>]+>", "", s))  # inline tags (b, i, span ...) vanish without leaving a gap
     s = re.sub(r"[ \t]+", " ", re.sub(r"\n\s*\n+", "\n\n", s)).strip()
     return s[:limit].rstrip() if limit else s
 

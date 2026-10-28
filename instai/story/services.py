@@ -28,8 +28,8 @@ def create_page(data: dict) -> ContentPage:
     fdef = formats.get_format(fmt)
     page = ContentPage.objects.create(
         name=data["name"].strip(), handle=(data.get("handle") or "").strip(), format=fmt if fmt in formats.FORMATS else formats.CUSTOM,
-        languages=data.get("languages") or ["fa"], idea=data.get("idea") or "",
-        automation_level=data.get("automation_level") or "manual")
+        languages=[l for l in (data.get("languages") or []) if l in ("fa", "en")] or ["fa"], idea=data.get("idea") or "",
+        template_key=str(data.get("template_key") or ""), automation_level=data.get("automation_level") or "manual")
     prof = data.get("profiles") or {}
     prod = {"episodes_per_series": fdef["default_series"]["episodes"], "episode_length_sec": fdef["default_series"]["episode_length_sec"],
             "allowed_techniques": fdef["default_techniques"]}
