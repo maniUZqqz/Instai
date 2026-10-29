@@ -32,8 +32,8 @@ class MossSFX(Worker):
         import soundfile as sf
         import torch
 
-        repo = os.path.join(args.home, "vendor", "MOSS-TTS")
-        model_dir = os.path.join(args.home, "models", "moss-sfx", "MOSS-SoundEffect-v2.0")
+        repo = os.path.join(args.vendor_dir, "MOSS-TTS")
+        model_dir = os.path.join(args.models_dir, "moss-sfx", "MOSS-SoundEffect-v2.0")
         for p in (os.path.join(repo, "moss_soundeffect_v2"), model_dir):
             if not os.path.isdir(p):
                 raise RuntimeError("missing %s - run Download-Models.bat" % p)

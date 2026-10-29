@@ -210,8 +210,18 @@ def check_comfyui(url: str | None = None) -> dict:
     url = (url or runtime.comfyui_url()).rstrip("/")
     info = comfy_object_info(url)
     if info is None:
-        return _item("comfyui", "ComfyUI (تصویر و ویدئو)", "missing", f"{url} پاسخ نداد", {"url": url},
-                     "ComfyUI را اجرا کنید تا ساخت تصویر و ویدئو فعال شود.")
+        try:
+            from . import discovery, model_status
+
+            sel = discovery.selected_comfy(model_status.current())
+        except Exception:  # noqa: BLE001
+            sel = None
+        if sel and sel.get("launcher"):
+            return _item("comfyui", "ComfyUI (تصویر و ویدئو)", "warn", f"روشن نیست؛ پیدا شد: {sel['root']}",
+                         {"url": url, "dir": sel["root"], "launcher": sel["launcher"]},
+                         "هر وقت کاری به ComfyUI نیاز داشته باشد، InstAI خودش آن را روشن می‌کند (صفحهٔ «مدل‌ها»).")
+        return _item("comfyui", "ComfyUI (تصویر و ویدئو)", "missing", f"{url} پاسخ نداد", {"url": url, "dir": (sel or {}).get("root")},
+                     "ComfyUI را اجرا کنید تا ساخت تصویر و ویدئو فعال شود (یا پوشه‌اش را در صفحهٔ «مدل‌ها» بدهید).")
     from instai.providers.comfy.workflows import workflow_availability
 
     wf = workflow_availability(info)
@@ -248,6 +258,28 @@ def check_tts() -> list[dict]:
     return out
 
 
+def check_models() -> dict:
+    """Summary of model discovery (the Models page has the details)."""
+    try:
+        from . import model_status
+
+        d = model_status.current()
+        rows = model_status.comfy_rows(d)
+        wf = model_status.workflow_status(d, rows)
+    except Exception as e:  # noqa: BLE001
+        return _item("models_found", "مدل‌های پیدا‌شده", "error", f"جست‌وجو انجام نشد: {type(e).__name__}", {}, "")
+    found = sum(1 for r in rows if r["found"])
+    voice = {k: bool(v.get("complete")) for k, v in (d.get("voice") or {}).items()}
+    sel = (d.get("comfyui") or {}).get("selected")
+    ready = sum(1 for w in wf if w["ready"])
+    data = {"comfy_files_found": found, "comfy_files": len(rows), "workflows_ready": ready, "workflows": len(wf), "comfy_dir": sel,
+            "voice": voice, "nm_homes": d.get("nm_homes", []), "seconds": d.get("seconds"), "scanned_at": d.get("scanned_at")}
+    st = "ok" if found and ready else ("warn" if found or any(voice.values()) else "missing")
+    return _item("models_found", "مدل‌های پیدا‌شده", st, f"{found} از {len(rows)} فایل مدل؛ {ready} از {len(wf)} گردش‌کار آماده؛ صدا: "
+                 + "، ".join(k for k, v in voice.items() if v) if any(voice.values()) else f"{found} از {len(rows)} فایل مدل؛ {ready} از {len(wf)} گردش‌کار آماده",
+                 data, "" if st == "ok" else "جزئیات و دکمهٔ «جست‌وجوی دوباره» در صفحهٔ «مدل‌ها» است.")
+
+
 def check_tools() -> list[dict]:
     items = []
     rh = runtime.find_tool("rhubarb")
@@ -268,11 +300,21 @@ def detect_all(refresh: bool = False) -> dict:
     from concurrent.futures import ThreadPoolExecutor
 
     # network probes run in parallel: a closed local port can take ~2 s to be refused on Windows
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        f_gpu, f_ollama, f_comfy = ex.submit(check_gpu), ex.submit(check_ollama), ex.submit(check_comfyui)
-        f_tts = ex.submit(check_tts)
+    def threaded(fn):                     # settings are read from the database: close the helper thread's connection afterwards
+        def run():
+            from django.db import connections
+
+            try:
+                return fn()
+            finally:
+                connections.close_all()
+        return run
+
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        f_gpu, f_ollama, f_comfy = ex.submit(check_gpu), ex.submit(threaded(check_ollama)), ex.submit(threaded(check_comfyui))
+        f_tts, f_models = ex.submit(threaded(check_tts)), ex.submit(threaded(check_models))
         items: list[dict] = list(check_system())
-        items += [f_gpu.result(), f_ollama.result(), f_comfy.result(), check_ffmpeg()] + f_tts.result() + check_tools()
+        items += [f_gpu.result(), f_ollama.result(), f_comfy.result(), f_models.result(), check_ffmpeg()] + f_tts.result() + check_tools()
     summary = {s: sum(1 for i in items if i["status"] == s) for s in ("ok", "warn", "missing", "error")}
     value = {"checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "items": items, "summary": summary,
              "machine": machine_fingerprint(items)}

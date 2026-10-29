@@ -85,20 +85,61 @@ def load_manifests() -> tuple[dict, list]:
     return packages, items
 
 
-def comfy_dir() -> str:
-    d = os.environ.get("COMFYUI_DIR", "").strip()
-    if d:
-        return d
-    try:  # the value saved from the Settings page lives in the database; read it without Django
+def _setting(key: str) -> str:
+    """A value saved from the Settings page (it lives in the database; read without Django)."""
+    try:
         import sqlite3
 
         db = os.path.join(DATA, "db.sqlite3")
         if os.path.exists(db):
-            row = sqlite3.connect(db).execute("select value from core_appsetting where key='comfyui_dir'").fetchone()
+            row = sqlite3.connect(db).execute("select value from core_appsetting where key=?", (key,)).fetchone()
             if row and row[0]:
                 return str(json.loads(row[0]))
     except Exception:  # noqa: BLE001
         pass
+    return ""
+
+
+_FOUND: dict = {}
+
+
+def found() -> dict:
+    """What model discovery found on this PC (instai/core/discovery.py, stdlib only): the app's last scan, else a new one."""
+    if "value" not in _FOUND:
+        try:
+            sys.path.insert(0, ROOT)
+            from instai.core import discovery
+
+            d = discovery.load_cached()
+            if d is None:
+                pref = os.environ.get("COMFYUI_DIR", "").strip() or _setting("comfyui_dir")
+                d = discovery.scan(manual=[pref] if pref else [], preferred_comfy=pref, extra=[MODELS], save=False)
+            _FOUND["value"] = d
+        except Exception as e:  # noqa: BLE001 - without discovery the downloader still works with COMFYUI_DIR
+            log("  (model discovery unavailable: %s)" % type(e).__name__)
+            _FOUND["value"] = {}
+    return _FOUND["value"]
+
+
+def _selected_comfy() -> dict:
+    d = found()
+    sel = (d.get("comfyui") or {}).get("selected")
+    return next((c for c in (d.get("comfyui") or {}).get("installs", []) if c.get("root") == sel), {})
+
+
+def comfy_dir() -> str:
+    return os.environ.get("COMFYUI_DIR", "").strip() or _setting("comfyui_dir") or _selected_comfy().get("root") or ""
+
+
+def comfy_python() -> str:
+    c = _selected_comfy()
+    if c.get("python") and (not comfy_dir() or os.path.normcase(c.get("root", "")) == os.path.normcase(comfy_dir())):
+        return c["python"]
+    cd = comfy_dir()
+    for p in (os.path.join(os.path.dirname(cd), "python_embeded", "python.exe"), os.path.join(cd, "python_embeded", "python.exe"),
+              os.path.join(cd, ".venv", "Scripts", "python.exe"), os.path.join(cd, "venv", "Scripts", "python.exe")):
+        if cd and os.path.isfile(p):
+            return p
     return ""
 
 
@@ -112,14 +153,45 @@ def dest_of(item: dict) -> str:
 
 
 def reuse_path(item: dict) -> str | None:
-    """A file with the same name and size anywhere under ComfyUI's models folder counts as installed."""
-    cd = comfy_dir()
-    if not cd or "{COMFYUI}" not in item.get("dest", "") or item.get("kind", "file") != "file":
+    """Already here, so never downloaded again: a file with the same name (any letter case, any sub-folder) and size that the
+    ComfyUI InstAI uses can see (its models folder, extra_model_paths.yaml, or the running ComfyUI's list), or a voice model file
+    in a folder model discovery found (e.g. NMarketing's)."""
+    if item.get("kind", "file") != "file":
         return None
-    name = os.path.basename(dest_of(item))
-    for found in glob.glob(os.path.join(cd, "models", "**", name), recursive=True):
-        if item.get("size") in (None, os.path.getsize(found)):
-            return found
+    dest = item.get("dest", "")
+    name = os.path.basename(dest_of(item)).lower()
+    size = item.get("size")
+    if "{COMFYUI}" in dest:
+        # the same weights under another published name (e.g. the owner's "FLUX.1 [dev] FP8.safetensors") count too, any size
+        names = [(name, size)] + [(a.lower(), None) for a in item.get("aliases", [])]
+        c = _selected_comfy()
+        api = ((found().get("comfyui") or {}).get("api") or {}).get("names") or {}
+        for n, want in names:
+            hit = (c.get("files") or {}).get(n)
+            if hit and os.path.isfile(hit["path"]) and want in (None, os.path.getsize(hit["path"])):
+                return hit["path"]
+            if api.get(n):
+                return "ComfyUI lists " + api[n]
+        cd = comfy_dir()
+        if cd:
+            wanted = dict(names)
+            for f in glob.glob(os.path.join(cd, "models", "**", "*"), recursive=True):
+                low = os.path.basename(f).lower()
+                if low in wanted and os.path.isfile(f) and wanted[low] in (None, os.path.getsize(f)):
+                    return f
+        return None
+    if dest.startswith("{MODELS}"):
+        rel = dest[len("{MODELS}"):].strip("\\/").replace("\\", os.sep)
+        dirs = [v.get("models_dir") for v in (found().get("voice") or {}).values()] + [os.path.join(h, "models") for h in found().get("nm_homes") or []]
+        for d in dict.fromkeys(x for x in dirs if x):
+            p = os.path.join(d, rel)
+            if os.path.isfile(p) and size in (None, os.path.getsize(p)):
+                return p
+        if rel.split(os.sep)[0] == "piper":                    # a Piper voice NMarketing's voice kit already has
+            for d in (found().get("piper") or {}).get("voice_dirs") or []:
+                p = os.path.join(d, os.path.basename(rel))
+                if os.path.isfile(p):
+                    return p
     return None
 
 
@@ -145,14 +217,32 @@ def sha256_of(path: str) -> str:
     return h.hexdigest()
 
 
+def _site_packages(python: str) -> list[str]:
+    base = os.path.dirname(python)
+    return [os.path.join(base, "Lib", "site-packages"), os.path.join(os.path.dirname(base), "Lib", "site-packages")]
+
+
 def is_installed(item: dict) -> tuple[bool, str]:
     kind = item.get("kind", "file")
     d = dest_of(item)
     if kind == "pypi_member":
         return os.path.isfile(d), d
+    if kind == "comfy_pip":                     # a Python package inside ComfyUI's own Python (python_embeded or its venv)
+        py = comfy_python()
+        if not py:
+            return False, "ComfyUI's Python was not found"
+        for sp in _site_packages(py):
+            if os.path.isfile(os.path.join(sp, item["module"], "__init__.py")):
+                return True, os.path.join(sp, item["module"])
+        return False, py
     if kind == "zip":
         marker = os.path.join(d, item.get("marker", ""))
-        return (os.path.isfile(marker), d) if item.get("marker") else (os.path.isdir(d) and bool(os.listdir(d)), d)
+        if item.get("marker") and os.path.isfile(marker):
+            return True, d
+        exe = (found().get("piper") or {}).get("exe") if item.get("reuse_found") == "piper_exe" else None
+        if exe and os.path.isfile(exe):                       # the Piper engine NMarketing's voice kit already has
+            return True, exe
+        return (False, d) if item.get("marker") else (os.path.isdir(d) and bool(os.listdir(d)), d)
     if kind == "python":
         return (os.path.isfile(os.path.join(d, "python.exe")), d)
     if os.path.isfile(d):
@@ -318,6 +408,23 @@ def install(item: dict, mirror: str | None) -> bool:
         rc = subprocess.call([arch, "/quiet", "InstallAllUsers=0", "PrependPath=0", "Include_launcher=0", "Include_test=0",
                               "Include_doc=0", "Shortcuts=0", "TargetDir=" + dest])
         return rc == 0
+    if kind == "comfy_pip":
+        import subprocess
+
+        py = comfy_python()
+        if not py:
+            log("  ComfyUI's own Python (python_embeded) was not found; cannot install %s" % item["module"])
+            return False
+        wheel = os.path.join(os.path.dirname(arch), item["wheel"])
+        if os.path.abspath(arch) != os.path.abspath(wheel):
+            os.replace(arch, wheel)                 # pip needs the real wheel file name
+        log("  installing %s into ComfyUI's Python (%s)" % (item["wheel"], py))
+        rc = subprocess.call([py, "-m", "pip", "install", "--no-deps", "--disable-pip-version-check", wheel])
+        try:
+            os.remove(wheel)
+        except OSError:
+            pass
+        return rc == 0 and is_installed(item)[0]
     if kind == "zip":
         pick = item.get("pick")  # {"inner/path.exe": "outname.exe"}; keeps the disk footprint small
         os.makedirs(dest, exist_ok=True)
@@ -328,6 +435,18 @@ def install(item: dict, mirror: str | None) -> bool:
                         if member.endswith(suffix) and not member.endswith("/"):
                             with z.open(member) as src, open(os.path.join(dest, out), "wb") as dst:
                                 shutil.copyfileobj(src, dst)
+            elif item.get("strip"):              # GitHub archives wrap everything in one "<repo>-<commit>/" folder
+                for member in z.namelist():
+                    parts = member.split("/", 1)
+                    if len(parts) < 2 or not parts[1] or ".." in parts[1].split("/"):
+                        continue
+                    target = os.path.join(dest, *parts[1].split("/"))
+                    if member.endswith("/"):
+                        os.makedirs(target, exist_ok=True)
+                        continue
+                    os.makedirs(os.path.dirname(target), exist_ok=True)
+                    with z.open(member) as src, open(target, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
             else:
                 z.extractall(dest)
         if not item.get("keep_archive"):
@@ -371,10 +490,12 @@ def fallbacks_for(items: list, failed: list[str], skip_ids: set) -> list[dict]:
 def status_json(packages: dict, items: list) -> dict:
     out: dict = {}
     for pid, p in packages.items():
-        its = [i for i in items if i.get("package") == pid]
+        its = [i for i in items if i.get("package") == pid and not i.get("fallback_for")]
         have = [i for i in its if is_installed(i)[0]]
         out[pid] = {"title": p.get("title", pid), "default": bool(p.get("default")), "licence": p.get("licence", ""),
                     "licence_verified": bool(p.get("licence_verified")), "size": sum(i.get("size") or 0 for i in its),
+                    "missing_size": sum(i.get("size") or 0 for i in its if i not in have),
+                    "missing_ids": [i["id"] for i in its if i not in have],
                     "items": len(its), "installed": len(have), "complete": bool(its) and len(have) == len(its),
                     "note": p.get("note", "")}
     return out
@@ -420,10 +541,21 @@ def main(argv=None) -> int:
     if not todo:
         log("Nothing to download.")
         return 0
-    free = shutil.disk_usage(os.path.dirname(MODELS) if os.path.isdir(os.path.dirname(MODELS)) else ROOT).free
-    if total and free < total + 2 * 1024 ** 3:
-        log("Not enough free disk space: need %s + 2 GB safety, have %s." % (human(total), human(free)))
-        return 2
+    need: dict[str, int] = {}                        # per drive: models may go to ComfyUI's drive, tools to InstAI's
+    probe: dict[str, str] = {}
+    for it in todo:
+        d = dest_of(it)
+        while d and not os.path.exists(d) and os.path.dirname(d) != d:
+            d = os.path.dirname(d)
+        d = d if d and os.path.exists(d) else ROOT
+        drive = os.path.splitdrive(os.path.abspath(d))[0] or "/"
+        need[drive] = need.get(drive, 0) + (it.get("size") or 0)
+        probe.setdefault(drive, d)
+    for drive, n in need.items():
+        free = shutil.disk_usage(probe[drive]).free
+        if n and free < n + 2 * 1024 ** 3:
+            log("Not enough free disk space on %s: need %s + 2 GB safety, have %s." % (drive, human(n), human(free)))
+            return 2
     if not args.yes and sys.stdin.isatty():
         if input("Download %s now? [Y/n] " % human(total)).strip().lower() in ("n", "no"):
             return 1

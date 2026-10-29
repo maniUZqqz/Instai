@@ -47,7 +47,19 @@ def ollama_url() -> str:
 
 
 def comfyui_url() -> str:
-    return _setting("comfyui_url", "INSTAI_COMFYUI_URL", "http://127.0.0.1:8188")
+    """Settings / .env, else the port written in the found run_nvidia_gpu.bat (--port), else ComfyUI's default 8188."""
+    v = _setting("comfyui_url", "INSTAI_COMFYUI_URL", "")
+    if v:
+        return v
+    port = 8188
+    try:
+        from . import discovery
+
+        sel = discovery.selected_comfy(discovery.peek())
+        port = int((sel or {}).get("port") or 8188)
+    except Exception:  # noqa: BLE001 - a lookup must never break a URL
+        pass
+    return f"http://127.0.0.1:{port}"
 
 
 def moss_tts_url() -> str:
@@ -66,8 +78,22 @@ def acestep_url() -> str:
     return _setting("acestep_url", "INSTAI_ACESTEP_URL", "")
 
 
-def comfyui_dir() -> str:
+def explicit_comfyui_dir() -> str:
+    """Only what the owner set (Settings / .env)."""
     return _setting("comfyui_dir", "COMFYUI_DIR", "")
+
+
+def comfyui_dir() -> str:
+    """The ComfyUI folder: Settings / .env, else the one model discovery found (see core/discovery.py)."""
+    v = explicit_comfyui_dir()
+    if v:
+        return v
+    try:
+        from . import discovery, model_status
+
+        return (discovery.selected_comfy(model_status.current()) or {}).get("root") or ""
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 # ---------------------------------------------------------------- external tools
@@ -84,6 +110,15 @@ def find_tool(name: str) -> str | None:
     nested = sorted((tools_root() / name).glob(f"*/{exe}")) if (tools_root() / name).is_dir() else []
     if nested:  # e.g. tools/piper/piper/piper.exe, tools/rhubarb/Rhubarb-Lip-Sync-x/rhubarb.exe
         return str(nested[0])
+    if name == "piper":  # the one NMarketing's voice kit already has (model discovery)
+        try:
+            from . import model_status
+
+            found = model_status.piper().get("exe")
+            if found and os.path.isfile(found):
+                return found
+        except Exception:  # noqa: BLE001
+            pass
     return shutil.which(name)
 
 

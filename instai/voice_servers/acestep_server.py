@@ -103,27 +103,31 @@ def main():
     ap = argparse.ArgumentParser(description="InstAI: ACE-Step 1.5 API server")
     ap.add_argument("--port", type=int, default=5642)
     ap.add_argument("--home", default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    ap.add_argument("--models-dir", default="", help="folder with acestep/checkpoints (e.g. NMarketing's, found by model discovery)")
+    ap.add_argument("--vendor-dir", default="", help="folder with ACE-Step-1.5/")
+    ap.add_argument("--work-dir", default="", help="scratch folder for tmp/ and cache/ (InstAI's data folder; never another product's)")
     ap.add_argument("--fake", action="store_true", help="no models: speak ACE-Step's REST protocol with a test tone (tests)")
     ap.add_argument("--parent-pid", type=int, default=0)
     args = ap.parse_args()
     if args.fake:
         return run_fake(args.port, args.parent_pid)
-    repo = os.path.join(args.home, "vendor", "ACE-Step-1.5")
-    root = os.path.join(args.home, "models", "acestep")
+    repo = os.path.join(args.vendor_dir or os.path.join(args.home, "vendor"), "ACE-Step-1.5")
+    root = os.path.join(args.models_dir or os.path.join(args.home, "models"), "acestep")
+    work = args.work_dir or root
     for p in (os.path.join(repo, "acestep", "api_server.py"), os.path.join(root, "checkpoints", "acestep-v15-turbo")):
         if not os.path.exists(p):
             print("missing %s - run Download-Models.bat" % p, flush=True)
             sys.exit(2)
     env = {
-        "ACESTEP_PROJECT_ROOT": root,            # checkpoints\ lives here
+        "ACESTEP_PROJECT_ROOT": root,            # checkpoints\ lives here (only read)
         "ACESTEP_CONFIG_PATH": "acestep-v15-turbo",
         "ACESTEP_INIT_LLM": "false",
         "ACESTEP_USE_FLASH_ATTENTION": "false",
         "ACESTEP_NO_INIT": "false",              # load at start-up: an open port means ready
         "ACESTEP_DOWNLOAD_SOURCE": "huggingface",
-        "ACESTEP_TMPDIR": os.path.join(root, "tmp"),
-        "TRITON_CACHE_DIR": os.path.join(root, "cache", "triton"),
-        "TORCHINDUCTOR_CACHE_DIR": os.path.join(root, "cache", "inductor"),
+        "ACESTEP_TMPDIR": os.path.join(work, "tmp"),
+        "TRITON_CACHE_DIR": os.path.join(work, "cache", "triton"),
+        "TORCHINDUCTOR_CACHE_DIR": os.path.join(work, "cache", "inductor"),
         "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1",
     }
     for k, v in env.items():

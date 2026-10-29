@@ -1,7 +1,7 @@
 {
  "group": "video",
- "title": "Video: Wan 2.2 I2V A14B fp8 (high/low noise) + umT5 + VAE + lightx2v 8-step LoRA, for ComfyUI",
- "licence_note": "Qasem notes say Apache-2.0 for all of these; InstAI has not re-verified (docs/MODELS.md). Files ComfyUI already has anywhere under COMFYUI_DIR\\models are reused, never downloaded again.",
+ "title": "Video: Wan 2.2 I2V A14B fp8 (high/low noise) + umT5 + VAE + lightx2v 8-step LoRA, for ComfyUI; optional anime models (asked first)",
+ "licence_note": "Qasem notes say Apache-2.0 for the Wan files; InstAI has not re-verified (docs/MODELS.md). Files the ComfyUI InstAI uses can already see (its models folder, extra_model_paths.yaml, or the running ComfyUI's list; any sub-folder, any letter case) are reused, never downloaded again. Packages with an \"offer\" block are optional and only downloaded after the owner confirms them on the Models page.",
  "packages": {
   "wan22": {
    "title": "Wan 2.2 I2V A14B fp8 + 8-step LoRA (~36 GB; usually already on the owner's ComfyUI)",
@@ -9,17 +9,62 @@
    "licence": "Apache-2.0 (per Qasem notes)",
    "licence_verified": false
   },
+  "comfy-gguf": {
+   "title": "ComfyUI-GGUF custom node (city96, pinned commit) + the gguf Python package for ComfyUI's own Python (needed to load GGUF models)",
+   "default": false,
+   "licence": "Apache-2.0 (node, GitHub licence field read 2026-10-29); gguf package MIT (PyPI classifier read 2026-10-29)",
+   "licence_verified": false,
+   "note": "Adds one folder to ComfyUI\\custom_nodes and one small package to ComfyUI's Python. ComfyUI must be restarted afterwards."
+  },
   "anisora": {
    "title": "Index-AniSora V3.2 GGUF Q4_0 high+low (anime I2V candidate, ~18 GB; needs the ComfyUI-GGUF custom node)",
    "default": false,
-   "licence": "Apache-2.0 + extra restrictions for retraining/derivatives",
-   "licence_verified": false
+   "licence": "Apache-2.0 + extra restrictions for retraining/derivatives (bilibili Index-anisora LICENSE)",
+   "licence_verified": false,
+   "offer": {
+    "name": "Index-AniSora V3.2 (GGUF Q4_0)",
+    "group": "anime_video",
+    "workflow": "anisora_v32_i2v_gguf",
+    "commercial": "unknown",
+    "licence_url": "https://github.com/bilibili/Index-anisora",
+    "vram": "~9 GB per expert (Q4_0); the high and low experts load one after the other",
+    "needs": ["comfy-gguf"],
+    "needs_items": ["wan22-flf:umt5_xxl_fp8", "wan22-flf:wan21_vae", "wan-i2v-legacy:lightx2v_rank64"],
+    "restart_comfyui": true,
+    "why": {
+     "fa": "نسخهٔ ویژهٔ انیمهٔ همان Wan 2.2 (از تیم Index بیلیبیلی): برای حرکت شخصیت‌های انیمه‌ای و ثابت ماندنِ خطوط و رنگ‌ها آموزش دیده است. با همان تصویر و همان seed در «آزمایشگاه تولید ← مقایسه» کنار Wan معمولی سنجیده می‌شود. کیفیت و زمان روی RTX 3060 شما هنوز اندازه‌گیری نشده است.",
+     "en": "The anime edition of Wan 2.2 (bilibili's Index team): trained for anime character motion with stable line art and colours. It is judged next to plain Wan on the same stills and seeds in Production lab > Compare. Quality and time on your RTX 3060 are not measured yet."
+    },
+    "note": {
+     "fa": "مجوز: Apache-2.0 به‌علاوهٔ بندهای اضافه در مخزن (رعایت قانون در خروجی، جبران خسارت، الزام برای نسخه‌های مشتق). پیش از انتشار تجاری، متن کامل مجوز را بخوانید.",
+     "en": "Licence: Apache-2.0 plus extra clauses in the repository (lawful outputs, indemnity, binding derivatives). Read the full text before publishing commercially."
+    }
+   }
   },
   "animegen": {
    "title": "AnimeGen I2V GGUF Q4_K_M high+low (anime I2V candidate, ~19 GB; needs the ComfyUI-GGUF custom node)",
    "default": false,
    "licence": "Apache-2.0 (card tag commercial-use)",
-   "licence_verified": false
+   "licence_verified": false,
+   "offer": {
+    "name": "AnimeGen I2V by AIdeaLab (GGUF Q4_K_M)",
+    "group": "anime_video",
+    "workflow": "animegen_i2v_gguf",
+    "commercial": "yes",
+    "licence_url": "https://huggingface.co/aidealab/AnimeGen-I2V",
+    "vram": "~9.7 GB per expert (Q4_K_M); the high and low experts load one after the other",
+    "needs": ["comfy-gguf"],
+    "needs_items": ["wan22-flf:umt5_xxl_fp8", "wan22-flf:wan21_vae", "wan-i2v-legacy:lightx2v_rank64"],
+    "restart_comfyui": true,
+    "why": {
+     "fa": "Wan 2.2 که برای ویدئوی انیمه‌ای دوباره آموزش داده شده (AIdeaLab) و مجوزش Apache-2.0 با برچسب «استفادهٔ تجاری» است. نسخهٔ فشردهٔ GGUF آن روی کارت ۱۲ گیگابایتی جا می‌شود. در «مقایسه» با Wan معمولی و AniSora سنجیده می‌شود؛ هنوز روی رایانهٔ شما اندازه‌گیری نشده است.",
+     "en": "Wan 2.2 re-trained for anime video (AIdeaLab), Apache-2.0 with a commercial-use tag. The GGUF build fits a 12 GB card. It is compared with plain Wan and AniSora in Compare; not measured on your PC yet."
+    },
+    "note": {
+     "fa": "سازنده برای وزن‌های اصلی RTX 4090 پیشنهاد کرده؛ این نسخهٔ فشرده برای کارت ۱۲ گیگابایتی است و ممکن است کمی از کیفیت کم کند.",
+     "en": "The authors suggest an RTX 4090 for the original weights; this compressed build is for a 12 GB card and may lose a little quality."
+    }
+   }
   }
  },
  "items": [
@@ -89,17 +134,48 @@
    "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
   },
   {
+   "id": "comfy-gguf:node",
+   "package": "comfy-gguf",
+   "kind": "zip",
+   "strip": true,
+   "title": "ComfyUI-GGUF custom node (city96), commit 6ea2651 of 2026-01-12",
+   "urls": [
+    "https://codeload.github.com/city96/ComfyUI-GGUF/zip/6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+    "https://github.com/city96/ComfyUI-GGUF/archive/6ea2651e7df66d7585f6ffee804b20e92fb38b8a.zip"
+   ],
+   "dest": "{COMFYUI}\\custom_nodes\\ComfyUI-GGUF",
+   "marker": "nodes.py",
+   "size": 38051,
+   "sha256": "aad273a0b774684285b4496f6edff7e2293bd29d71ef89926d6861bfdf4947ac",
+   "source": "GitHub archive of the pinned commit, size and sha256 measured 2026-10-29"
+  },
+  {
+   "id": "comfy-gguf:gguf-0.19.0",
+   "package": "comfy-gguf",
+   "kind": "comfy_pip",
+   "module": "gguf",
+   "wheel": "gguf-0.19.0-py3-none-any.whl",
+   "title": "gguf 0.19.0 (Python package the node needs), installed into ComfyUI's own Python with --no-deps",
+   "urls": [
+    "https://files.pythonhosted.org/packages/b3/bb/d71d6da82763528c2c2ed6b59a9d6142c6595545a4c448e2085d155e88c2/gguf-0.19.0-py3-none-any.whl"
+   ],
+   "dest": "{COMFYUI}",
+   "size": 118475,
+   "sha256": "70bcd10edfe697fb2dad6e40af2234b9d8ece9a41a99761405121ebda1c3c1cd",
+   "source": "PyPI JSON API read 2026-10-29 (size and sha256 of the wheel)"
+  },
+  {
    "id": "anisora:high_q4_0",
    "package": "anisora",
    "kind": "file",
    "title": "AniSora V3.2 high-noise expert, GGUF Q4_0",
    "urls": [
-    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/main/High/Index-Anisora-V3.2-High-Q4_0.gguf"
+    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/f44bdc8bd8fbe4d11689ffc66724da4124754563/High/Index-Anisora-V3.2-High-Q4_0.gguf"
    ],
    "dest": "{COMFYUI}\\models\\unet\\Index-Anisora-V3.2-High-Q4_0.gguf",
    "size": 9032587904,
-   "sha256": null,
-   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+   "sha256": "92e3be26fb0f5b41bf976528dbecc693b182ee454b919e81e439539c9c048e4a",
+   "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
   },
   {
    "id": "anisora:low_q4_0",
@@ -107,12 +183,12 @@
    "kind": "file",
    "title": "AniSora V3.2 low-noise expert, GGUF Q4_0",
    "urls": [
-    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/main/Low/Index-Anisora-V3.2-Low-Q4_0.gguf"
+    "{HF}/youcef079/Index-Anisora-V3.2-GGUF/resolve/f44bdc8bd8fbe4d11689ffc66724da4124754563/Low/Index-Anisora-V3.2-Low-Q4_0.gguf"
    ],
    "dest": "{COMFYUI}\\models\\unet\\Index-Anisora-V3.2-Low-Q4_0.gguf",
    "size": 9032587904,
-   "sha256": null,
-   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+   "sha256": "afae95b2e3a3e501a27f8edc64909471c52edfeb0e76f51b403c502482d4df5c",
+   "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
   },
   {
    "id": "animegen:high_q4km",
@@ -120,12 +196,12 @@
    "kind": "file",
    "title": "AnimeGen I2V high-noise expert, GGUF Q4_K_M",
    "urls": [
-    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/main/I2V_high_noise_Q4_K_M.gguf"
+    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/fa6e65aa71021f96cba36eda1979114b7495e562/I2V_high_noise_Q4_K_M.gguf"
    ],
    "dest": "{COMFYUI}\\models\\unet\\I2V_high_noise_Q4_K_M.gguf",
    "size": 9661569664,
-   "sha256": null,
-   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+   "sha256": "75faa2aee1b2a9a6d0dfd6b84524b7c0eaa0aaacee08706f98f358118f254c20",
+   "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
   },
   {
    "id": "animegen:low_q4km",
@@ -133,12 +209,12 @@
    "kind": "file",
    "title": "AnimeGen I2V low-noise expert, GGUF Q4_K_M",
    "urls": [
-    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/main/I2V_low_noise_Q4_K_M.gguf"
+    "{HF}/NullpoLab/AnimeGen-I2V-GGUF/resolve/fa6e65aa71021f96cba36eda1979114b7495e562/I2V_low_noise_Q4_K_M.gguf"
    ],
    "dest": "{COMFYUI}\\models\\unet\\I2V_low_noise_Q4_K_M.gguf",
    "size": 9661569664,
-   "sha256": null,
-   "source": "Hugging Face file listing read 2026-10-28 (size from the API; hash recorded on first download)"
+   "sha256": "02c32e0ff47463344c7bfe0b4bda371405a25e41d112f1732ae58267b707bd69",
+   "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
   }
  ]
 }

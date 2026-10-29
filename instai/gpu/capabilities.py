@@ -23,6 +23,7 @@ def local_capabilities(refresh: bool = False) -> dict:
         caps.append("gpu")
     info = hardware.comfy_object_info(runtime.comfyui_url(), force=refresh)
     workflows: dict = {}
+    startable = False
     if info is not None:
         from instai.providers.comfy.workflows import workflow_availability
 
@@ -30,6 +31,16 @@ def local_capabilities(refresh: bool = False) -> dict:
             workflows[w["id"]] = {"available": w["available"], "missing": (w["missing_models"] + w["missing_nodes"])[:4]}
             if w["available"]:
                 caps.append(f"comfy:{w['id']}")
+    else:
+        # ComfyUI is not running but model discovery found it with a launcher: what its files allow counts, and the task starts it
+        try:
+            from instai.core import model_status
+
+            workflows = model_status.workflows_ready_on_disk()
+        except Exception:  # noqa: BLE001 - detection must never break routing
+            workflows = {}
+        startable = bool(workflows)
+        caps += [f"comfy:{wid}" for wid, w in workflows.items() if w["available"]]
     voices: dict = {}
     for key, ok in (("moss", MossTTS().available()[0]), ("piper", PiperTTS().available()[0]), ("pocket", PocketTTS().available()[0]),
                     ("sfx", services.installed("sfx") or services.health("sfx", 0.5)["status"] == "ready"),
@@ -39,7 +50,7 @@ def local_capabilities(refresh: bool = False) -> dict:
             caps.append(f"voice:{key}")
     return {"caps": sorted(set(caps)), "gpu_name": (gpu or {}).get("name") or "", "vram_total_mb": int((gpu or {}).get("total_mb") or 0),
             "vram_free_mb": int(((gpu or {}).get("total_mb") or 0) - ((gpu or {}).get("used_mb") or 0)) if gpu else 0,
-            "models": {"comfyui": info is not None, "workflows": workflows, "voices": voices}}
+            "models": {"comfyui": info is not None, "comfyui_startable": startable, "workflows": workflows, "voices": voices}}
 
 
 def needs_for(kind: str, payload: dict) -> list[str]:

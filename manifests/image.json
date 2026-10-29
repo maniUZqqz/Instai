@@ -14,6 +14,31 @@
    "default": false,
    "licence": "MIT (per BiRefNet repo; unverified)",
    "licence_verified": false
+  },
+  "animagine": {
+   "title": "Animagine XL 4.0 Opt (SDXL anime still-image model, ~6.9 GB; core ComfyUI nodes only)",
+   "default": false,
+   "licence": "CreativeML Open RAIL++-M (model card read 2026-10-29: commercial use allowed, use-based restrictions)",
+   "licence_verified": false,
+   "offer": {
+    "name": "Animagine XL 4.0 Opt (anime images)",
+    "group": "anime_image",
+    "workflow": "sdxl_anime_t2i",
+    "commercial": "yes",
+    "licence_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+    "vram": "SDXL size; to measure on the RTX 3060",
+    "needs": [],
+    "needs_items": [],
+    "restart_comfyui": false,
+    "why": {
+     "fa": "مدل تصویرِ مخصوص انیمه (بر پایهٔ SDXL، آموزش‌دیده روی میلیون‌ها تصویر انیمه‌ای). برای کلیدفریم‌های انیمه‌ای از FLUX که مدل عمومی است مناسب‌تر است و مجوزش (برخلاف وزن‌های FLUX dev) استفادهٔ تجاری را با چند محدودیت رفتاری مجاز می‌داند. پس از دانلود در «تنظیمات ← گردش‌کار تصویر» گزینهٔ sdxl_anime_t2i را انتخاب کنید. هنوز روی رایانهٔ شما سنجیده نشده است.",
+     "en": "An image model made for anime (SDXL based, trained on millions of anime images). Better suited to anime keyframes than FLUX, which is a general model, and its licence (unlike the FLUX dev weights) allows commercial use with use-based restrictions. After the download pick sdxl_anime_t2i in Settings > Image workflow. Not measured on your PC yet."
+    },
+    "note": {
+     "fa": "قاعدهٔ همیشگی برقرار است: نام استودیو، هنرمند یا شخصیتِ دارای حق نشر در پرامپت نمی‌آید.",
+     "en": "The usual rule stays: no studio, artist or copyrighted character names in prompts."
+    }
+   }
   }
  },
  "items": [
@@ -26,6 +51,7 @@
     "{HF}/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors"
    ],
    "dest": "{COMFYUI}\\models\\checkpoints\\flux1-dev-fp8.safetensors",
+   "aliases": ["FLUX.1 [dev] FP8.safetensors"],
    "size": 17246524772,
    "sha256": null
   },
@@ -41,6 +67,19 @@
    "size": 224005088,
    "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
    "source": "Adapted from Qasem processing-server/downloads/*.json (pinned URL, size and sha256 copied)"
+  },
+  {
+   "id": "animagine:xl-4.0-opt",
+   "package": "animagine",
+   "kind": "file",
+   "title": "Animagine XL 4.0 Opt checkpoint (cagliostrolab)",
+   "urls": [
+    "{HF}/cagliostrolab/animagine-xl-4.0/resolve/2b7c1b397761bf5bd3cc42e5b39ec99314a75a96/animagine-xl-4.0-opt.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\animagine-xl-4.0-opt.safetensors",
+   "size": 6938350040,
+   "sha256": "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac",
+   "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
   }
  ]
 }

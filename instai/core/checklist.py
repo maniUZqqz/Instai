@@ -26,7 +26,17 @@ def _line(item: dict) -> str:
         text = f"Ollama: {n} models" if n or item["status"] == "ok" else "Ollama: not running (optional: an API provider can be used instead)"
     elif i == "comfyui":
         w = d.get("workflows") or []
-        text = f"ComfyUI: {d.get('node_count')} nodes, {sum(1 for x in w if x['available'])}/{len(w)} workflows ready" if d.get("node_count") else "ComfyUI: not running (needed for images and video)"
+        if d.get("node_count"):
+            text = f"ComfyUI: {d.get('node_count')} nodes, {sum(1 for x in w if x['available'])}/{len(w)} workflows ready"
+        elif d.get("launcher"):
+            text = f"ComfyUI: not running; found at {d.get('dir')} (InstAI starts it when a job needs it)"
+        else:
+            text = "ComfyUI: not running and not found (needed for images and video; see the Models page)"
+    elif i == "models_found":
+        v = [k for k, ok in (d.get("voice") or {}).items() if ok]
+        text = (f"Models found: {d.get('comfy_files_found', 0)}/{d.get('comfy_files', 0)} ComfyUI files, "
+                f"{d.get('workflows_ready', 0)}/{d.get('workflows', 0)} workflows ready, voice engines: {', '.join(v) or 'none'}"
+                f" (search took {d.get('seconds')} s; details on the Models page)")
     elif i == "ffmpeg":
         text = f"ffmpeg {d.get('version')}" if d.get("ffmpeg") else "ffmpeg: missing"
     elif i.startswith("tts_"):
@@ -42,6 +52,13 @@ def main() -> int:
     django.setup()
     from instai.core import hardware
 
+    if "--bench-needed" not in sys.argv:
+        try:  # one fresh search for installed models per start (the app then uses the cached result)
+            from instai.core import model_status
+
+            model_status.current(force=True)
+        except Exception:  # noqa: BLE001
+            pass
     r = hardware.detect_all(refresh=True)
     by = {i["id"]: i for i in r["items"]}
     if "--bench-needed" in sys.argv:

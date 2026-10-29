@@ -6,10 +6,11 @@ from rest_framework.test import APIClient
 
 @pytest.fixture(autouse=True)
 def _reset_state():
-    from instai.core import hardware, settings_store
+    from instai.core import discovery, hardware, settings_store
     from instai.providers import registry
 
     settings_store.clear_cache()
+    discovery.forget()
     hardware._CACHE.update(at=0.0, value=None)
     hardware._NODES_CACHE.update(at=0.0, info=None, url=None)
     registry.set_provider_for_tests(None)

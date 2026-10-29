@@ -115,6 +115,21 @@ def train_lora() -> dict:
     }
 
 
+def sdxl_anime() -> dict:
+    """Animagine XL 4.0 Opt (SDXL): core nodes only, the model card's settings (Euler a, CFG 5, 28 steps). The negative and the quality tags
+    are added by the workflow spec (negative_base / prompt_suffix), so a caller's own negative never removes them."""
+    return {
+        "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "animagine-xl-4.0-opt.safetensors"}},
+        "2": {"class_type": "KSampler", "inputs": {"model": ["1", 0], "positive": ["4", 0], "negative": ["3", 0], "latent_image": ["5", 0], "seed": 1, "steps": 28,
+                                                   "cfg": 5.0, "sampler_name": "euler_ancestral", "scheduler": "normal", "denoise": 1.0}},
+        "3": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": "lowres, worst quality, low quality"}},
+        "4": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["1", 1], "text": "placeholder prompt"}},
+        "5": {"class_type": "EmptyLatentImage", "inputs": {"width": 768, "height": 1344, "batch_size": 1}},
+        "6": {"class_type": "VAEDecode", "inputs": {"samples": ["2", 0], "vae": ["1", 2]}},
+        "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "InstAI/Images"}},
+    }
+
+
 def write(name: str, graph: dict) -> None:
     (OUT / f"{name}@1.json").write_text(json.dumps(graph, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print("wrote", name)
@@ -128,3 +143,4 @@ if __name__ == "__main__":
     write("flux_dev_fp8_t2i_lora", flux_lora())
     write("qwen_image_edit_ref", qwen_edit())
     write("train_lora_flux", train_lora())
+    write("sdxl_anime_t2i", sdxl_anime())

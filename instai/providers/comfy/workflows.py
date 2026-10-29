@@ -17,6 +17,40 @@ from instai.agents.jsonschema_lite import repair, validate
 from instai.providers.base import ProviderError
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
+MODEL_EXT = (".safetensors", ".gguf", ".ckpt", ".pt", ".pth", ".bin", ".sft", ".onnx")
+
+# Other names the same weights are published under. A workflow asks for the first name; whichever of these ComfyUI lists is used.
+# (The owner's NMarketing graphs call the Comfy-Org FLUX checkpoint "FLUX.1 [dev] FP8.safetensors"; the download is flux1-dev-fp8.safetensors.)
+MODEL_ALIASES: dict[str, list[str]] = {
+    "FLUX.1 [dev] FP8.safetensors": ["flux1-dev-fp8.safetensors"],
+    "animagine-xl-4.0-opt.safetensors": ["animagine-xl-4.0.safetensors"],
+}
+# Loader nodes that come from a custom node pack (not ComfyUI itself): the folder name inside custom_nodes that provides them and the
+# optional download that installs it.
+CUSTOM_NODE_PACKS: dict[str, dict] = {
+    "UnetLoaderGGUF": {"folder_hint": "gguf", "package": "comfy-gguf", "name": "ComfyUI-GGUF"},
+}
+
+
+def _base(name: str) -> str:
+    return name.replace("\\", "/").rsplit("/", 1)[-1].lower()
+
+
+def match_model(fname: str, options) -> str | None:
+    """The entry of a loader's list that IS this model: the exact name, else the same file name in a sub-folder (ComfyUI lists
+    "wan\\\\file.safetensors"), case-insensitive, then the known aliases. None when ComfyUI does not have it."""
+    opts = list(options or [])
+    if fname in opts:
+        return fname
+    by_base: dict[str, str] = {}
+    for o in opts:
+        if isinstance(o, str):
+            by_base.setdefault(_base(o), o)
+    for name in [fname, *MODEL_ALIASES.get(fname, [])]:
+        hit = by_base.get(_base(name))
+        if hit:
+            return hit
+    return None
 
 
 @dataclass
@@ -37,6 +71,8 @@ class WorkflowSpec:
     notes: str = ""
     output_kind: str = "images"
     defaults: dict[str, Any] = field(default_factory=dict)
+    prompt_suffix: str = ""         # appended to every prompt (quality tags a model was trained with)
+    negative_base: str = ""         # always part of the negative prompt (a caller's negative is added to it, never replaces it)
 
     @property
     def template_file(self) -> Path:
@@ -58,6 +94,10 @@ class WorkflowSpec:
     def build(self, inputs: dict) -> dict:
         """Validated inputs -> a ready-to-queue API graph (deep copy of the template with bindings applied)."""
         data = self.validate_inputs(inputs)
+        if self.prompt_suffix and data.get("prompt"):
+            data["prompt"] = f"{data['prompt']}, {self.prompt_suffix}"
+        if self.negative_base:
+            data["negative_prompt"] = ", ".join(x for x in (data.get("negative_prompt") or "", self.negative_base) if x)
         graph = copy.deepcopy(json.loads(self.template_file.read_text(encoding="utf-8")))
         if data.get("seed") in (None, -1):
             data["seed"] = random.randint(1, 2**31 - 1)
@@ -241,6 +281,20 @@ WORKFLOWS.update({
         licence="FLUX.1 [dev] Non-Commercial License (weights)", licence_status="unverified", expected_seconds=1800,
         notes="UNVERIFIED: written from ComfyUI's training-node documentation and never run. Training a 12B model on a 12 GB card may run out of memory; the job reports that "
               "plainly and the before/after numbers decide whether a LoRA helps at all."),
+    "sdxl_anime_t2i": WorkflowSpec(
+        id="sdxl_anime_t2i", version=1, kind="image", title="Animagine XL 4.0 Opt (SDXL anime) - text to image (9:16 close: 768x1344)",
+        input_schema=_IMG_SCHEMA,
+        defaults={"width": 768, "height": 1344, "steps": 28, "seed": None, "negative_prompt": "", "checkpoint": "animagine-xl-4.0-opt.safetensors"},
+        bindings={"prompt": [("4", "text")], "negative_prompt": [("3", "text")], "width": [("5", "width")], "height": [("5", "height")],
+                  "seed": [("2", "seed")], "steps": [("2", "steps")], "checkpoint": [("1", "ckpt_name")], "filename_prefix": [("7", "filename_prefix")]},
+        required_nodes=["CheckpointLoaderSimple", "KSampler", "CLIPTextEncode", "EmptyLatentImage", "VAEDecode", "SaveImage"],
+        required_models=[("CheckpointLoaderSimple", "ckpt_name", "animagine-xl-4.0-opt.safetensors")], vram_gb=8,
+        licence="CreativeML Open RAIL++-M (model card: commercial use allowed, use-based restrictions)", licence_status="unverified", expected_seconds=40,
+        prompt_suffix="masterpiece, high score, great score, absurdres",
+        negative_base="lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, "
+                      "low score, bad score, average score, signature, watermark, username, blurry",
+        notes="Optional download (asks first). Core ComfyUI nodes only; sampler and quality tags as the model card recommends (Euler a, CFG 5, 28 steps). "
+              "Anime keyframes; NOT measured on the RTX 3060 yet."),
 })
 
 
@@ -267,22 +321,44 @@ def _loader_options(object_info: dict, node: str, key: str) -> list[str] | None:
 
 
 def workflow_availability(nodes_or_info, ) -> list[dict]:
-    """For each workflow: can it run on this ComfyUI? `nodes_or_info` is /object_info (dict) or just the node-name list."""
+    """For each workflow: can it run on this ComfyUI? `nodes_or_info` is /object_info (dict) or just the node-name list.
+    A model counts when ComfyUI lists it under any sub-folder, in any letter case, or under a known alias (`resolved` says which)."""
     info = nodes_or_info if isinstance(nodes_or_info, dict) else None
     names = set(info.keys()) if info is not None else set(nodes_or_info or [])
     out = []
     for w in WORKFLOWS.values():
         missing_nodes = [n for n in w.required_nodes if n not in names]
         missing_models: list[str] = []
+        resolved: dict[str, str] = {}
         models_checked = False
         if info is not None:
             for node, key, fname in w.required_models:
                 opts = _loader_options(info, node, key)
                 if opts is not None:
                     models_checked = True
-                    if fname not in opts:
+                    hit = match_model(fname, opts)
+                    if hit is None:
                         missing_models.append(fname)
+                    elif hit != fname:
+                        resolved[fname] = hit
         out.append({"id": w.id, "title": w.title, "kind": w.kind, "available": not missing_nodes and not missing_models,
-                    "missing_nodes": missing_nodes, "missing_models": missing_models, "models_checked": models_checked,
+                    "missing_nodes": missing_nodes, "missing_models": missing_models, "models_checked": models_checked, "resolved": resolved,
                     "vram_gb": w.vram_gb, "licence": w.licence, "licence_status": w.licence_status})
     return out
+
+
+def adapt_graph(graph: dict, info: dict | None) -> dict:
+    """Point every model file of a graph at the name THIS ComfyUI lists (sub-folder, letter case, alias). Done right before a graph is
+    queued, on the PC that runs it, so a worker PC with another folder layout works too. Unknown files are left as they are."""
+    if not info:
+        return graph
+    for node in graph.values():
+        cls = node.get("class_type")
+        for key, value in list((node.get("inputs") or {}).items()):
+            if isinstance(value, str) and value.lower().endswith(MODEL_EXT):
+                opts = _loader_options(info, cls, key)
+                if opts:
+                    hit = match_model(value, opts)
+                    if hit and hit != value:
+                        node["inputs"][key] = hit
+    return graph

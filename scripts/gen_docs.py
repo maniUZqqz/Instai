@@ -34,10 +34,44 @@ adopted for published, commercial content.
 **Measured numbers** (VRAM at the chosen quantisation, seconds per step, quality notes) are only entered in `docs/BENCHMARKS.md` after the
 benchmark has run on the real machine; this table never contains invented numbers (the VRAM column says "to measure" where unknown).
 
+**Finding what is already installed.** InstAI does not ask where the models are: `instai/core/discovery.py` searches the PC (ComfyUI
+installs with their launcher, every models folder incl. `extra_model_paths.yaml`, NMarketing's voice engines, Piper, Ollama) and the
+**Models** page shows what was found, where, what is missing and which feature each missing file blocks. Model files are matched by file
+name in any sub-folder and letter case, plus known aliases (e.g. `FLUX.1 [dev] FP8.safetensors` = `flux1-dev-fp8.safetensors`).
+
 """
+
+OFFERS_HEAD = """
+## Optional downloads (offered on the Models page, downloaded only after the owner confirms)
+
+The list lives in `manifests/*.json` (packages with an `offer` block). Before anything is fetched the page shows the name, the size still
+to download, the licence (with a link) and why it is better; the API refuses a download without `confirm: true`. Files the ComfyUI InstAI
+uses can already see are never downloaded again; downloads resume and every file has a pinned sha256. Quality and speed on the RTX 3060
+are NOT measured yet; the anime video candidates are judged in Production lab > Compare on the same stills and seeds as plain Wan 2.2.
+
+| Candidate | For | Size (all files) | Needs | Licence | Commercial use |
+|---|---|---|---|---|---|
+"""
+
+
+def offers_markdown() -> str:
+    from instai.core import model_status
+
+    packages, items = model_status.manifests()
+    rows = []
+    for pid, p in packages.items():
+        o = p.get("offer")
+        if not o:
+            continue
+        size = sum(i.get("size") or 0 for i in items if i.get("package") == pid)
+        needs = ", ".join(o.get("needs", []) + [i.split(":")[-1] for i in o.get("needs_items", [])]) or "-"
+        rows.append(f"| {o['name']} (`{pid}`, workflow `{o.get('workflow')}`) | {o.get('group', '').replace('_', ' ')} | {size / 1e9:.1f} GB | {needs} | "
+                    f"{p.get('licence')} | {o.get('commercial')} |")
+    return OFFERS_HEAD + "\n".join(rows) + "\n"
+
 
 if __name__ == "__main__":
     path = os.path.join(ROOT, "docs", "MODELS.md")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(HEAD + licences.markdown())
+        f.write(HEAD + licences.markdown() + offers_markdown())
     print("wrote", path)

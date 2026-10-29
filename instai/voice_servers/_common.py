@@ -1,5 +1,6 @@
 """Adapted from Qasem: processing-server/audio/_common.py (same /health + /run protocol as the NMarketing agent).
-InstAI runs these from its own folder: `--home` is the InstAI root (models/ and vendor/ live there).
+InstAI runs these from its own folder: `--home` is the InstAI root; `--models-dir` / `--vendor-dir` point at the folders model discovery
+chose (InstAI's own, or NMarketing's, which are only read) and `--work-dir` is InstAI's scratch folder.
 
 Shared scaffolding of the GPU audio workers (MOSS-TTS, MOSS-SoundEffect).
 
@@ -161,12 +162,17 @@ def serve(worker_cls, default_port, extra_args=None):
     ap.add_argument("--port", type=int, default=default_port)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--home", default=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                    help="the InstAI folder (models/ and vendor/ live there)")
+                    help="the InstAI folder (models/ and vendor/ live there unless --models-dir / --vendor-dir say otherwise)")
+    ap.add_argument("--models-dir", default="", help="folder with moss-tts/, moss-sfx/ ... (e.g. NMarketing's, found by model discovery)")
+    ap.add_argument("--vendor-dir", default="", help="folder with the engine code MOSS-TTS/ ...")
+    ap.add_argument("--work-dir", default="", help="scratch folder (InstAI's data folder; never another product's)")
     ap.add_argument("--parent-pid", type=int, default=0)
     ap.add_argument("--fake", action="store_true", help="no models: answer with a test tone (tests, smoke check)")
     for args, kwargs in extra_args or []:
         ap.add_argument(*args, **kwargs)
     args = ap.parse_args()
+    args.models_dir = args.models_dir or os.path.join(args.home, "models")
+    args.vendor_dir = args.vendor_dir or os.path.join(args.home, "vendor")
     worker = worker_cls(args)
 
     class Handler(BaseHTTPRequestHandler):

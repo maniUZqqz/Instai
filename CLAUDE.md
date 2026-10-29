@@ -41,6 +41,11 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - Tests: `.venv\Scripts\python -m pytest -q` (GPU/Playwright/slow markers: see `pytest.ini`).
 - UI build: `cd frontend && npm install && npm run build` (writes to `instai/static/app/`).
 
+## Model discovery (Models page)
+- Never ask the owner for paths: `instai/core/discovery.py` finds ComfyUI / NMarketing voice engines / Piper / Ollama; `core/model_status.py` is the registry, the Models page payload and the offers. Use `runtime.comfyui_dir()`, `services.paths(key)`, `runtime.find_tool("piper")`; never hard-code a folder.
+- Tests: `INSTAI_SCAN_DEFAULTS=0` (root conftest) keeps discovery off the real disk; give fake trees via `INSTAI_SCAN_ROOTS` or the `model_paths` setting (see tests/test_discovery.py).
+- Optional downloads are `offer` blocks in `manifests/*.json`; they are fetched only after `confirm: true` from the UI. Pin a commit and sha256 for every new file.
+
 ## Phase 3/4 notes
 - Two-PC design (worker agent, LAN gate, GPU task router): `docs/DECISIONS.md` section "Phase 3 / 4". PC B runs `START-WORKER.bat`; only `/api/worker/*` is ever exposed to the LAN.
 - GPU work goes through `instai/gpu/compute.py` (`run_task` / `fan_out`), never straight to ComfyUI, so a worker PC can take it.

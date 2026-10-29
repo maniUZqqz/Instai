@@ -93,6 +93,16 @@ def _bench_image(ctx, run, lease) -> Path | None:
     wid = str(settings_store.effective("image_workflow"))
     info = hardware.comfy_object_info(force=True)
     if info is None:
+        try:                                   # the owner's ComfyUI was found on disk: start it like a real job would
+            from instai.providers.comfy import launcher
+
+            if launcher.selected() and launcher.command(launcher.selected()):
+                ctx.progress(0.05, "starting ComfyUI")
+                launcher.ensure_running(cancelled=lambda: _cancelled(ctx))
+                info = hardware.comfy_object_info(force=True)
+        except Exception as e:  # noqa: BLE001 - recorded as the skip reason below
+            ctx.log(f"ComfyUI could not be started: {e}", "warning")
+    if info is None:
         _record(run, "image", wid, "skipped", message="ComfyUI not found (not running at " + runtime.comfyui_url() + ")")
         return None
     av = next((w for w in workflow_availability(info) if w["id"] == wid), None)

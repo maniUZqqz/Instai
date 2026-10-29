@@ -62,7 +62,18 @@ class ComfyClient:
         return self._get("/system_stats", timeout=5).json()
 
     # ---- running graphs
+    def adapt(self, graph: dict) -> dict:
+        """Use the model names THIS ComfyUI lists (sub-folders, letter case, aliases); see workflows.adapt_graph."""
+        try:
+            from instai.core import hardware
+            from instai.providers.comfy.workflows import adapt_graph
+
+            return adapt_graph(graph, hardware.comfy_object_info(self.base_url))
+        except Exception:  # noqa: BLE001 - adapting is best effort; ComfyUI itself reports a missing file plainly
+            return graph
+
     def queue_prompt(self, graph: dict) -> str:
+        graph = self.adapt(graph)
         r = self._post("/prompt", json={"prompt": graph, "client_id": self.client_id})
         if r.status_code != 200:
             detail = ""

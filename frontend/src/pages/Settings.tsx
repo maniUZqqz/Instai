@@ -227,7 +227,7 @@ function ModelsSection() {
     runner.start(() => api.post('/downloads', { packages: [pkg] }))
   }
   return (
-    <Card title={t('set.models_title')} actions={<Button size="sm" icon="refresh" onClick={q.reload}>{t('common.refresh')}</Button>}>
+    <Card title={t('set.models_title')} actions={<><Link to="/models" className="btn sm">{t('nav.models')}</Link><Button size="sm" icon="refresh" onClick={q.reload}>{t('common.refresh')}</Button></>}>
       <div className="stack-lg">
         <p className="muted">{t('set.models_intro')}</p>
         {runner.job && (

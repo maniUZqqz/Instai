@@ -24,10 +24,25 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 - دفعه‌های بعد چند ثانیه طول می‌کشد. برای خاموش کردن: `STOP.bat`.
 - اگر پرسید «Run the benchmark now» (فقط بار اول روی رایانهٔ GPUدار): **Y** را بزنید تا زمان واقعیِ ساخت تصویر، ویدئو، صدا و فیلم‌نامه روی همین رایانه اندازه‌گیری شود (حدود ۳۰ دقیقه). بعداً هم از صفحهٔ «سیستم» ممکن است.
 
-**۳. پیش از آزمایش: Ollama و ComfyUI را روشن کنید** (همان‌هایی که برای NMarketing دارید). بعد در برنامه:
+**۳. مدل‌ها را خودش پیدا می‌کند: صفحهٔ «مدل‌ها»**
+- لازم نیست مسیری بدهید. InstAI خودش رایانه را می‌گردد (دسکتاپ و پوشه‌های داخلش، پوشهٔ کاربر، پوشهٔ `NMarketing-data`، ریشهٔ درایوهای داخلی؛ درایوهای شبکه هرگز) و این‌ها را پیدا می‌کند:
+  - **ComfyUI** (مثلاً `Desktop\N\ComfyUI_windows_portable`): همهٔ مدل‌های داخل `ComfyUI\models` (حتی در زیرپوشه‌ها)، پوشه‌هایی که در `extra_model_paths.yaml` آمده‌اند و فایل `run_nvidia_gpu.bat`.
+  - **صداهای NMarketing** (MOSS-TTS با LoRA فارسی، MOSS-SoundEffect، ACE-Step، Piper) در `Main V4\processing-server` یا پوشهٔ تازهٔ دادهٔ NMarketing؛ فقط خوانده می‌شوند و چیزی در آن‌ها عوض نمی‌شود.
+  - **Ollama** و مدل‌هایش (مثل `qwq:32b` و `qwen3-vl:30b`).
+- در منوی کنار، **«مدل‌ها»** را باز کنید: می‌بینید چه پیدا شد و کجاست، چه چیزی کم است و هر کمبود کدام بخش را از کار انداخته است. اگر تازه چیزی نصب کردید، **«جست‌وجوی دوباره»** را بزنید. هر بار START.bat هم یک بار دوباره می‌گردد و خلاصه را در چک‌لیست چاپ می‌کند (`Models found: ...`).
+- **ComfyUI را لازم نیست خودتان روشن کنید**: هر وقت کاری به آن نیاز داشته باشد، InstAI همان `run_nvidia_gpu.bat` را (بدون باز کردن مرورگر) اجرا می‌کند و منتظر می‌ماند. دکمهٔ «روشن کردن ComfyUI» هم در همان صفحه هست. Ollama را مثل همیشه روشن نگه دارید.
+- اگر چیزی پیدا نشد (مثلاً روی درایو دیگری است)، پایین صفحهٔ «مدل‌ها» پوشه‌اش را بنویسید و «ذخیره و جست‌وجوی دوباره» را بزنید.
+
+**۳ب. مدل‌های بهتر برای انیمه (اختیاری، اول می‌پرسد)**
+- در صفحهٔ «مدل‌ها» بخش «دانلودهای اختیاری» سه پیشنهاد دارد: **AniSora V3.2** (ویدئوی انیمه، حدود ۱۸ گیگابایت)، **AnimeGen** (ویدئوی انیمه، حدود ۱۹ گیگابایت) و **Animagine XL 4.0** (تصویر انیمه، حدود ۷ گیگابایت). برای هرکدام نام، حجم، مجوز (و اینکه استفادهٔ تجاری مجاز است یا نه) و دلیل بهتر بودنش نوشته شده است.
+- با دکمهٔ «دانلود…» اول یک پنجره همهٔ این‌ها را دوباره نشان می‌دهد؛ فقط اگر «بله، دانلود کن» را بزنید شروع می‌شود. فایلی که ComfyUI از قبل دارد دوباره دانلود نمی‌شود، دانلودِ قطع‌شده از همان‌جا ادامه پیدا می‌کند و درستی هر فایل بررسی می‌شود. پیشرفت در «پایش تولید» دیده می‌شود.
+- دو مدل ویدئوی انیمه یک افزونهٔ کوچک ComfyUI (ComfyUI-GGUF) هم لازم دارند که همراهشان نصب می‌شود؛ بعد از آن ComfyUI را یک بار ببندید و باز کنید. سپس در «آزمایشگاه تولید ← مقایسه» آن‌ها را کنار Wan معمولی با همان تصویر بسنجید. برای Animagine پس از دانلود در «تنظیمات ← گردش‌کار تصویر» گزینهٔ `sdxl_anime_t2i` را انتخاب کنید.
+- هیچ‌کدام هنوز روی RTX 3060 شما اندازه‌گیری نشده‌اند؛ مجوز AniSora بندهای اضافه دارد که پیش از انتشار تجاری باید خوانده شود.
+
+**۳ج. پیش از آزمایش** در برنامه:
 1. صفحهٔ **تنظیمات**: «حالت آزمایشی» باید **خاموش** باشد (در حالت آزمایشی خروجی ساختگی است). مدل Ollama را انتخاب کنید و «آزمون اتصال» را بزنید. اگر می‌خواهید از API (مثل MetisAI) استفاده کنید نشانی، مدل و کلید را همان‌جا بدهید؛ کلید فقط در فایل `.env` می‌ماند و جایی نمایش داده نمی‌شود.
-2. صفحهٔ **سیستم**: آنچه پیدا شده را ببینید (GPU، مدل‌ها، گردش‌کارهای ComfyUI که آماده‌اند).
-3. اگر مدل‌های Wan/FLUX در ComfyUI شما نیستند: در تنظیمات «بسته‌های اختیاری» یا `Download-Models.bat` (فایل‌های موجود در ComfyUI دوباره دانلود نمی‌شوند؛ مسیر ComfyUI را در تنظیمات بدهید).
+2. صفحهٔ **سیستم**: کارت گرافیک، Ollama، ComfyUI و خلاصهٔ «مدل‌های پیدا‌شده».
+3. اگر مدل‌های Wan/FLUX واقعاً روی رایانه نیستند: در تنظیمات «بسته‌های اختیاری» یا `Download-Models.bat` (فایل‌هایی که ComfyUI دارد دوباره دانلود نمی‌شوند).
 
 **۴. آزمایش گام‌به‌گام**
 1. «صفحهٔ جدید» ← قالب (انیمه «اگر…» / شخصیت کارتونی / توضیح مفاهیم) ← مراحل ← «پیشنهاد استراتژی» را بزنید، ویرایش و ساخت صفحه.
@@ -88,6 +103,9 @@ instai/studio/                 development room (templates, brainstorm boards, c
 instai/research_series.py      real-series lookup: AniList / Wikipedia / Fandom (/ Jikan, off by default), manual entry always possible
 instai/production/pipeline.py  what is missing -> next job (hash-based, resumable, partial regeneration)
 instai/render/                 ffmpeg helpers, 2.5D camera filters, ASS subtitles, assembly, QC, placeholders
+instai/core/discovery.py       finds installed models (ComfyUI installs + every models folder + launcher, NMarketing voice engines, Piper,
+                               Ollama), stdlib only, cached in data/discovery.json; model_status.py = Models page, offers, provider lookups
+instai/providers/comfy/launcher.py  starts the found ComfyUI (run_nvidia_gpu.bat line, no browser) when a task needs it
 instai/gpu/arbiter.py          one heavy GPU job at a time, unload/wait logic
 instai/gpu/compute.py          routes GPU tasks to this PC or a paired worker PC (capability, VRAM, busy, speed); executors.py = the tasks
 instai/remote/agent.py         the worker agent of PC B (START-WORKER.bat); instai/lan.py = LAN listener (worker API only)

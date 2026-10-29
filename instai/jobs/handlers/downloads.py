@@ -13,7 +13,7 @@ _PCT = re.compile(r"(\d+(?:\.\d+)?)%")
 
 @handler("downloads.run", resource="net", timeout=24 * 3600)
 def run(ctx):
-    packages = [p for p in ctx.payload.get("packages", []) if re.fullmatch(r"[\w.-]+", p)]
+    packages = [p for p in ctx.payload.get("packages", []) if re.fullmatch(r"[\w.:-]+", p)]   # package ids or single item ids
     if not packages:
         return {"installed": []}
     cmd = [sys.executable, str(ROOT / "scripts" / "download_models.py"), "--only", ",".join(packages), "--yes"]
@@ -27,6 +27,12 @@ def run(ctx):
             ctx.progress(float(m.group(1)) / 100, line.strip()[:120])
 
     rc, tail = ctx.run_cmd(cmd, cwd=str(ROOT), on_line=on_line, timeout=24 * 3600)
+    try:                      # what is installed now (both processes pick the new data/discovery.json up)
+        from instai.core import model_status
+
+        model_status.current(force=True)
+    except Exception:  # noqa: BLE001
+        pass
     if rc != 0:
         from instai.providers.base import ProviderError
 

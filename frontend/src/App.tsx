@@ -4,6 +4,7 @@ import { Empty, LinkButton } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
 import LibraryPage from './pages/Library'
+import Models from './pages/Models'
 import Monitor from './pages/Monitor'
 import PagesList from './pages/PagesList'
 import Settings from './pages/Settings'
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="monitor" element={<Monitor />} />
         <Route path="settings" element={<Settings />} />
         <Route path="system" element={<System />} />
+        <Route path="models" element={<Models />} />
         {labRoutes}
         <Route path="*" element={<NotFound />} />
       </Route>

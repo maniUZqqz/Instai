@@ -38,11 +38,10 @@ class MossTTS(Worker):
         from peft import PeftModel
         from transformers import AutoModel, AutoTokenizer
 
-        home = args.home
-        repo = os.path.join(home, "vendor", "MOSS-TTS", "moss_tts_realtime")
-        base = os.path.join(home, "models", "moss-tts", "MOSS-TTS-Realtime")
-        lora = os.path.join(home, "models", "moss-tts", "persian-lora")
-        codec_dir = os.path.join(home, "models", "moss-tts", "MOSS-Audio-Tokenizer")
+        repo = os.path.join(args.vendor_dir, "MOSS-TTS", "moss_tts_realtime")
+        base = os.path.join(args.models_dir, "moss-tts", "MOSS-TTS-Realtime")
+        lora = os.path.join(args.models_dir, "moss-tts", "persian-lora")
+        codec_dir = os.path.join(args.models_dir, "moss-tts", "MOSS-Audio-Tokenizer")
         for p in (repo, base, lora, codec_dir):
             if not os.path.isdir(p):
                 raise RuntimeError("missing %s - run Download-Models.bat" % p)

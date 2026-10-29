@@ -152,19 +152,36 @@ class PiperTTS(TTSProvider):
     def __init__(self, voice: str | None = None):
         self.voice = voice or str(settings_store.effective("piper_voice"))
 
+    @staticmethod
+    def _folders() -> list[Path]:
+        """InstAI's own voices first, then the voice folders model discovery found (NMarketing's voice kit)."""
+        out = [runtime.models_root() / "piper"]
+        try:
+            from instai.core import model_status
+
+            out += [Path(d) for d in model_status.piper().get("voice_dirs") or []]
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+
     def _model(self, voice: str) -> Path:
+        for folder in self._folders():
+            p = folder / f"{voice}.onnx"
+            if p.exists():
+                return p
         return runtime.models_root() / "piper" / f"{voice}.onnx"
 
     def voices(self, language: str = "fa") -> list[dict]:
-        folder = runtime.models_root() / "piper"
-        out = []
-        for f in sorted(folder.glob("*.onnx")) if folder.is_dir() else []:
-            if not f.with_suffix(".onnx.json").exists():
-                continue
-            lang = f.stem.split("_")[0].lower()
-            if language and lang != language[:2].lower():
-                continue
-            out.append({"id": f.stem, "label": f.stem, "gender": "", "language": lang})
+        out, seen = [], set()
+        for folder in self._folders():
+            for f in sorted(folder.glob("*.onnx")) if folder.is_dir() else []:
+                if not f.with_suffix(".onnx.json").exists() or f.stem in seen:
+                    continue
+                lang = f.stem.split("_")[0].lower()
+                if language and lang != language[:2].lower():
+                    continue
+                seen.add(f.stem)
+                out.append({"id": f.stem, "label": f.stem, "gender": "", "language": lang})
         return out
 
     def available(self) -> tuple[bool, str]:
@@ -229,8 +246,13 @@ class MossTTS(TTSProvider):
         return False, detail
 
     def default_reference(self) -> str | None:
-        p = runtime.models_root() / "moss-tts" / "persian-lora" / "ref.wav"
-        return str(p) if p.exists() else None
+        from instai.providers.audio import services
+
+        for base in (Path(services.paths("moss")["models_dir"]), runtime.models_root()):
+            p = base / "moss-tts" / "persian-lora" / "ref.wav"
+            if p.exists():
+                return str(p)
+        return None
 
     def synthesize(self, text, out_path, *, voice=None, language="fa", seed=None, reference=None) -> TTSResult:
         ref = reference or (voice[4:] if voice and voice.startswith("ref:") else None) or self.default_reference()

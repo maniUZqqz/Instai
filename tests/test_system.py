@@ -186,7 +186,7 @@ def test_manifests_are_wellformed_and_marked_by_package():
             assert it["id"] not in seen, f"duplicate id {it['id']}"
             seen.add(it["id"])
             assert it["package"] in m["packages"] or it.get("fallback_for") or True
-            assert it["kind"] in ("file", "zip", "python", "pypi_member")
+            assert it["kind"] in ("file", "zip", "python", "pypi_member", "comfy_pip")
             assert "\x0c" not in it["dest"] and "\x08" not in it["dest"], f"control characters in dest of {it['id']}"
             assert it["dest"].split("\\")[0] in ("{MODELS}", "{TOOLS}", "{COMFYUI}", "{HOME}")
             if it["kind"] == "file" and it.get("sha256"):

@@ -14,7 +14,7 @@
    "default": false,
    "licence": "Apache-2.0 (per Qasem notes)",
    "licence_verified": false,
-   "note": "Model files only. Server code and its Python environment are not automated yet; set the MOSS server URL in Settings (the NMarketing agent already hosts one)."
+   "note": "Model files only. InstAI uses NMarketing's copy (models, engine code, Python environment) when model discovery finds it; see the Models page."
   },
   "moss-sfx": {
    "title": "MOSS-SoundEffect v2.0 (ambience / SFX)",
@@ -40,6 +40,7 @@
    ],
    "dest": "{TOOLS}\\piper",
    "marker": "piper\\piper.exe",
+   "reuse_found": "piper_exe",
    "size": 22477236,
    "sha256": null
   },

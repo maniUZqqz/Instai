@@ -18,6 +18,10 @@ MODELS: list[dict] = [
      "vram": "to measure", "package": None, "notes": "Supported by the installed ComfyUI. Candidate to replace FLUX; also pose/expression editing from references."},
     {"id": "z-image", "name": "Z-Image (Turbo)", "role": "image", "licence": "Apache-2.0", "commercial": "yes", "verified": CHECKED,
      "vram": "to measure", "package": None, "notes": "Candidate image model; fast."},
+    {"id": "animagine-xl-4", "name": "Animagine XL 4.0 Opt (SDXL anime)", "role": "anime image", "licence": "CreativeML Open RAIL++-M", "commercial": "yes",
+     "verified": "model card read on 2026-10-29 (licence section: commercial use permitted, use-based restrictions)", "vram": "to measure (SDXL)",
+     "package": "animagine", "notes": "Optional download offered on the Models page (asks first, 6.9 GB). Workflow sdxl_anime_t2i (core nodes only). "
+                                      "Anime keyframes instead of the general FLUX model; also a way around the FLUX dev weights licence question."},
     # ---- video
     {"id": "wan22-i2v", "name": "Wan 2.2 I2V A14B (fp8, high/low noise)", "role": "video", "licence": "Apache-2.0", "commercial": "yes", "verified": CHECKED,
      "vram": "12 GB with fp8 + 8-step LoRA", "package": "wan22",
@@ -25,10 +29,15 @@ MODELS: list[dict] = [
     {"id": "anisora", "name": "Index-AniSora V3.2", "role": "anime video", "licence": "Apache-2.0 + additional restrictions (repo LICENSE) when retraining / making derivatives", "commercial": "unknown",
      "verified": "HF card + GitHub LICENSE read on 2026-10-28 (not audited)", "vram": "GGUF Q4_0 ~9 GB per expert", "package": "anisora",
      "notes": "Use of the community GGUF conversion for generation is not retraining, but the extra clauses (legal compliance of outputs, indemnity, downstream binding) must be read by the owner. "
-              "Needs the ComfyUI-GGUF custom node. Compared against plain Wan 2.2 on the same stills and seeds in Production lab > Compare."},
+              "Needs the ComfyUI-GGUF custom node. Compared against plain Wan 2.2 on the same stills and seeds in Production lab > Compare. "
+              "Optional download on the Models page (asks first; ~18.1 GB + the node; sha256 pinned)."},
     {"id": "animegen", "name": "AnimeGen I2V (AIdeaLab)", "role": "anime video", "licence": "Apache-2.0 (card tag: commercial-use)", "commercial": "yes", "verified": "HF card + LICENSE read on 2026-10-28 (licence line only)",
      "vram": "GGUF Q4_K_M ~9.7 GB per expert", "package": "animegen",
-     "notes": "Wan 2.2 I2V A14B fine-tune by AIdeaLab. The card recommends an RTX 4090 for the original weights; the community GGUF needs the ComfyUI-GGUF custom node. Comparison candidate."},
+     "notes": "Wan 2.2 I2V A14B fine-tune by AIdeaLab. The card recommends an RTX 4090 for the original weights; the community GGUF needs the ComfyUI-GGUF custom node. Comparison candidate. "
+              "Optional download on the Models page (asks first; ~19.3 GB + the node; sha256 pinned)."},
+    {"id": "comfy-gguf", "name": "ComfyUI-GGUF custom node + gguf package", "role": "loads GGUF models in ComfyUI", "licence": "Apache-2.0 (node); MIT (gguf)",
+     "commercial": "yes", "verified": "GitHub licence field + PyPI classifier read on 2026-10-29", "vram": "-", "package": "comfy-gguf",
+     "notes": "Installed only together with an anime GGUF model, after the owner confirms. Pinned commit 6ea2651; ComfyUI must be restarted afterwards."},
     {"id": "wan-anime-lora", "name": "Wan 2.2 + anime style LoRA", "role": "anime video", "licence": "varies per LoRA", "commercial": "unknown", "verified": None,
      "vram": "-", "package": None, "notes": "Only if that specific LoRA's licence allows selling output. Many popular ones do not. No character/IP LoRAs."},
     {"id": "ltx2", "name": "LTX-2", "role": "video", "licence": "requires a not-sanctioned-country representation", "commercial": "no", "verified": "brief",

@@ -69,7 +69,10 @@ def run_comfy_graph(payload: dict, io: TaskIO) -> dict:
 
     client = ComfyClient(runtime.comfyui_url())
     if not client.is_up():
-        raise ProviderError("ComfyUI is not running on this PC", retryable=False, code="not_ready")
+        from instai.providers.comfy import launcher
+
+        io.progress(0.01, "starting ComfyUI")
+        client = ComfyClient(launcher.ensure_running(progress=lambda t: io.progress(0.01, t), cancelled=io.cancelled))
     mapping: dict[str, str] = {}
     for f in sorted(io.in_dir.iterdir()) if io.in_dir.is_dir() else []:
         if f.suffix.lower() in IMAGE_EXT:

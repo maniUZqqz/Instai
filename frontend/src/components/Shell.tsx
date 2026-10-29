@@ -104,6 +104,7 @@ const NAV: { to: string; key: Parameters<ReturnType<typeof useI18n>['t']>[0]; ic
   { to: '/monitor', key: 'nav.monitor', icon: 'monitor' },
   { to: '/publishing', key: 'nav.publishing', icon: 'publish' },
   { to: '/system', key: 'nav.system', icon: 'system' },
+  { to: '/models', key: 'nav.models', icon: 'layers' },
   { to: '/settings', key: 'nav.settings', icon: 'settings' },
 ]
 
