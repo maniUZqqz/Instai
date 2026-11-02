@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import string
 import sys
 import threading
@@ -229,7 +230,7 @@ def parse_extra_model_paths(path: str) -> list[tuple[str, str]]:
 def _launcher_info(bat: str) -> dict:
     """What run_nvidia_gpu.bat starts: the python + main.py + arguments (so InstAI can start it without opening a browser tab) and
     the port. Falls back to running the .bat itself."""
-    info = {"bat": bat, "port": 8188, "args": []}
+    info = {"bat": bat, "port": 8188, "args": [], "python": None}
     try:
         text = open(bat, encoding="utf-8", errors="replace").read()
     except OSError:
@@ -237,7 +238,9 @@ def _launcher_info(bat: str) -> dict:
     for line in text.splitlines():
         if "main.py" not in line or line.strip().lower().startswith(("rem", "::", "echo")):
             continue
-        tail = line.split("main.py", 1)[1].split()
+        head, tail = line.split("main.py", 1)
+        info["python"] = _bat_python(head, os.path.dirname(bat))
+        tail = tail.split()
         info["args"] = [a.strip('"') for a in tail]
         if "--port" in tail:
             try:
@@ -246,6 +249,21 @@ def _launcher_info(bat: str) -> dict:
                 pass
         break
     return info
+
+
+def _bat_python(head: str, bat_dir: str) -> str | None:
+    """The interpreter the .bat itself uses (the first word of its main.py line, e.g. `.\\python_embeded\\python.exe`), as a real file; None when it is
+    `python` on the PATH or cannot be resolved. Using the .bat's own python is what makes InstAI start ComfyUI exactly as the owner does."""
+    m = re.match(r'^\s*(?:call\s+|start\s+(?:"[^"]*"\s+)?(?:/\w+\s+)*)?("([^"]+)"|\S+)', head, re.I)
+    if not m:
+        return None
+    word = (m.group(2) or m.group(1)).strip().strip('"')
+    word = word.replace("%~dp0", bat_dir + os.sep).replace("%~dp0\\", bat_dir + os.sep)
+    if "%" in word or word.lower() in ("python", "python.exe", "py", "py.exe"):
+        return None
+    full = word if os.path.isabs(word) else os.path.join(bat_dir, word)
+    full = os.path.normpath(full)
+    return full if _isfile(full) else None
 
 
 def _comfy_python(root: str) -> str | None:
@@ -293,9 +311,12 @@ def comfy_install(root: str, desktop_base: bool = False) -> dict:
         nodes = sorted(e.name for e in os.scandir(os.path.join(root, "custom_nodes")) if e.is_dir() and not e.name.startswith((".", "__")))
     except OSError:
         pass
-    li = _launcher_info(launcher) if launcher and launcher.lower().endswith(".bat") else {"bat": launcher, "port": 8188, "args": []}
+    li = _launcher_info(launcher) if launcher and launcher.lower().endswith(".bat") else {"bat": launcher, "port": 8188, "args": [], "python": None}
     return {"root": root, "portable": parent if launcher and os.path.dirname(launcher) == parent else None, "launcher": launcher,
-            "launch_args": li["args"], "port": li["port"], "python": _comfy_python(root), "main": os.path.join(root, "main.py"),
+            "launch_args": li["args"], "port": li["port"], "python": li.get("python") or _comfy_python(root), "main": os.path.join(root, "main.py"),
+            # run_cpu.bat (or a --cpu flag) makes ComfyUI ignore the graphics card; the launcher strips it (providers/comfy/launcher.py)
+            "cpu_launcher": bool(launcher and os.path.basename(launcher).lower() == "run_cpu.bat"),
+            "cpu_flag": "--cpu" in (li["args"] or []),
             "desktop": desktop_base, "custom_nodes": nodes, "extra_yaml": used_yaml,
             "model_roots": [{"kind": k, "path": p, "exists": _isdir(p)} for k, p in model_roots], "mtime": _mtime(os.path.join(root, "main.py"))}
 

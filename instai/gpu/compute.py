@@ -318,10 +318,14 @@ def fan_out(ctx, items: list, fn, *, kind: str, payload: dict | None = None, nee
     if n <= 1:
         return [fn(it) for it in items]
 
+    from instai.jobs.context import set_current
+
     def call(it):
+        set_current(ctx)                 # the helper thread reports live progress to the same job
         try:
             return fn(it)
         finally:
+            set_current(None)
             close_old_connections()
     with ThreadPoolExecutor(max_workers=n, thread_name_prefix="fanout") as pool:
         futures = [pool.submit(call, it) for it in items]

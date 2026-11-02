@@ -39,7 +39,7 @@ class _Llm:
         if self.provider.resource == "gpu":
             from instai.gpu.arbiter import ARBITER
 
-            self.cm = ARBITER.hold(self.ctx, "llm", self.provider.model)
+            self.cm = ARBITER.hold(self.ctx, "llm", llm.effective_model(self.provider))
             self.cm.__enter__()
         return self.provider
 

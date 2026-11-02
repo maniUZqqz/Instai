@@ -88,7 +88,25 @@ def download_offer(request, offer_id: str):
     return job_response(job)
 
 
+@api_view(["POST"])
+def test_model(request):
+    """Test one model with a real (tiny) run: `{id}` = 'ollama:<model>' | 'comfy:<file>' | 'voice:moss|sfx|music' | 'piper'. The test is a queue job
+    (it waits its turn at the GPU like real work); its result is `job.result` (see core/model_tests.py)."""
+    from instai.jobs import queue
+    from instai.jobs.api import job_response
+
+    from . import model_tests
+
+    tid = str(request.data.get("id") or "").strip()
+    if model_tests.parse_id(tid) is None:
+        raise DomainError("validation_error", "شناسهٔ مدل برای تست نامعتبر است.", http_status=400, details={"id": ["invalid"]},
+                          message_en="The model id for the test is not valid.")
+    job = queue.enqueue("models.test", {"id": tid}, title=model_tests.title_for(tid), max_attempts=1, resource=model_tests.resource_for({"id": tid}))
+    return job_response(job)
+
+
 urlpatterns = [
+    path("models/test", test_model),
     path("models/found", found),
     path("models/rescan", rescan),
     path("models/paths", manual_paths),

@@ -69,6 +69,16 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 
 **۵. آزمون GPU (اختیاری):** روی `Test-GPU.bat` دو بار کلیک کنید؛ می‌گوید GPU دیده شد، مدل محلی فیلم‌نامهٔ فارسیِ معتبر نوشت، یک تصویر ساخته شد، یک جمله خوانده شد و حافظهٔ GPU آزاد شد. هر سرویسی که روشن نباشد «skipped» می‌شود.
 
+**۵ب. مطمئن شوید کارت گرافیک واقعاً کار می‌کند (ساده)**
+1. **صفحهٔ «مدل‌ها» ← بالای صفحه، کارت «کارت گرافیک (زنده)».** هر چند ثانیه خودش به‌روز می‌شود و می‌گوید: GPU چند درصد کار می‌کند و چقدر از حافظه‌اش پر است؛ کدام مدل Ollama الان در حافظه است و **چند درصدش روی GPU است** (۱۰۰٪ عالی است؛ کمتر یعنی بقیه روی CPU کار می‌کند و کند است)؛ ComfyUI روی GPU (cuda) کار می‌کند یا روی CPU. دکمهٔ **«بررسی عمیق: چرا GPU استفاده نمی‌شود؟»** همهٔ دلیل‌های ممکن را یکی‌یکی می‌سنجد و برای هر مشکل می‌نویسد چه کنید (بین ۵ تا ۳۰ ثانیه طول می‌کشد).
+2. **دکمهٔ «تست» کنار هر مدل (همان صفحه):** مدل زبانی یک جملهٔ کوتاه می‌نویسد (زمان، سرعت و اینکه چند درصدش روی GPU بود)؛ مدل تصویر یا ویدئو یک تصویر یا ویدئوی خیلی کوچک می‌سازد؛ صدا یک نمونهٔ کوتاه می‌سازد که همان‌جا پخش می‌کنید. نتیجه با «درست کار کرد» (سبز)، «کار می‌کند ولی مشکل دارد» (زرد) یا «کار نکرد» (قرمز) و دلیلش نشان داده می‌شود. مدل‌های بزرگ ممکن است چند دقیقه طول بکشند.
+3. **مدلِ مناسبِ کارت شما:** کارت ۱۲ گیگابایتی فقط مدل‌های حدود ۸ تا ۱۴ میلیارد پارامتری (مثل `qwen3:8b`) را کامل در خود جا می‌دهد. مدل‌های ۳۰ میلیاردی (مثل `qwq:32b`) بیشتر روی CPU کار می‌کنند: نمودار GPU تقریباً خالی می‌ماند و یک پاسخ چند دقیقه طول می‌کشد. اگر در «تنظیمات» مدلی انتخاب نکرده باشید، InstAI خودش مدلی را برمی‌دارد که کامل روی کارت جا شود و دلیلش را در صفحهٔ «مدل‌ها» می‌نویسد. اگر چنین مدلی نصب نیست، در Ollama یک مدل کوچک‌تر مثل `qwen3:8b` نصب کنید.
+4. **Task Manager:** نمودار پیش‌فرض GPU در Task Manager «3D» است و کار هوش مصنوعی در آن دیده نمی‌شود. روی نام نمودار («3D») کلیک کنید و **«Cuda»** (یا «Compute_0») را انتخاب کنید؛ فعالیت Ollama و ComfyUI آنجاست. حافظهٔ «Dedicated GPU memory» هم همان‌جا پایین صفحه پر می‌شود.
+5. **`Test-GPU.bat`:** حالا اول یک «بررسی GPU» اجرا می‌کند و در آخر با حروف انگلیسی می‌نویسد `VERDICT: GPU USED = YES` (بله) یا `PARTLY` (بخشی) یا `NO` (نه) و دلیل و راه‌حلش را؛ بعد آزمون قبلی را اجرا می‌کند.
+6. **صف («پایش تولید»):** برای هر کار می‌نویسد چه مرحله‌ای است، برای کدام صفحه / سریال / قسمت / شات است، کدام مدل روی GPU یا CPU کار می‌کند، یک خط زنده (مثلاً «۱۲۰ توکن تا الان نوشته شد · ۱۸ توکن در ثانیه» یا «گام ۸ از ۲۰»)، زمان گذشته و تخمین زمانِ مانده. اگر مدل فقط بخشی روی GPU باشد با رنگ هشدار نشان می‌دهد.
+7. **خطاها فارسی و روشن‌اند** (مثلاً «مدل … برای کارت گرافیک بزرگ است؛ مدل کوچک‌تری انتخاب کنید»). پاسخ مدل حالا جریانی خوانده می‌شود: کار فقط وقتی متوقف می‌شود که مدل مدتِ طولانی هیچ حرفی نزند (۱۲۰ ثانیه وسط پاسخ، یا ۹۰۰ ثانیه برای بارگذاری و خواندن دستور)؛ پاسخ‌های طولانی دیگر وسط کار قطع نمی‌شوند.
+8. اگر ComfyUI را خودتان با `run_cpu.bat` یا گزینهٔ `--cpu` روشن کنید یا PyTorchِ داخل آن فقط CPU داشته باشد، InstAI کار را متوقف می‌کند و دلیل و راه‌حل را می‌نویسد (نه اینکه ساعت‌ها روی پردازنده ویدئو بسازد). ComfyUIای که خودش روشن می‌کند همیشه با پایتونِ خودِ `run_nvidia_gpu.bat` و بدون `--cpu` شروع می‌شود.
+
 **۶. اگر مشکلی بود:** به ما بگویید چه دیدید و این‌ها را بفرستید: متن چک‌لیست START.bat، فایل `data\logs\instai.log`، و گزارش بنچمارک (صفحهٔ «سیستم» ← دانلود گزارش). چیزی پاک نمی‌شود؛ پایگاه داده و رسانه‌ها در پوشهٔ `data` هستند.
 
 **چه چیزی هنوز ساختگی/ناتمام است:** در «حالت آزمایشی» همه‌چیز ساختگی است. در حالت واقعی: تصویرِ کلیدی با ComfyUI و صدا با MOSS/Piper واقعی‌اند ولی روی GPU شما هنوز اندازه‌گیری نشده‌اند (تا بنچمارک اجرا نشود، زمان‌ها «برآورد» نامیده می‌شوند). انیمیشن پاپت دوبعدی، همگام‌سازی لب، پارالکس واقعی، ویدئوی Wan با ثبات شخصیت و QC پیشرفته فاز ۳ هستند؛ شات‌هایی با این تکنیک‌ها فعلاً با حرکت دوربین روی تصویر ساخته می‌شوند و در گزارش کیفیت همین ذکر می‌شود.
@@ -92,7 +102,7 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 ```
 START.bat / STOP.bat           start/stop server + worker (self-checking; English console)
 Download-Models.bat            manifest downloader (manifests/*.json; default set = ffmpeg + Piper)
-Test-GPU.bat                   GPU smoke test (pytest -m gpu) - skips what is not running
+Test-GPU.bat                   1) GPU check with an ASCII verdict (scripts/gpu_verdict.py -> core/gpu_diag.py), 2) GPU smoke test (pytest -m gpu)
 instai/                        Django project: core (settings, hardware, benchmark), pages, story, assets, jobs, publishing
 instai/providers/              Ollama, OpenAI-compatible, fake text providers; ComfyUI client + versioned graph templates; TTS adapters
 instai/agents/                 role functions with JSON schemas, validate/repair/retry (runner.py); studio_roles.py (development + pre-production roles),
@@ -105,7 +115,11 @@ instai/production/pipeline.py  what is missing -> next job (hash-based, resumabl
 instai/render/                 ffmpeg helpers, 2.5D camera filters, ASS subtitles, assembly, QC, placeholders
 instai/core/discovery.py       finds installed models (ComfyUI installs + every models folder + launcher, NMarketing voice engines, Piper,
                                Ollama), stdlib only, cached in data/discovery.json; model_status.py = Models page, offers, provider lookups
-instai/providers/comfy/launcher.py  starts the found ComfyUI (run_nvidia_gpu.bat line, no browser) when a task needs it
+instai/providers/comfy/launcher.py  starts the found ComfyUI (the .bat's own python + main.py line, never --cpu, no browser, clean env) when a task needs it
+                               and refuses to render on a ComfyUI that works on the CPU; comfy/ws.py = sampler progress (step x of y) from ComfyUI's websocket
+instai/providers/ollama.py     streamed chat (idle timeout per silence, retry policy, Persian errors), ollama_fit.py = does the model fit the VRAM / where does it run
+instai/core/gpu_diag.py        GPU panel (live) + deep "why is the GPU not used" check; model_tests.py = the Test buttons of the Models page
+instai/jobs/describe.py        the queue's plain-language state of each job (step, target, model, device, live line); JobContext.live() feeds it
 instai/gpu/arbiter.py          one heavy GPU job at a time, unload/wait logic
 instai/gpu/compute.py          routes GPU tasks to this PC or a paired worker PC (capability, VRAM, busy, speed); executors.py = the tasks
 instai/remote/agent.py         the worker agent of PC B (START-WORKER.bat); instai/lan.py = LAN listener (worker API only)

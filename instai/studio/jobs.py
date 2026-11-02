@@ -58,7 +58,7 @@ class _Llm:
         if self.provider.resource == "gpu":
             from instai.gpu.arbiter import ARBITER
 
-            self.cm = ARBITER.hold(self.ctx, "llm", self.provider.model)
+            self.cm = ARBITER.hold(self.ctx, "llm", llm.effective_model(self.provider))
             self.cm.__enter__()
         return self.provider
 
@@ -460,19 +460,29 @@ def design_image_job(ctx):
             make_placeholder(tmp, w, h, f"{sheet.kind}: {sheet.subject[:18]}", seed=f"design-{sheet.pk}")
             prov = {"provider": "placeholder", "note": "demo mode: generated placeholder, not an AI image"}
         else:
-            from instai.production import pipeline
+            import shutil
 
-            client, spec = pipeline._comfy_ready()  # same readiness check and error text as keyframes
-            from instai.gpu.arbiter import ARBITER
+            from instai.gpu import compute
+            from instai.providers.comfy.workflows import get_workflow
 
-            with ARBITER.hold(ctx, "comfy"):
-                prompt = ", ".join(x for x in (sheet.prompt, comp["positive"]) if x)
-                inputs = {"prompt": prompt, "negative_prompt": ", ".join(x for x in (sheet.negative, comp["negative"]) if x), "width": w, "height": h, "seed": seed, "steps": 20}
-                _, files = client.run(spec.build(inputs), timeout=1800, on_tick=lambda s: ctx.progress(0.5, f"image ({int(s)}s)"), cancel=lambda: ctx.check() or False)
-                if not files:
+            # the same route as the keyframes: the GPU router (arbiter, ComfyUI start-up, GPU check). The old code called a function that no
+            # longer exists, so a design sheet could never be rendered by ComfyUI.
+            wid = str(settings_store.effective("image_workflow"))
+            if not compute.workflow_available(wid):
+                raise ProviderError("ComfyUI is not available (or the image workflow is not ready on any PC)", retryable=False, code="not_ready",
+                                    fa="ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست). صفحهٔ «مدل‌ها» دلیلش را می‌گوید.")
+            spec = get_workflow(wid)
+            prompt = ", ".join(x for x in (sheet.prompt, comp["positive"]) if x)
+            inputs = {"prompt": prompt, "negative_prompt": ", ".join(x for x in (sheet.negative, comp["negative"]) if x), "width": w, "height": h, "seed": seed, "steps": 20}
+            res = compute.run_task(ctx, "comfy.graph", {"graph": spec.build(inputs), "workflow": wid, "timeout": 1800, "expected": spec.expected_seconds})
+            try:
+                pics = res.of_kind(".png", ".jpg", ".jpeg", ".webp")
+                if not pics:
                     raise ProviderError("ComfyUI returned no image", retryable=True)
-                client.download(files[0], tmp)
-            prov = {**spec.provenance(inputs), "provider": "comfyui"}
+                shutil.move(str(pics[0]), tmp)
+            finally:
+                res.cleanup()
+            prov = {**spec.provenance(inputs), "provider": "comfyui", "device": res.device}
         asset = asset_storage.register(tmp, f"design/{sheet.pk}/{sheet.kind}-{seed}.png", kind="image", role="reference", page=page,
                                        provenance={**prov, "design_sheet": sheet.pk, "job_id": ctx.job.pk, "seed": seed, "prompt": sheet.prompt})
         sheet.asset, sheet.status = asset, "done"

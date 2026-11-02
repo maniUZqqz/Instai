@@ -42,6 +42,15 @@ def group_of(task: str) -> str:
     return TASK_GROUP.get(task, "script")
 
 
+def effective_model(provider: TextProvider) -> str:
+    """The model name a call will really use: the chosen one, else the one InstAI picks because it fits the graphics card (Ollama)."""
+    fn = getattr(provider, "effective_model", None)
+    try:
+        return fn() if fn else provider.model
+    except Exception:  # noqa: BLE001 - a provider that cannot answer yet fails in generate(), where the fallback provider can take over
+        return provider.model
+
+
 class FallbackProvider(TextProvider):
     """Tries each provider in order; the first that does not raise ProviderError wins. `used` records which one answered."""
 
@@ -60,6 +69,9 @@ class FallbackProvider(TextProvider):
     @property
     def model(self) -> str:
         return self.providers[0].model
+
+    def effective_model(self) -> str:
+        return effective_model(self.providers[0])
 
     def health(self) -> dict:
         return self.providers[0].health()

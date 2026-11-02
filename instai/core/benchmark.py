@@ -86,6 +86,19 @@ def run_benchmark(ctx, run: BenchmarkRun) -> dict:
 
 # ------------------------------------------------------------------ steps
 
+def _comfy_on_gpu(run, step: str, wid: str) -> bool:
+    """A benchmark of a ComfyUI that works on the CPU would be an invented "GPU speed": skip the step and say why."""
+    from instai.providers.base import ProviderError
+    from instai.providers.comfy import launcher
+
+    try:
+        launcher.require_gpu(runtime.comfyui_url())
+    except ProviderError as e:
+        _record(run, step, wid, "skipped", message=e.fa or str(e))
+        return False
+    return True
+
+
 def _bench_image(ctx, run, lease) -> Path | None:
     from instai.providers.comfy.client import ComfyClient
     from instai.providers.comfy.workflows import get_workflow, workflow_availability
@@ -110,6 +123,8 @@ def _bench_image(ctx, run, lease) -> Path | None:
         _record(run, "image", wid, "skipped", message="workflow not ready: missing " + ", ".join((av or {}).get("missing_nodes", []) + (av or {}).get("missing_models", [])))
         return None
     lease.use("comfy")
+    if not _comfy_on_gpu(run, "image", wid):
+        return None
     client, spec = ComfyClient(runtime.comfyui_url()), get_workflow(wid)
     times, last_file = [], None
     for i in range(2):  # first run loads the model (cold), second shows the steady state
@@ -144,6 +159,8 @@ def _bench_video(ctx, run, lease, image_path: Path | None) -> None:
 
         image_path = make_placeholder(Path(tempfile.mkdtemp(prefix="bench-", dir=settings.MEDIA_ROOT)) / "start.png", 480, 832, "benchmark")
     lease.use("comfy")
+    if not _comfy_on_gpu(run, "video", wid):
+        return
     client, spec = ComfyClient(runtime.comfyui_url()), get_workflow(wid)
     name = client.upload_image(image_path, "instai-bench.png")
     inputs = {"prompt": "the traveller turns and the cape moves in the wind, gentle camera push-in", "image": name, "width": 480, "height": 832,

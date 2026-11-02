@@ -262,6 +262,7 @@ def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
                                 retryable=False, code="not_ready")
 
     def make(shot: Shot) -> int:
+        _shot_live(ctx, shots, shot)
         hsh = keyframe_hash(shot, ep, mode)
         rel = f"episodes/{ep.pk}/keyframes/shot{shot.pk}-{hsh[:8]}.png"
         tmp = Path(tempfile.mkdtemp(prefix="kf-", dir=settings.MEDIA_ROOT)) / "kf.png"
@@ -316,6 +317,14 @@ def _cancelled(ctx) -> bool:
     return queue.is_cancel_requested(ctx.job.pk)
 
 
+def _shot_live(ctx, shots: list, shot) -> None:
+    """The queue screen says 'shot 3 of 8' (which shot of the episode this job is working on right now)."""
+    try:
+        ctx.live(shot=shots.index(shot) + 1, shots=len(shots))
+    except ValueError:
+        pass
+
+
 def _cleanup(d: Path) -> None:
     import shutil
 
@@ -331,6 +340,7 @@ def step_tts(ctx, ep: Episode, mode: str) -> dict:
     for i, shot in enumerate(shots):
         ctx.check()
         ctx.progress(i / max(1, len(shots)), f"narration {i + 1}/{len(shots)}")
+        ctx.live(shot=i + 1, shots=len(shots))
         voice = voice_for(shot, ep)
         if not voice["consent_ok"]:
             raise ProviderError("The cloned voice of this character has no recorded consent; it will not be used.", retryable=False, code="consent_missing")
@@ -401,6 +411,7 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
     counter = {"n": 0}
 
     def one(shot: Shot) -> int:
+        _shot_live(ctx, shots, shot)
         kf = current(shot, "keyframe")
         rec = ShotRender.objects.create(shot=shot, technique=shot.technique, status="running", params={"workflow": wid, "duration": shot.duration_sec})
         try:

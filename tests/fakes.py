@@ -82,15 +82,42 @@ class _H(BaseHTTPRequestHandler):
 # ------------------------------------------------------------------ Ollama
 
 class OllamaHandler(_H):
+    """Fake Ollama. /api/chat streams NDJSON like the real one (chunked) unless the request says stream:false.
+    Knobs on the server object: first_delay / chunk_delay (seconds), stall_after (go silent after N chunks for stall_seconds),
+    error_status + error_message (HTTP error answer), error_in_stream (an {"error"} line mid-stream), drop_after (cut the connection
+    after N chunks), reset_first (drop the first N requests before any answer), chunked (False = close-delimited body),
+    placement {model: (size_bytes, size_vram_bytes)} for /api/ps, details {model: {size, parameter_size, family}} for /api/tags."""
+
     def do_GET(self):
         self.record()
         o = self.server.owner
         if self.path == "/api/tags":
-            self.send_json({"models": [{"name": n, "size": 5_000_000_000, "details": {"parameter_size": "8B", "quantization_level": "Q4_K_M"}} for n in o.models]})
+            rows = []
+            for n in o.models:
+                d = o.details.get(n, {})
+                rows.append({"name": n, "size": d.get("size", 5_000_000_000),
+                             "details": {"parameter_size": d.get("parameter_size", "8B"), "quantization_level": "Q4_K_M", "family": d.get("family", "qwen3")}})
+            self.send_json({"models": rows})
         elif self.path == "/api/ps":
-            self.send_json({"models": [{"name": n, "size_vram": 5_000_000_000} for n in o.loaded]})
+            rows = []
+            for n in o.loaded:
+                size, vram = o.placement.get(n, (None, 5_000_000_000))
+                row = {"name": n, "size_vram": vram}
+                if size is not None:
+                    row["size"] = size
+                rows.append(row)
+            self.send_json({"models": rows})
         else:
             self.send_json({}, 404)
+
+    def _drop(self):
+        import socket
+
+        self.close_connection = True
+        try:
+            self.connection.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
 
     def do_POST(self):
         b = self.body()
@@ -101,23 +128,74 @@ class OllamaHandler(_H):
                 o.loaded.remove(b["model"])
             return self.send_json({"done": True})
         if self.path == "/api/chat":
+            if o.reset_first > 0:
+                o.reset_first -= 1
+                return self._drop()
             if b.get("model") not in o.models:
                 return self.send_json({"error": "model not found"}, 404)
             if "think" in b and o.reject_think:
                 return self.send_json({"error": "model does not support think"}, 400)
+            if o.error_status:
+                return self.send_json({"error": o.error_message}, o.error_status)
             o.loaded.add(b["model"]) if hasattr(o.loaded, "add") else o.loaded.append(b["model"])
             fmt = b.get("format")
             content = json.dumps(sample_from_schema(fmt), ensure_ascii=False) if isinstance(fmt, dict) else "ok"
             if o.thinking_prefix:
                 content = "<think>hmm</think>" + content
-            return self.send_json({"message": {"role": "assistant", "content": content}, "done": True, "done_reason": "stop",
-                                   "eval_count": 100, "eval_duration": 2_000_000_000, "prompt_eval_count": 50})
+            final = {"message": {"role": "assistant", "content": ""}, "done": True, "done_reason": "stop", "eval_count": 100,
+                     "eval_duration": 2_000_000_000, "prompt_eval_count": 50, "load_duration": 1_500_000_000}
+            if not b.get("stream"):
+                return self.send_json({**final, "message": {"role": "assistant", "content": content}})
+            return self._stream(o, content, final)
         self.send_json({}, 404)
 
+    def _stream(self, o, content: str, final: dict):
+        n = max(1, min(o.pieces, len(content)))
+        step = -(-len(content) // n)
+        pieces = [content[i:i + step] for i in range(0, len(content), step)]
+        lines = [json.dumps({"message": {"role": "assistant", "content": p}, "done": False}).encode() + b"\n" for p in pieces]
+        if o.error_in_stream:
+            lines.insert(1 if len(lines) > 1 else 0, json.dumps({"error": o.error_in_stream}).encode() + b"\n")
+        lines.append(json.dumps(final).encode() + b"\n")
+        if o.chunked:
+            self.wfile.write(b"HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n")
+        else:
+            self.wfile.write(b"HTTP/1.0 200 OK\r\nContent-Type: application/x-ndjson\r\n\r\n")
+        self.wfile.flush()
+        self.close_connection = True
+        time.sleep(o.first_delay)
+        for i, line in enumerate(lines):
+            if o.drop_after is not None and i >= o.drop_after:
+                return self._drop()
+            if o.stall_after is not None and i == o.stall_after:
+                time.sleep(o.stall_seconds)
+            try:
+                self.wfile.write((b"%x\r\n" % len(line) + line + b"\r\n") if o.chunked else line)
+                self.wfile.flush()
+            except OSError:
+                return
+            if o.chunk_delay:
+                time.sleep(o.chunk_delay)
+        if o.chunked:
+            try:
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+            except OSError:
+                pass
 
-def ollama_server(models=("qwen3:8b", "gemma3:12b"), loaded=("qwen3:8b",), reject_think=False, thinking_prefix=False) -> _Server:
+
+def ollama_server(models=("qwen3:8b", "gemma3:12b"), loaded=("qwen3:8b",), reject_think=False, thinking_prefix=False, **knobs) -> _Server:
     s = _Server(OllamaHandler)
     s.models, s.loaded, s.reject_think, s.thinking_prefix = list(models), set(loaded), reject_think, thinking_prefix
+    s.first_delay = s.chunk_delay = 0.0
+    s.stall_after = s.drop_after = None
+    s.stall_seconds, s.reset_first, s.pieces, s.chunked = 5.0, 0, 6, True
+    s.error_status, s.error_message, s.error_in_stream = 0, "", ""
+    s.placement, s.details = {}, {}
+    for k, v in knobs.items():
+        if not hasattr(s, k):
+            raise TypeError(f"unknown knob {k}")
+        setattr(s, k, v)
     return s
 
 
@@ -178,7 +256,7 @@ class ComfyHandler(_H):
         if u.path == "/object_info":
             return self.send_json(o.object_info())
         if u.path == "/system_stats":
-            return self.send_json({"system": {"comfyui_version": "fake-0.3"}, "devices": []})
+            return self.send_json(getattr(o, "stats", None) or {"system": {"comfyui_version": "fake-0.3"}, "devices": []})
         if u.path.startswith("/history/"):
             pid = u.path.rsplit("/", 1)[1]
             h = o.history.get(pid)

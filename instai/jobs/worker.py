@@ -18,7 +18,7 @@ from django.utils import timezone
 from instai.providers.base import ProviderError
 
 from . import queue
-from .context import JobCancelled, JobContext, JobTimeout
+from .context import JobCancelled, JobContext, JobTimeout, set_current
 from .models import Job, Worker
 from .registry import HANDLERS, load_handlers
 
@@ -44,6 +44,7 @@ def execute(job: Job, worker: str = "inline") -> str:
 
     t = threading.Thread(target=beat, daemon=True)
     t.start()
+    set_current(ctx)          # providers report live progress (tokens, sampler step, model, device) through it
     try:
         if fn is None:
             return queue.fail(job, f"no handler for job kind {job.kind}", retryable=False, code="no_handler")
@@ -62,7 +63,7 @@ def execute(job: Job, worker: str = "inline") -> str:
     except JobTimeout as e:
         return queue.fail(job, str(e), retryable=True, code="timeout")
     except ProviderError as e:
-        return queue.fail(job, str(e), retryable=e.retryable, code=e.code)
+        return queue.fail(job, e.user_text(), retryable=e.retryable, code=e.code)
     except Exception as e:  # noqa: BLE001 - a handler bug must not kill the worker
         from instai.agents.runner import AgentError
         from instai.core.errors import DomainError
@@ -75,6 +76,11 @@ def execute(job: Job, worker: str = "inline") -> str:
         return queue.fail(job, f"{type(e).__name__}: {e}\n{traceback.format_exc()[-1500:]}", retryable=True, code="crash")
     finally:
         stop.set()
+        try:
+            ctx.flush_live()
+        except Exception:  # noqa: BLE001
+            pass
+        set_current(None)
         final = Job.objects.filter(pk=job.pk).values_list("status", flat=True).first()
         if final == Job.FAILED:
             _on_final_failure(job)

@@ -31,6 +31,7 @@ class Job(models.Model):
     error = models.TextField(blank=True, default="")
     error_code = models.CharField(max_length=40, blank=True, default="")
     waiting_reason = models.CharField(max_length=200, blank=True, default="")  # e.g. "GPU busy: another program uses 8.1 GB"
+    live = models.JSONField(default=dict, blank=True)    # what the job is doing right now: phase, model, device, tokens, step (see jobs/describe.py)
     # accounting
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)

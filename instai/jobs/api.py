@@ -15,11 +15,20 @@ from .models import Job, JobLog, Worker
 
 
 class JobSerializer(serializers.ModelSerializer):
+    activity = serializers.SerializerMethodField()   # what is happening, for what, on which model/device (jobs/describe.py)
+
     class Meta:
         model = Job
         fields = ["id", "kind", "resource", "title", "status", "payload", "result", "progress", "progress_text", "priority", "attempts",
                   "max_attempts", "run_after", "timeout_sec", "cancel_requested", "error", "error_code", "waiting_reason", "created_at",
-                  "started_at", "finished_at", "duration_sec", "gpu_seconds", "estimated_sec", "page", "episode", "parent", "idempotency_key"]
+                  "started_at", "finished_at", "duration_sec", "gpu_seconds", "estimated_sec", "page", "episode", "parent", "idempotency_key",
+                  "live", "activity"]
+
+    def get_activity(self, job: Job) -> dict:
+        from .describe import activity
+
+        cache = self.context.setdefault("_activity_cache", {}) if isinstance(self.context, dict) else {}
+        return activity(job, cache)
 
 
 def job_response(job: Job, status: int = 202) -> Response:
@@ -28,7 +37,7 @@ def job_response(job: Job, status: int = 202) -> Response:
 
 @api_view(["GET"])
 def jobs(request):
-    qs = Job.objects.all()
+    qs = Job.objects.select_related("page", "episode__series__page")
     q = request.query_params
     if q.get("status"):
         qs = qs.filter(status__in=q["status"].split(","))
@@ -43,7 +52,7 @@ def jobs(request):
 
 @api_view(["GET"])
 def job_detail(request, pk):
-    job = get_object_or_404(Job, pk=pk)
+    job = get_object_or_404(Job.objects.select_related("page", "episode__series__page"), pk=pk)
     return Response(JobSerializer(job).data)
 
 
@@ -73,8 +82,9 @@ def monitor(request):
     """Queue + workers + GPU in one call for the production monitor."""
     from instai.core import hardware
     now = timezone.now()
-    active = Job.objects.filter(status__in=[Job.QUEUED, Job.RUNNING]).order_by("status", "-priority", "id")[:100]
-    recent = Job.objects.filter(status__in=[Job.SUCCEEDED, Job.FAILED, Job.CANCELLED]).order_by("-finished_at", "-id")[:30]
+    rel = ("page", "episode__series__page")
+    active = Job.objects.filter(status__in=[Job.QUEUED, Job.RUNNING]).select_related(*rel).order_by("status", "-priority", "id")[:100]
+    recent = Job.objects.filter(status__in=[Job.SUCCEEDED, Job.FAILED, Job.CANCELLED]).select_related(*rel).order_by("-finished_at", "-id")[:30]
     workers = [{"name": w.name, "pid": w.pid, "alive": bool(w.last_seen and now - w.last_seen < timedelta(seconds=30)), "last_seen": w.last_seen,
                 "current_jobs": w.current_jobs, "info": w.info} for w in Worker.objects.all()]
     gpu = hardware.gpu_status()

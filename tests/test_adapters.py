@@ -31,7 +31,8 @@ def test_ollama_structured_output_and_think_flag():
         assert not validate(r.data, schemas.STRATEGY) and r.provider == "ollama" and r.model == "qwen3:8b"
         chat = [x for x in srv.requests if x["path"] == "/api/chat"][-1]["body"]
         assert chat["format"]["type"] == "object", "the JSON schema is passed natively in `format`"
-        assert chat["think"] is False and chat["stream"] is False and chat["options"]["num_predict"] > 0
+        assert chat["think"] is False and chat["stream"] is True and chat["options"]["num_predict"] > 0   # streamed: only silence is limited, not the total time
+        assert chat["options"]["num_ctx"] == 8192 and "num_gpu" not in chat["options"], "Ollama decides how many layers fit the GPU unless told"
         assert p.generate(MSG).tokens_per_second == 50.0  # eval_count / eval_duration
 
 

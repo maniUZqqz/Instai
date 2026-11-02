@@ -7,12 +7,20 @@ from typing import Any
 
 
 class ProviderError(Exception):
-    """A provider could not do its job. `retryable` tells the job queue whether trying again can help."""
+    """A provider could not do its job. `retryable` tells the job queue whether trying again can help.
 
-    def __init__(self, message: str, *, retryable: bool = True, code: str = "provider_unavailable"):
+    `fa` is an optional plain-Persian explanation that says what to do; the job shows it first and keeps the English technical
+    text below it (see `user_text`)."""
+
+    def __init__(self, message: str, *, retryable: bool = True, code: str = "provider_unavailable", fa: str = ""):
         super().__init__(message)
         self.retryable = retryable
         self.code = code
+        self.fa = fa
+
+    def user_text(self) -> str:
+        """Persian line first (when there is one), then the English technical text: what a failed job stores."""
+        return f"{self.fa}\n{self}" if self.fa else str(self)
 
 
 @dataclass

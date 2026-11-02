@@ -124,7 +124,7 @@ def test_llm(request):
             r = prov.generate([{"role": "user", "content": "Reply with the single word: ready"}], max_tokens=16, temperature=0)
             out.update(sample=r.text[:80], seconds=round(r.seconds, 2), model=r.model)
         except Exception as e:  # noqa: BLE001
-            out.update(ok=False, detail=str(e)[:200])
+            out.update(ok=False, detail=(getattr(e, "fa", "") or str(e))[:300])
     return Response(out)
 
 
@@ -192,7 +192,8 @@ def dashboard(request):
     running_gpu = Job.objects.filter(status=Job.RUNNING, resource="gpu").first()
     return Response({
         "pages": [page_dict(p, detail=False) for p in ContentPage.objects.filter(status="active")],
-        "active_jobs": JobSerializer(Job.objects.filter(status__in=[Job.QUEUED, Job.RUNNING]).order_by("status", "-priority", "id")[:20], many=True).data,
+        "active_jobs": JobSerializer(Job.objects.filter(status__in=[Job.QUEUED, Job.RUNNING]).select_related("page", "episode__series__page")
+                                     .order_by("status", "-priority", "id")[:20], many=True).data,
         "recent_episodes": [{**episode_brief(e), "page": e.series.page_id, "page_name": e.series.page.name, "series_title": e.series.title}
                             for e in Episode.objects.select_related("series__page", "arc").order_by("-updated_at")[:8]],
         "upcoming_publications": [{"id": p.pk, "episode": p.episode_id, "episode_title": p.episode.title, "scheduled_at": p.scheduled_at, "status": p.status}

@@ -58,7 +58,7 @@ def claim(worker: str, resources: tuple[str, ...], lease_sec: int = 90) -> Job |
     for pk in cands:
         n = Job.objects.filter(pk=pk, status=Job.QUEUED, cancel_requested=False).update(
             status=Job.RUNNING, lease_owner=worker, lease_expires=now + timedelta(seconds=lease_sec), heartbeat_at=now,
-            started_at=now, attempts=models_attempts_plus_one(), waiting_reason="", finished_at=None, error="", error_code="")
+            started_at=now, attempts=models_attempts_plus_one(), waiting_reason="", finished_at=None, error="", error_code="", live={})
         if n == 1:
             return Job.objects.get(pk=pk)
     # jobs cancelled while queued
@@ -86,6 +86,11 @@ def set_progress(job: Job, fraction: float, text: str = "") -> None:
 
 def set_waiting(job: Job, reason: str) -> None:
     Job.objects.filter(pk=job.pk).update(waiting_reason=reason[:200])
+
+
+def set_live(job: Job, live: dict) -> None:
+    """What the job is doing right now (phase, model, device, tokens, step ...), read by jobs/describe.py for the queue screen."""
+    Job.objects.filter(pk=job.pk).update(live=live)
 
 
 def is_cancel_requested(job_id: int) -> bool:
@@ -137,7 +142,7 @@ def request_cancel(job: Job) -> Job:
 
 def requeue(job: Job, *, reset_attempts: bool = False) -> Job:
     Job.objects.filter(pk=job.pk).update(status=Job.QUEUED, cancel_requested=False, error="", error_code="", finished_at=None,
-                                         run_after=timezone.now(), progress=0.0, progress_text="", lease_owner="", lease_expires=None,
+                                         run_after=timezone.now(), progress=0.0, progress_text="", lease_owner="", lease_expires=None, live={},
                                          **({"attempts": 0} if reset_attempts else {}))
     log_job(job, "re-queued")
     return Job.objects.get(pk=job.pk)

@@ -95,6 +95,7 @@ def call_json(task: str, schema: dict, *, system: str, user: str, meta: dict | N
     out = AgentResult(data={}, provider=provider.name, model=provider.model)
     last_errors: list[str] = []
     for attempt in range(1, max_attempts + 1):
+        _report_live(attempt=attempt, attempts=max_attempts, task=task)
         try:
             res: LLMResult = provider.generate(messages, schema=schema, temperature=temperature if attempt == 1 else max(0.1, temperature - 0.2),
                                                max_tokens=max_tokens, task=task, meta=meta)
@@ -129,6 +130,14 @@ def call_json(task: str, schema: dict, *, system: str, user: str, meta: dict | N
         log.info("agent %s attempt %d: %d problems", task, attempt, len(errs))
         _retry_messages(messages, res.text, last_errors)
     raise AgentError(f"{task}: the model did not return valid output after {max_attempts} attempts", errors=last_errors)
+
+
+def _report_live(**fields) -> None:
+    try:
+        from instai.jobs.context import report_live
+    except Exception:  # noqa: BLE001 - no job queue here (a worker PC)
+        return
+    report_live(**fields)
 
 
 def _retry_messages(messages: list[dict], bad_text: str, errors: list[str]) -> None:

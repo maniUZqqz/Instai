@@ -64,15 +64,39 @@ def substitute(obj, mapping: dict[str, str]):
     return obj
 
 
+def _live(**fields) -> None:
+    """Tell the queue screen what this task is doing (no-op on a worker PC or outside a job)."""
+    try:
+        from instai.jobs.context import report_live
+    except Exception:  # noqa: BLE001
+        return
+    report_live(**fields)
+
+
+def _comfy_label(payload: dict) -> str:
+    wid = payload.get("workflow") or ""
+    try:
+        from instai.providers.comfy.workflows import WORKFLOWS
+
+        return WORKFLOWS[wid].title.split(" - ")[0] if wid in WORKFLOWS else str(wid)
+    except Exception:  # noqa: BLE001
+        return str(wid)
+
+
 def run_comfy_graph(payload: dict, io: TaskIO) -> dict:
     from instai.providers.comfy.client import ComfyCancelled, ComfyClient
 
-    client = ComfyClient(runtime.comfyui_url())
-    if not client.is_up():
-        from instai.providers.comfy import launcher
+    from instai.providers.comfy import launcher
 
+    client = ComfyClient(runtime.comfyui_url())
+    _live(phase="starting_comfy" if not client.is_up() else "loading_model", provider="comfy", model=_comfy_label(payload), device=None)
+    if not client.is_up():
         io.progress(0.01, "starting ComfyUI")
-        client = ComfyClient(launcher.ensure_running(progress=lambda t: io.progress(0.01, t), cancelled=io.cancelled))
+    # also checks that a ComfyUI that already runs uses the graphics card (a ComfyUI on the CPU would render for hours)
+    client = ComfyClient(launcher.ensure_running(progress=lambda t: io.progress(0.01, t), cancelled=io.cancelled))
+    info = launcher.device_info(client.base_url)
+    if info and info.get("type"):
+        _live(device="gpu" if info["type"] != "cpu" else "cpu", device_name=info.get("name"))
     mapping: dict[str, str] = {}
     for f in sorted(io.in_dir.iterdir()) if io.in_dir.is_dir() else []:
         if f.suffix.lower() in IMAGE_EXT:
@@ -122,6 +146,7 @@ def run_voice_tts(payload: dict, io: TaskIO) -> dict:
     tts = get_tts(None if payload.get("engine") in (None, "", "auto") else payload["engine"])
     ref = str(io.input(payload["reference_input"])) if payload.get("reference_input") else None
     io.progress(0.1, f"speaking with {tts.id}")
+    _live(phase="speaking", provider=tts.id, model=tts.id, device={"gpu": "gpu", "net": "net"}.get(getattr(tts, "resource", "cpu"), "cpu"), step=None, steps=None)
     r = tts.synthesize(payload["text"], io.out_dir / "speech.wav", voice=payload.get("voice") or None, language=payload.get("language") or "fa",
                        seed=payload.get("seed"), reference=ref)
     return {"engine": r.engine, "voice": r.voice, "seconds": r.seconds, "sample_rate": r.sample_rate, "render_seconds": r.render_seconds,
@@ -134,6 +159,7 @@ def _run_generator(kind: str, payload: dict, io: TaskIO) -> dict:
     gen = get_generator(kind)
     name = "sfx.wav" if kind == "sfx" else "music.wav"
     io.progress(0.1, f"generating with {gen.id}")
+    _live(phase="rendering", provider=gen.id, model=gen.id, device={"net": "net", "cpu": "cpu"}.get(getattr(gen, "resource", "gpu"), "gpu"), step=None, steps=None)
     r = gen.generate(payload["prompt"], float(payload.get("seconds") or 8), io.out_dir / name, seed=payload.get("seed"), bpm=payload.get("bpm"))
     return {"engine": r.engine, "seconds": r.seconds, "render_seconds": r.render_seconds, "licence": r.licence, "files": [{"name": name, "kind": "audio"}]}
 

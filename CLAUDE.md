@@ -46,6 +46,12 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - Tests: `INSTAI_SCAN_DEFAULTS=0` (root conftest) keeps discovery off the real disk; give fake trees via `INSTAI_SCAN_ROOTS` or the `model_paths` setting (see tests/test_discovery.py).
 - Optional downloads are `offer` blocks in `manifests/*.json`; they are fetched only after `confirm: true` from the UI. Pin a commit and sha256 for every new file.
 
+## GPU use, model tests, queue status (2026-11-02; reasons in `docs/DECISIONS.md`)
+- The owner saw Task Manager's GPU idle. ComfyUI is started only by `providers/comfy/launcher.py` (the .bat's own python, never `--cpu`, clean env) and `ensure_running` refuses a ComfyUI that works on the CPU; the default Ollama model is chosen by fit to the VRAM (`providers/ollama_fit.py`), never `names[0]`.
+- Ollama is called streamed (`providers/ollama.py`): limit SILENCE, not total time; errors carry a Persian first line (`ProviderError.fa`). Do not go back to one fixed read timeout.
+- A handler/provider reports what it is doing with `JobContext.live()` (or `jobs.context.report_live`); `jobs/describe.py` turns it into the queue text. Add a `KIND_TEXT` entry (fa + en) for every new job kind.
+- Diagnostics: `core/gpu_diag.py` (+ `scripts/gpu_verdict.py` for `Test-GPU.bat`); model tests: `core/model_tests.py` (job kind `models.test`). New GPU-using code must go through `gpu/compute.run_task` so these checks apply.
+
 ## Phase 3/4 notes
 - Two-PC design (worker agent, LAN gate, GPU task router): `docs/DECISIONS.md` section "Phase 3 / 4". PC B runs `START-WORKER.bat`; only `/api/worker/*` is ever exposed to the LAN.
 - GPU work goes through `instai/gpu/compute.py` (`run_task` / `fan_out`), never straight to ComfyUI, so a worker PC can take it.

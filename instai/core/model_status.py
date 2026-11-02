@@ -242,15 +242,37 @@ def _piper_row(d: dict) -> dict:
             "detail": detail, "package": "piper", "uses": ["voice_piper"], "voice_dirs": (d.get("piper") or {}).get("voice_dirs") or []}
 
 
-def _ollama_row(d: dict) -> dict:
+def _ollama_row(d: dict, vram_mb: float | None = None) -> dict:
+    from instai.providers import ollama_fit
+    from instai.providers.ollama import OllamaProvider
+
     from . import hardware
 
     o = d.get("ollama") or {}
     live = hardware.check_ollama()
     models = [m["name"] for m in (live.get("data") or {}).get("models", [])] if live["status"] != "missing" else []
+    url = runtime.ollama_url()
+    chosen = str(settings_store.effective("ollama_model") or "")
+    num_ctx = OllamaProvider(url).num_ctx
+    detail: list[dict] = []
+    default = None
+    fitted = ollama_fit.fetch_models(url, num_ctx, vram_mb) if models else None
+    if fitted:
+        default = ollama_fit.pick_default(fitted, vram_mb)
+        loaded = {m["name"]: m for m in (ollama_fit.loaded(url) or [])}
+        for m in fitted:
+            detail.append({"name": m["name"], "size_mb": m["size_mb"], "params": m["params"], "quant": m["quant"], "family": m["family"],
+                           "kind": "text" if m["kind"] == "special" else m["kind"], "fit": m["fit"], "est_gpu_pct": m["est_gpu_pct"],
+                           "default": bool(default and ollama_fit.same_model(default["model"], m["name"]) and not chosen),
+                           "chosen": bool(chosen and ollama_fit.same_model(chosen, m["name"])), "loaded": loaded.get(m["name"])})
+    else:                               # Ollama is not running: the names found on disk, nothing measured
+        for name in o.get("on_disk") or []:
+            detail.append({"name": name, "size_mb": 0, "params": None, "quant": None, "family": None,
+                           "kind": "text" if ollama_fit.kind_of(name) == "special" else ollama_fit.kind_of(name), "fit": "unknown", "est_gpu_pct": None,
+                           "default": False, "chosen": bool(chosen and ollama_fit.same_model(chosen, name)), "loaded": None})
     return {"id": "ollama", "kind": "ollama", "title": "Ollama", "found": bool(models or o.get("on_disk")), "running": live["status"] != "missing",
-            "url": runtime.ollama_url(), "models": models or o.get("on_disk") or [], "path": o.get("models_dir") or o.get("exe"), "exe": o.get("exe"),
-            "uses": ["text"]}
+            "url": url, "models": models or o.get("on_disk") or [], "path": o.get("models_dir") or o.get("exe"), "exe": o.get("exe"),
+            "uses": ["text"], "models_detail": detail, "default_model": default, "testable": bool(models)}
 
 
 def payload(force: bool = False) -> dict:
@@ -259,10 +281,21 @@ def payload(force: bool = False) -> dict:
     wf = workflow_status(d, rows)
     sel = discovery.selected_comfy(d)
     api = (d.get("comfyui") or {}).get("api") or {}
+    from . import hardware
+
+    gpu = hardware.gpu_status()
+    vram_mb = float(gpu["total_mb"]) if gpu and gpu.get("total_mb") else None
     with ThreadPoolExecutor(max_workers=3) as ex:
-        f_voice, f_ollama, f_pkg = ex.submit(_threaded, _voice_rows, d), ex.submit(_threaded, _ollama_row, d), ex.submit(package_status)
+        f_voice, f_ollama, f_pkg = ex.submit(_threaded, _voice_rows, d), ex.submit(_threaded, _ollama_row, d, vram_mb), ex.submit(package_status)
         voice_rows, ollama, pkg = f_voice.result(), f_ollama.result(), f_pkg.result()
     piper_row = _piper_row(d)
+    from instai.providers.comfy.workflows import WORKFLOWS
+
+    for r in rows:        # a file is testable when a workflow that loads it makes an image or a video (the test runs a tiny generation)
+        r["testable"] = bool(r["found"] and any(u in WORKFLOWS and WORKFLOWS[u].kind in ("image", "video") for u in r["uses"]))
+    for r in voice_rows:
+        r["testable"] = bool(r["found"])
+    piper_row["testable"] = bool(piper_row["found"])
     from instai.providers.comfy import launcher
 
     installs = []
@@ -289,7 +322,7 @@ def payload(force: bool = False) -> dict:
         "comfyui": {"installs": installs, "url": runtime.comfyui_url(), "running": bool(api.get("up")), "nodes": api.get("nodes", 0),
                     "startable": comfy_startable(d), "started_by_instai": launcher.running_ours(), "selected": sel["root"] if sel else None},
         "items": rows + voice_rows + [piper_row, ollama], "features": features, "offers": offers(pkg), "nm_homes": d.get("nm_homes", []),
-        "free_gb": free,
+        "free_gb": free, "vram_total_mb": int(vram_mb) if vram_mb else None,
     }
 
 

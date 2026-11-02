@@ -114,12 +114,20 @@ class ComfyClient:
         return (j.get("subfolder") + "/" if j.get("subfolder") else "") + j["name"]
 
     def wait(self, prompt_id: str, *, timeout: float = 3600, poll: float = 1.0,
-             on_tick: Callable[[float], None] | None = None, cancel: Callable[[], bool] | None = None) -> list[OutputFile]:
+             on_tick: Callable[[float], None] | None = None, cancel: Callable[[], bool] | None = None,
+             watcher=None, on_progress: Callable[[dict], None] | None = None) -> list[OutputFile]:
         t0 = time.time()
         while True:
             if cancel and cancel():
                 self.interrupt(prompt_id)
                 raise ComfyCancelled()
+            if watcher is not None and on_progress is not None:
+                st = watcher.snapshot()
+                if st.get("steps") and st.get("prompt_id") in (None, prompt_id):
+                    try:
+                        on_progress(st)
+                    except Exception:  # noqa: BLE001 - progress text must never break the render
+                        pass
             h = self.history(prompt_id)
             if h:
                 st = (h.get("status") or {})
@@ -156,6 +164,44 @@ class ComfyClient:
         tmp.replace(dest)
         return dest
 
-    def run(self, graph: dict, *, timeout: float = 3600, on_tick=None, cancel=None) -> tuple[str, list[OutputFile]]:
-        pid = self.queue_prompt(graph)
-        return pid, self.wait(pid, timeout=timeout, on_tick=on_tick, cancel=cancel)
+    def run(self, graph: dict, *, timeout: float = 3600, on_tick=None, cancel=None, on_progress=None) -> tuple[str, list[OutputFile]]:
+        """Queue a graph and wait for its files. `on_progress({step, steps, node, ...})` is called with the sampler's progress while it runs
+        (read from ComfyUI's websocket); inside a job the queue screen gets "step 8 of 20" and an estimate by default."""
+        try:
+            from instai.jobs import context as jobctx
+
+            ctx = jobctx.current() if on_progress is None else None
+        except Exception:  # noqa: BLE001 - no job queue here (a worker PC)
+            ctx = None
+        if ctx is not None:
+            on_progress = _live_reporter(ctx)
+            ctx.live(phase="loading_model", step=None, steps=None, eta_sec=None, provider="comfy")
+        watcher = None
+        if on_progress is not None:
+            from .ws import ProgressWatcher
+
+            watcher = ProgressWatcher(self.base_url, self.client_id)
+            watcher.start()
+        try:
+            pid = self.queue_prompt(graph)
+            return pid, self.wait(pid, timeout=timeout, on_tick=on_tick, cancel=cancel, watcher=watcher, on_progress=on_progress)
+        finally:
+            if watcher is not None:
+                watcher.stop()
+
+
+def _live_reporter(ctx) -> Callable[[dict], None]:
+    """Sampler progress -> ctx.live: step x of y and an estimate of the seconds left for THIS sampler (a graph may run several)."""
+    mem = {"steps": None, "t0": None, "k0": 0, "last": -1}
+
+    def report(st: dict) -> None:
+        step, steps = int(st["step"] or 0), int(st["steps"])
+        now = time.time()
+        if mem["steps"] != steps or step < mem["last"] or mem["t0"] is None:
+            mem.update(steps=steps, t0=now, k0=step)             # a new sampler (or the first message): start timing from here
+        mem["last"] = step
+        done = step - mem["k0"]
+        eta = ((steps - step) * (now - mem["t0"]) / done) if done > 0 else None
+        ctx.live(phase="sampling", step=step, steps=steps, eta_sec=round(eta) if eta is not None else None)
+
+    return report

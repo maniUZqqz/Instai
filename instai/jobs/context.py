@@ -2,11 +2,34 @@
 from __future__ import annotations
 
 import subprocess
+import threading
 import time
 from typing import Callable
 
 from . import queue
 from .models import Job
+
+_LOCAL = threading.local()
+
+
+def current() -> "JobContext | None":
+    """The context of the job this thread is running (None outside a job: tests, scripts, the settings test button).
+    Providers use it to report what they are doing (tokens so far, sampler step, model and device) without every call site passing it along."""
+    return getattr(_LOCAL, "ctx", None)
+
+
+def set_current(ctx: "JobContext | None") -> None:
+    _LOCAL.ctx = ctx
+
+
+def report_live(**fields) -> None:
+    """ctx.live(...) of the running job; does nothing outside a job and never raises (reporting must not break the work)."""
+    ctx = current()
+    if ctx is not None:
+        try:
+            ctx.live(**fields)
+        except Exception:  # noqa: BLE001
+            pass
 
 
 class JobCancelled(Exception):
@@ -27,6 +50,10 @@ class JobContext:
         self.gpu_seconds = 0.0
         self.vram_peak_mb = 0
         self._last_progress = 0.0
+        self._live: dict = {}
+        self._live_at = 0.0
+        self._live_dirty = False
+        self._live_lock = threading.Lock()
 
     # ---- checkpoints
     def check(self) -> None:
@@ -56,6 +83,37 @@ class JobContext:
         queue.set_waiting(self.job, reason)
         queue.heartbeat(self.job, self.worker, self.lease_sec)
 
+    def live(self, force: bool = False, **fields) -> None:
+        """Tell the queue screen what is happening right now: phase, model, device, gpu_pct, tokens, tps, step, steps, shot, shots ...
+        A value of None removes a key. The database is written at most about once a second (a token stream calls this many times a
+        second), except when the phase changes or `force` is set; `flush_live()` writes whatever is pending."""
+        with self._live_lock:
+            changed_phase = "phase" in fields and fields["phase"] != self._live.get("phase")
+            for k, v in fields.items():
+                if v is None:
+                    self._live.pop(k, None)
+                else:
+                    self._live[k] = v
+            now = time.time()
+            if force or changed_phase or now - self._live_at >= 0.9:
+                self._live_at, self._live_dirty = now, False
+                snapshot = dict(self._live)
+            else:
+                self._live_dirty = True
+                return
+        queue.set_live(self.job, snapshot)
+
+    def flush_live(self) -> None:
+        with self._live_lock:
+            if not self._live_dirty:
+                return
+            self._live_at, self._live_dirty = time.time(), False
+            snapshot = dict(self._live)
+        queue.set_live(self.job, snapshot)
+
+    def live_value(self, key: str, default=None):
+        return self._live.get(key, default)
+
     def add_gpu_seconds(self, seconds: float, vram_peak_mb: int = 0) -> None:
         self.gpu_seconds += seconds
         self.vram_peak_mb = max(self.vram_peak_mb, vram_peak_mb)
@@ -67,8 +125,6 @@ class JobContext:
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
                              creationflags=flags)
-        import threading
-
         tail: list[str] = []
 
         def reader():

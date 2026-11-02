@@ -36,6 +36,8 @@ class Lease:
         """Declare what will run on the GPU next ('llm' | 'comfy' | 'tts' | 'bench'); everything else is unloaded first."""
         if occupant != self.occupant or (occupant == "llm" and model and model != getattr(self, "model", None)):
             self.arbiter.unload_others(occupant)
+            if occupant == "llm":
+                self.arbiter.unload_other_llms(model)
             self.arbiter.wait_until_free(self.ctx)
         self.occupant, self.model = occupant, model
 
@@ -113,6 +115,20 @@ class GPUArbiter:
                     fn()
                 except Exception as e:  # noqa: BLE001 - unloading is best effort
                     log.warning("unload %s failed: %s", name, e)
+
+    def unload_other_llms(self, keep: str | None) -> None:
+        """Another Ollama model still in memory (kept alive after an earlier job, or loaded by another program) takes VRAM the new model
+        needs: Ollama then puts fewer of its layers on the GPU and runs the rest on the CPU. Unload every model except the one we are
+        about to use."""
+        if self._unloaders is not None or not keep:        # tests inject their own unloaders
+            return
+        try:
+            from instai.core import runtime
+            from instai.providers.ollama import OllamaProvider
+
+            OllamaProvider(runtime.ollama_url()).unload(keep=keep)
+        except Exception as e:  # noqa: BLE001 - best effort
+            log.warning("unload other llms failed: %s", e)
 
     def our_load_mb(self) -> int:
         """VRAM held by services WE manage (Ollama's loaded models, ComfyUI's torch allocation). With an injected probe (tests) it is 0
