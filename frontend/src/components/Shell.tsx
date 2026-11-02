@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import type { Job, SettingsPayload } from '../api/types'
 import { useQuery } from '../hooks'
 import { useI18n } from '../i18n'
+import { activityText, useJobTitle } from './domain'
 import { Icon, type IconName } from './Icon'
 import { Link, NavLink, Progress, Button } from './ui'
 import { LabNavLink } from '../lab/LabNavLink'
@@ -47,7 +48,8 @@ function useTheme() {
 
 // ---------------------------------------------------------------- job indicator (all queued/running jobs, any screen)
 function JobIndicator() {
-  const { t, f, tr } = useI18n()
+  const { t, f, lang } = useI18n()
+  const jobTitle = useJobTitle()
   const q = useQuery<Job[]>('/jobs?status=queued,running&limit=50', { interval: 3000 })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -79,13 +81,18 @@ function JobIndicator() {
       {open && (
         <div className="popover stack-sm">
           <div className="strong">{label}</div>
-          {jobs.slice(0, 6).map((j) => (
-            <div key={j.id} className="stack-sm">
-              <div className="small">{tr('job.kind.' + j.kind, j.title || j.kind)}</div>
-              <Progress value={j.progress} indeterminate={j.status === 'queued' || j.progress <= 0} label={tr('job.kind.' + j.kind, j.title)} />
-              {j.waiting_reason && <div className="small muted">{j.waiting_reason}</div>}
-            </div>
-          ))}
+          {jobs.slice(0, 6).map((j) => {
+            const title = jobTitle(j)
+            const line = activityText(j.activity, 'line', lang)
+            return (
+              <div key={j.id} className="stack-sm">
+                <div className="small">{title}</div>
+                <Progress value={j.progress} indeterminate={j.status === 'queued' || j.progress <= 0} label={title} />
+                {line && <div className="small muted" dir="auto">{line}</div>}
+                {j.waiting_reason && <div className="small muted">{j.waiting_reason}</div>}
+              </div>
+            )
+          })}
           {jobs.length > 6 && <div className="small muted">+{f.num(jobs.length - 6)}</div>}
           {running.length === 0 && jobs.length > 0 && <div className="small muted">{t('shell.jobs_waiting')}</div>}
           <Link to="/monitor" className="btn sm">

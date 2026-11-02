@@ -2,6 +2,27 @@
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 
+/** What a job is doing right now, in plain words (server side: instai/jobs; both languages are sent, the UI picks one). */
+export interface JobActivity {
+  title_fa: string
+  title_en: string
+  for_fa: string
+  for_en: string
+  phase: string
+  model: string
+  device: 'gpu' | 'cpu' | 'mixed' | 'net' | ''
+  device_fa: string
+  device_en: string
+  warn: boolean
+  line_fa: string
+  line_en: string
+  step: number | null
+  steps: number | null
+  tokens: number | null
+  tps: number | null
+  eta_sec: number | null
+}
+
 export interface Job {
   id: number
   kind: string
@@ -27,6 +48,10 @@ export interface Job {
   estimated_sec: number | null
   page: number | null
   episode: number | null
+  /** raw live state of the job; never rendered directly */
+  live?: Record<string, any>
+  /** always sent by the API now; optional here so an old cached payload still type-checks */
+  activity?: JobActivity
 }
 
 export type EpisodeState =
@@ -408,6 +433,82 @@ export interface GpuInfo {
   utilization: number | null
   busy_job: number | null
   busy_reason: string
+}
+
+// ---------------------------------------------------------------- GET /api/gpu/live and POST /api/gpu/check
+export interface LoadedModel {
+  name: string
+  size_mb: number
+  vram_mb: number
+  /** 0-100 */
+  gpu_pct: number
+  placement: 'gpu' | 'mixed' | 'cpu'
+  context: number | null
+  expires: string | null
+}
+export type GpuLevel = 'ok' | 'warn' | 'bad' | 'idle' | 'none'
+export interface GpuVerdict {
+  level: GpuLevel
+  text_fa: string
+  text_en: string
+}
+export interface GpuLive {
+  at: string
+  gpu: null | {
+    name: string
+    total_mb: number
+    used_mb: number
+    free_mb: number
+    utilization: number
+    temperature: number
+    driver: string
+    processes: { pid: number; name: string; used_mb: number }[]
+  }
+  ollama: { up: boolean; loaded: LoadedModel[]; note_fa: string; note_en: string }
+  comfy: {
+    up: boolean
+    device: 'cuda' | 'cpu' | null
+    device_name: string | null
+    torch: string | null
+    cpu_flag: boolean
+    vram_total_mb: number | null
+    vram_free_mb: number | null
+    note_fa: string
+    note_en: string
+  }
+  verdict: GpuVerdict
+}
+export interface GpuCheckItem {
+  id: string
+  level: 'ok' | 'warn' | 'bad' | 'info'
+  title_fa: string
+  title_en: string
+  detail_fa: string
+  detail_en: string
+  fix_fa: string
+  fix_en: string
+}
+export interface GpuCheck {
+  took: number
+  gpu_used: 'yes' | 'no' | 'partial' | 'unknown'
+  verdict: GpuVerdict
+  checks: GpuCheckItem[]
+}
+
+// ---------------------------------------------------------------- POST /api/models/test (job.kind 'models.test', job.result when it succeeded)
+export interface ModelTestResult {
+  id: string
+  kind: 'ollama' | 'comfy' | 'voice'
+  /** pass = ok, warn = works but with a problem (slow / partly CPU), fail = did not work */
+  verdict: 'pass' | 'warn' | 'fail'
+  reason_fa: string
+  reason_en: string
+  seconds: number
+  metrics: { key: string; value: number | string; unit: string }[]
+  /** for a language model: its reply (may be '') */
+  sample: string
+  media: null | { type: 'audio' | 'image' | 'video'; url: string; name: string }
+  device: { label: string; gpu_pct: number | null }
 }
 
 export interface Dashboard {

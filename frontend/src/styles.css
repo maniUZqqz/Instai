@@ -1198,8 +1198,42 @@ html[dir='rtl'] .progress.indeterminate > i {
   background: var(--info);
   border-radius: 999px;
 }
-.gpu-bar.hot > i {
+.gpu-bar.hot > i,
+.gpu-bar.warn > i {
   background: var(--warn);
+}
+.gpu-bar.ok > i {
+  background: var(--ok);
+}
+.gpu-bar.err > i {
+  background: var(--err);
+}
+/* result of a model test (Models page): a bordered box under the row; the left/start edge carries the verdict colour */
+.test-box {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-inline-start-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.test-box.pass {
+  border-inline-start-color: var(--ok);
+}
+.test-box.warn {
+  border-inline-start-color: var(--warn);
+}
+.test-box.fail {
+  border-inline-start-color: var(--err);
+}
+.quote-block {
+  margin: 0;
+  padding: 0.5rem 0.9rem;
+  border-inline-start: 3px solid var(--border-strong);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  max-height: 14rem;
+  overflow: auto;
 }
 .format-card .format-title {
   font-weight: 700;

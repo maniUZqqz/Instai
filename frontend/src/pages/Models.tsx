@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import type { LoadedModel } from '../api/types'
 import { JobView } from '../components/domain'
 import { useConfirm, useToast } from '../components/feedback'
+import { GpuPanel } from '../components/GpuPanel'
+import { ModelTestGate, TestButton, useModelTest } from '../components/ModelTestResult'
 import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ExtLink, Notice, PageHead, TextField, type Tone } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
@@ -20,9 +23,29 @@ interface ComfyInstall {
   custom_nodes: number
   port: number
 }
+/** One model Ollama has installed (only on the item with id 'ollama'). */
+interface OllamaModelDetail {
+  name: string
+  size_mb: number
+  params: string | null
+  quant: string | null
+  family: string | null
+  kind: 'text' | 'vision' | 'embedding'
+  fit: 'gpu' | 'partial' | 'cpu' | 'unknown'
+  est_gpu_pct: number | null
+  /** InstAI would pick it when nothing is chosen */
+  default: boolean
+  /** set in Settings */
+  chosen: boolean
+  loaded: LoadedModel | null
+}
 interface FoundItem {
   id: string
   kind: 'comfy' | 'voice' | 'ollama'
+  /** can be tried with POST /api/models/test */
+  testable?: boolean
+  models_detail?: OllamaModelDetail[]
+  default_model?: { model: string; partial: boolean; reason_fa: string; reason_en: string } | null
   title: string
   found: boolean
   path?: string | null
@@ -84,6 +107,7 @@ interface ModelsFound {
   offers: Offer[]
   nm_homes: string[]
   free_gb: number | null
+  vram_total_mb?: number | null
 }
 
 const COMMERCIAL_TONE: Record<string, Tone> = { yes: 'ok', conditional: 'warn', no: 'err', unknown: 'neutral' }
@@ -98,24 +122,109 @@ export default function Models() {
     if (p) q.setData(p)
   }
   return (
-    <div className="stack-lg">
-      <PageHead title={t('nav.models')}>
-        <Button icon="refresh" busy={act.busy} onClick={() => rescan()}>{t('mdl.rescan')}</Button>
-      </PageHead>
-      <p className="muted">{t('mdl.intro')}</p>
-      <Async q={q} skeleton={<CardSkeletons n={4} />}>
-        {(m) => (
-          <>
-            <Summary m={m} />
-            <ComfyCard m={m} />
-            <FeaturesCard m={m} />
-            <ItemsCard m={m} />
-            <OffersCard m={m} onFinished={() => rescan(true)} />
-            <PathsCard m={m} onSaved={(p) => q.setData(p)} />
-          </>
+    <ModelTestGate>
+      <div className="stack-lg">
+        <PageHead title={t('nav.models')}>
+          <Button icon="refresh" busy={act.busy} onClick={() => rescan()}>{t('mdl.rescan')}</Button>
+        </PageHead>
+        <p className="muted">{t('mdl.intro')}</p>
+        <GpuPanel />
+        <Async q={q} skeleton={<CardSkeletons n={4} />}>
+          {(m) => (
+            <>
+              <OllamaCard m={m} />
+              <Summary m={m} />
+              <ComfyCard m={m} />
+              <FeaturesCard m={m} />
+              <ItemsCard m={m} />
+              <OffersCard m={m} onFinished={() => rescan(true)} />
+              <PathsCard m={m} onSaved={(p) => q.setData(p)} />
+            </>
+          )}
+        </Async>
+      </div>
+    </ModelTestGate>
+  )
+}
+
+// ---------------------------------------------------------------- language models (Ollama): size, fit on the GPU, test
+function FitBadge({ d }: { d: OllamaModelDetail }) {
+  const { t } = useI18n()
+  if (d.fit === 'gpu') return <Badge tone="ok">{t('mdl.fit.gpu')}</Badge>
+  if (d.fit === 'partial') return <Badge tone="warn">{d.est_gpu_pct != null ? t('mdl.fit.partial', { n: Math.round(d.est_gpu_pct) }) : t('mdl.fit.partial_plain')}</Badge>
+  if (d.fit === 'cpu') return <Badge tone="err">{t('mdl.fit.cpu')}</Badge>
+  return <Badge>{t('mdl.fit.unknown')}</Badge>
+}
+
+function LlmRow({ d }: { d: OllamaModelDetail }) {
+  const { t, tr, f } = useI18n()
+  const test = useModelTest('ollama:' + d.name, true)
+  const sub = [d.params, d.quant, d.family].filter(Boolean).join(' · ')
+  return (
+    <>
+      <tr>
+        <td>
+          <div className="strong small ltr mono">{d.name}</div>
+          {sub && <div className="small muted ltr">{sub}</div>}
+        </td>
+        <td className="nowrap">{f.bytes(d.size_mb * 1048576)}</td>
+        <td><Badge>{tr('mdl.kind.' + d.kind, d.kind)}</Badge></td>
+        <td>
+          <FitBadge d={d} />
+          {d.loaded && <div className="small muted">{t('gpu.pct_on_gpu', { n: Math.round(d.loaded.gpu_pct) })}</div>}
+        </td>
+        <td>
+          <div className="row" style={{ gap: '0.3rem' }}>
+            {d.default && <Badge tone="primary">{t('mdl.mark.default')}</Badge>}
+            {d.chosen && <Badge tone="info">{t('mdl.mark.chosen')}</Badge>}
+            {d.loaded && <Badge tone="ok">{t('mdl.mark.loaded')}</Badge>}
+          </div>
+        </td>
+        <td>{d.kind !== 'embedding' && <TestButton test={test} />}</td>
+      </tr>
+      {test.box && (
+        <tr>
+          <td colSpan={6}>{test.box}</td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+function OllamaCard({ m }: { m: ModelsFound }) {
+  const { t, f, lang } = useI18n()
+  const item = m.items.find((i) => i.id === 'ollama')
+  const models = item?.models_detail ?? []
+  const def = item?.default_model ?? null
+  const reason = def ? (lang === 'en' ? def.reason_en : def.reason_fa) : ''
+  return (
+    <Card title={t('mdl.ollama_title')} actions={m.vram_total_mb ? <Badge>{t('gpu.vram')}: {f.mb(m.vram_total_mb)}</Badge> : undefined}>
+      <div className="stack">
+        {def && reason && <Notice tone={def.partial ? 'warn' : 'info'}>{reason}</Notice>}
+        <p className="muted">{t('mdl.ollama_fit_note')}</p>
+        {models.length === 0 ? (
+          <Notice tone="warn">{t('mdl.ollama_none')}</Notice>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('mdl.col_model')}</th>
+                  <th>{t('mdl.col_size')}</th>
+                  <th>{t('mdl.col_kind')}</th>
+                  <th>{t('mdl.col_fit')}</th>
+                  <th>{t('mdl.col_marks')}</th>
+                  <th>{t('mdl.col_test')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {models.map((d) => <LlmRow key={d.name} d={d} />)}
+              </tbody>
+            </table>
+          </div>
         )}
-      </Async>
-    </div>
+      </div>
+    </Card>
   )
 }
 
@@ -243,8 +352,45 @@ function FeaturesCard({ m }: { m: ModelsFound }) {
   )
 }
 
-function ItemsCard({ m }: { m: ModelsFound }) {
+/** One row of the "models and where they are" table, with its test button and (under it) the result of the test. */
+function ItemRow({ i }: { i: FoundItem }) {
   const { t, tr, f } = useI18n()
+  const test = useModelTest(i.id)
+  return (
+    <>
+      <tr>
+        <td>
+          <div className="strong small" dir="auto">{i.title}</div>
+          {i.file && <div className="small muted ltr mono">{i.file}{i.aliases && i.aliases.length > 0 ? ` (${t('mdl.or')} ${i.aliases.join(', ')})` : ''}</div>}
+        </td>
+        <td className="nowrap">
+          <Badge tone={i.found ? 'ok' : 'err'}>{i.found ? t('mdl.found') : t('mdl.missing')}</Badge>
+          {i.running && <> <Badge tone="info">{t('mdl.running_short')}</Badge></>}
+          {i.size_ok === false && <> <Badge tone="warn" title={t('mdl.size_warn')}>{t('mdl.size_bad')}</Badge></>}
+          {i.testable && i.id !== 'ollama' && <div style={{ marginBlockStart: '0.4rem' }}><TestButton test={test} /></div>}
+        </td>
+        <td className="small">
+          {i.path ? <div className="ltr mono">{i.path}</div> : i.listed ? <div className="ltr mono">{t('mdl.listed')}: {i.listed}</div> : null}
+          {!i.found && i.folder && <div className="muted">{t('mdl.put_in', { folder: i.folder })}</div>}
+          {!i.found && i.elsewhere && <div className="muted">{t('mdl.elsewhere')}: <span className="ltr mono">{i.elsewhere}</span></div>}
+          {!i.found && i.missing && i.missing.length > 0 && <div className="muted ltr">{i.missing.slice(0, 3).join(' · ')}</div>}
+          {i.models && i.models.length > 0 && !i.models_detail && <div className="ltr">{i.models.slice(0, 6).join(', ')}</div>}
+          {i.voices && i.voices.length > 0 && <div className="ltr">{i.voices.slice(0, 6).join(', ')}</div>}
+          {i.size ? <div className="muted">{f.bytes(i.size)}</div> : null}
+        </td>
+        <td className="small">{i.uses.map((u) => tr('mdl.use.' + u, u)).join('، ')}</td>
+      </tr>
+      {test.box && (
+        <tr>
+          <td colSpan={4}>{test.box}</td>
+        </tr>
+      )}
+    </>
+  )
+}
+
+function ItemsCard({ m }: { m: ModelsFound }) {
+  const { t } = useI18n()
   const [onlyMissing, setOnlyMissing] = useState(false)
   const rows = m.items.filter((i) => !onlyMissing || !i.found)
   return (
@@ -263,29 +409,7 @@ function ItemsCard({ m }: { m: ModelsFound }) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((i) => (
-                <tr key={i.id}>
-                  <td>
-                    <div className="strong small" dir="auto">{i.title}</div>
-                    {i.file && <div className="small muted ltr mono">{i.file}{i.aliases && i.aliases.length > 0 ? ` (${t('mdl.or')} ${i.aliases.join(', ')})` : ''}</div>}
-                  </td>
-                  <td className="nowrap">
-                    <Badge tone={i.found ? 'ok' : 'err'}>{i.found ? t('mdl.found') : t('mdl.missing')}</Badge>
-                    {i.running && <> <Badge tone="info">{t('mdl.running_short')}</Badge></>}
-                    {i.size_ok === false && <> <Badge tone="warn" title={t('mdl.size_warn')}>{t('mdl.size_bad')}</Badge></>}
-                  </td>
-                  <td className="small">
-                    {i.path ? <div className="ltr mono">{i.path}</div> : i.listed ? <div className="ltr mono">{t('mdl.listed')}: {i.listed}</div> : null}
-                    {!i.found && i.folder && <div className="muted">{t('mdl.put_in', { folder: i.folder })}</div>}
-                    {!i.found && i.elsewhere && <div className="muted">{t('mdl.elsewhere')}: <span className="ltr mono">{i.elsewhere}</span></div>}
-                    {!i.found && i.missing && i.missing.length > 0 && <div className="muted ltr">{i.missing.slice(0, 3).join(' · ')}</div>}
-                    {i.models && i.models.length > 0 && <div className="ltr">{i.models.slice(0, 6).join(', ')}</div>}
-                    {i.voices && i.voices.length > 0 && <div className="ltr">{i.voices.slice(0, 6).join(', ')}</div>}
-                    {i.size ? <div className="muted">{f.bytes(i.size)}</div> : null}
-                  </td>
-                  <td className="small">{i.uses.map((u) => tr('mdl.use.' + u, u)).join('، ')}</td>
-                </tr>
-              ))}
+              {rows.map((i) => <ItemRow key={i.id} i={i} />)}
             </tbody>
           </table>
         </div>

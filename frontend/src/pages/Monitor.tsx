@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Job, JobLogLine, Monitor as MonitorData } from '../api/types'
-import { GpuMeter, JobStatusBadge, JobView } from '../components/domain'
+import { errorHeadline, JobStatusBadge, JobView, useJobTitle } from '../components/domain'
+import { GpuPanel } from '../components/GpuPanel'
 import { Async, Badge, Button, Card, CardSkeletons, Empty, Link, Notice, PageHead, Segmented } from '../components/ui'
 import { useAction, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 
 export default function Monitor() {
-  const { t, f } = useI18n()
+  const { t, f, lang } = useI18n()
+  const jobTitle = useJobTitle()
   useTitle(t('nav.monitor'))
   const q = useQuery<MonitorData>('/monitor', { interval: 2500 })
   const [logJob, setLogJob] = useState<Job | null>(null)
@@ -43,27 +45,19 @@ export default function Monitor() {
                     ))}
                   </ul>
                 </Card>
-                <Card title={t('mon.gpu')}>
-                  <div className="stack-sm">
-                    <GpuMeter gpu={m.gpu ? { present: true, name: m.gpu.name, total_mb: m.gpu.total_mb, used_mb: m.gpu.used_mb, utilization: m.gpu.utilization } : null} busyReason={holder ? m.gpu_busy_reason || t('mon.gpu_job', { n: holder.id }) : undefined} />
-                    {m.gpu && (
-                      <div className="small muted">
-                        {t('mon.driver')}: <span className="ltr">{m.gpu.driver}</span> · {t('mon.temp')}: {f.num(m.gpu.temperature)}°
-                      </div>
-                    )}
-                    {m.gpu && m.gpu.processes.length > 0 && (
-                      <details>
-                        <summary className="small" style={{ cursor: 'pointer' }}>{t('mon.gpu_procs', { n: m.gpu.processes.length })}</summary>
-                        <ul className="small" style={{ margin: '0.25rem 0 0', paddingInlineStart: '1.25rem' }}>
-                          {m.gpu.processes.map((p) => (
-                            <li key={p.pid} className="ltr">{p.name} — {f.mb(p.used_mb)}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                    {holder && !m.gpu_busy_reason && <Notice tone="info" icon="clock">{t('mon.gpu_busy_by', { n: holder.id, title: holder.title })}</Notice>}
-                  </div>
-                </Card>
+                <GpuPanel
+                  compact
+                  extra={
+                    holder ? (
+                      <>
+                        <Notice tone="warn" icon="clock">
+                          {t('gpu.busy')}: {m.gpu_busy_reason || t('mon.gpu_job', { n: holder.id })}
+                        </Notice>
+                        {!m.gpu_busy_reason && <Notice tone="info" icon="clock">{t('mon.gpu_busy_by', { n: holder.id, title: jobTitle(holder) })}</Notice>}
+                      </>
+                    ) : undefined
+                  }
+                />
               </div>
 
               <Card title={t('mon.queue')} actions={<Badge tone={m.active.length ? 'info' : 'neutral'}>{f.num(m.active.length)}</Badge>}>
@@ -121,9 +115,9 @@ export default function Monitor() {
                         {recent.map((j) => (
                           <tr key={j.id}>
                             <td>
-                              <div className="strong">{j.title || j.kind}</div>
+                              <div className="strong">{jobTitle(j)}</div>
                               <div className="small muted ltr">{j.kind} · #{j.id}</div>
-                              {j.error && <div className="small" style={{ color: 'var(--err)' }}>{j.error.split('\n')[0].slice(0, 140)}</div>}
+                              {j.error && <div className="small" style={{ color: 'var(--err)' }}>{errorHeadline(j.error, lang).slice(0, 140)}</div>}
                             </td>
                             <td><JobStatusBadge status={j.status} /></td>
                             <td className="nowrap">{f.duration(j.duration_sec)}</td>
@@ -159,6 +153,7 @@ function JobLinks({ j }: { j: Job }) {
 /** Live log of one job: new lines are fetched with ?after=<last id>; scrolling follows the end only while the reader is at the end. */
 function LogViewer({ job, onClose }: { job: Job; onClose: () => void }) {
   const { t, f } = useI18n()
+  const jobTitle = useJobTitle()
   const [lines, setLines] = useState<JobLogLine[]>([])
   const [err, setErr] = useState(false)
   const box = useRef<HTMLDivElement>(null)
@@ -214,7 +209,7 @@ function LogViewer({ job, onClose }: { job: Job; onClose: () => void }) {
   }, [lines])
 
   return (
-    <Card title={<span>{t('mon.logs_of', { title: job.title || job.kind })}</span>} actions={<Button size="sm" variant="ghost" iconOnly icon="close" aria-label={t('common.close')} onClick={onClose} />}>
+    <Card title={<span>{t('mon.logs_of', { title: jobTitle(job) })}</span>} actions={<Button size="sm" variant="ghost" iconOnly icon="close" aria-label={t('common.close')} onClick={onClose} />}>
       <div className="stack-sm">
         {err && <Notice tone="warn">{t('job.offline')}</Notice>}
         <div
