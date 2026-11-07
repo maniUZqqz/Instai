@@ -1,6 +1,8 @@
 @echo off
-title InstAI server
 cd /d "%~dp0.."
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI server v%IVER%
 set "PYTHONIOENCODING=utf-8"
 :loop
 ".venv\Scripts\python.exe" -m instai.serve

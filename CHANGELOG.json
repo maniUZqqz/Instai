@@ -1,0 +1,134 @@
+[
+  {
+    "version": "0.6.0",
+    "date": "2026-11-07",
+    "title": {
+      "fa": "صفِ ماندگار، گزارش کامپیوترها، دانلود زمان‌بندی‌شده و نشانِ نسخه",
+      "en": "Durable queue, computers report, scheduled downloads and the version badge"
+    },
+    "items": [
+      {
+        "fa": "صفِ ماندگار: اگر کاری برای کامپیوتر دوم (B)، Ollama، ComfyUI یا کارت گرافیک فرستاده شود و آن‌ها آماده نباشند، کار ناموفق نمی‌شود؛ در صف می‌ماند و همین که آماده شدند خودش انجام می‌شود. اگر کامپیوتر B وسط کار خاموش شود هم کار گم نمی‌شود و از تلاش‌ها کم نمی‌شود. فقط خطای واقعی (بعد از چند بار تلاش) یا «لغو» شما کار را تمام می‌کند.",
+        "en": "Durable queue: work sent to the second PC (B), Ollama, ComfyUI or the graphics card does not fail when they are not ready; it waits in the queue and runs by itself when they are. If PC B is switched off in the middle of a job nothing is lost and no attempt is used. Only a real error (after a few tries) or your Cancel ends a job."
+      },
+      {
+        "fa": "صفحهٔ «صفِ پردازش»: کارهای در حال اجرا، منتظر و زمان‌بندی‌شده با دلیلِ انتظار، جایگاه در صف، کامپیوتر اجراکننده و تعداد تلاش؛ دکمه‌های لغو و «دوباره امتحان». کنار ساعتِ بالای صفحه تعدادِ کارهای منتظر نشان داده می‌شود.",
+        "en": "The Processing queue page: running, waiting and scheduled jobs with the reason for the wait, the place in line, the computer and the number of tries; Cancel and Retry buttons. The top bar shows how many jobs wait."
+      },
+      {
+        "fa": "گزارش کامپیوترهای پردازش (A و B): زمان‌های آنلاین و آفلاین، بار کارت گرافیک و حافظه (VRAM، RAM، دیسک)، تعداد کارهای موفق، ناموفق و لغوشده به تفکیک نوع، میانگین زمان اجرا و انتظار در صف، خطاها به زبان ساده با راه‌حل، لاگ‌ها با جست‌وجو، دانلودها، فیلتر تاریخ و خروجی اکسل (CSV).",
+        "en": "Processing computers report (A and B): online and offline times, graphics card and memory load (VRAM, RAM, disk), succeeded, failed and cancelled jobs per kind, average run time and queue wait, errors in plain words with advice, searchable logs, downloads, a date filter and Excel (CSV) export."
+      },
+      {
+        "fa": "دانلودِ زمان‌بندی‌شده: هر دانلودی (مدل‌های هوش مصنوعی، صداها، ffmpeg، مدل‌های Ollama) را می‌شود برای همین الان، یک ساعت مشخص یا بازهٔ شبانه (پیش‌فرض ۰۲:۰۰ تا ۰۷:۰۰) گذاشت، روی کامپیوتر اصلی یا کامپیوتر B. اگر بازه تمام شود دانلود نیمه‌کاره می‌ایستد و شب بعد از همان‌جا ادامه می‌دهد.",
+        "en": "Scheduled downloads: any download (AI models, voices, ffmpeg, Ollama models) can be set for right now, a chosen time or the night window (default 02:00 to 07:00), on the main PC or on PC B. If the window ends the download stops halfway and continues from there the next night."
+      },
+      {
+        "fa": "نشانِ نسخه در گوشهٔ همهٔ صفحه‌ها (استودیو و آزمایشگاه تولید) و در پنجره‌های START و کنسول؛ با زدن روی آن همین فهرست باز می‌شود. کامپیوتر B نسخهٔ خودش را گزارش می‌دهد و اگر قدیمی‌تر باشد در گزارش هشدار می‌بینید.",
+        "en": "A version badge in the corner of every page (studio and the production lab) and in the START and console windows; clicking it opens this list. Computer B reports its own version and the report warns when it is older."
+      },
+      {
+        "fa": "قفل شدنِ پایگاه‌داده (database is locked) دیگر هیچ کاری را خراب نمی‌کند: نوشتن‌های صف با صبر و تلاش دوباره انجام می‌شوند و کامپیوتر B در صورت شلوغی پاسخِ «بعداً امتحان کن» می‌گیرد، نه خطا. اگر برنامهٔ اجراکننده وسط کار بسته شود کار بدون کم شدن از تلاش‌ها دوباره در صف می‌آید.",
+        "en": "A locked database no longer breaks any job: queue writes wait and retry, and computer B gets a \"try again\" answer instead of an error when the database is busy. If the worker program stops in the middle of a job the job returns to the queue without using an attempt."
+      }
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-11-02",
+    "title": {
+      "fa": "درستِ کار کردنِ کارت گرافیک، آزمونِ مدل‌ها و صفِ گویا",
+      "en": "Real GPU use, model tests and a plain-language queue"
+    },
+    "items": [
+      {
+        "fa": "مدل پیش‌فرض Ollama حالا بر اساس جا شدن در حافظهٔ کارت گرافیک انتخاب می‌شود (پیشنهاد: qwen3:8b)، نه اولین مدلِ فهرست؛ مدلِ مانده در حافظه پیش از هر کار خالی می‌شود.",
+        "en": "The default Ollama model is now chosen by what fits the graphics card memory (suggested: qwen3:8b), not the first one in the list; a model left in memory is unloaded before each job."
+      },
+      {
+        "fa": "ComfyUI همیشه روی کارت گرافیک اجرا می‌شود (نه CPU)؛ اگر روی CPU بود کار با توضیح فارسی متوقف می‌شود. دکمهٔ «تست» برای هر مدل و کارتِ زندهٔ کارت گرافیک در صفحهٔ «مدل‌ها».",
+        "en": "ComfyUI always runs on the graphics card (not the CPU); if it ran on the CPU the job stops with a plain explanation. A Test button for every model and a live graphics card panel on the Models page."
+      },
+      {
+        "fa": "صف می‌گوید دقیقاً چه می‌کند: کدام مرحله، برای کدام صفحه و قسمت، با کدام مدل روی کدام دستگاه، و کلمه‌ها یا گام‌های تا الان.",
+        "en": "The queue says exactly what it is doing: which step, for which page and episode, with which model on which device, and the words or steps so far."
+      },
+      {
+        "fa": "Ollama با «محدودیتِ سکوت» فراخوانی می‌شود نه یک زمان ثابتِ ۶۰۰ ثانیه‌ای؛ خطاها یک خط فارسی دارند که می‌گوید چه باید کرد.",
+        "en": "Ollama is called with a silence limit instead of one fixed 600 second timeout; errors carry a plain Persian line that says what to do."
+      }
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-10-29",
+    "title": {
+      "fa": "پیدا کردنِ خودکارِ مدل‌های نصب‌شده",
+      "en": "Automatic discovery of installed models"
+    },
+    "items": [
+      {
+        "fa": "InstAI مدل‌های روی کامپیوتر را خودش پیدا می‌کند (ComfyUI، موتورهای صدای NMarketing، Piper، Ollama) و صفحهٔ «مدل‌ها» نشان می‌دهد چه چیزی کجاست و چه چیزی کم است.",
+        "en": "InstAI finds the models on the computer by itself (ComfyUI, NMarketing's voice engines, Piper, Ollama) and the Models page shows what is where and what is missing."
+      },
+      {
+        "fa": "مدل‌های اختیاری انیمه (AniSora، AnimeGen، Animagine) فقط بعد از تأییدِ شما با نمایشِ حجم و مجوز دانلود می‌شوند. ComfyUI در صورت نیاز خودکار روشن می‌شود.",
+        "en": "Optional anime models (AniSora, AnimeGen, Animagine) download only after your confirmation with the size and licence shown. ComfyUI is started automatically when needed."
+      }
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-10-28",
+    "title": {
+      "fa": "آزمایشگاه تولید: عروسک دوبعدی، صداها، دو کامپیوتر و خودکارسازی",
+      "en": "Production lab: 2D puppet, voices, two computers and automation"
+    },
+    "items": [
+      {
+        "fa": "عروسک دوبعدی با هماهنگیِ لب (Rhubarb)، نماهای مهم با Wan، بازسازیِ بخشی از ویدئو با اتصالِ نامرئی و مقایسهٔ مدل‌های انیمه.",
+        "en": "2D puppet with lip sync (Rhubarb), hero shots with Wan, re-making part of a video with an invisible seam and a comparison of anime models."
+      },
+      {
+        "fa": "همهٔ موتورهای صدا (MOSS، Piper، Pocket، Edge، افکت، موسیقی) با هشدارِ مجوز؛ کامپیوتر دوم (B) با کد جفت‌سازی و فقط درگاه کارگر روی شبکه.",
+        "en": "All voice engines (MOSS, Piper, Pocket, Edge, effects, music) with licence warnings; a second computer (B) with a pairing code and only the worker port on the network."
+      },
+      {
+        "fa": "سطح‌های خودکارسازی (دستی، نیمه‌خودکار، خودکار) با بودجهٔ هفتگی و بازه‌های رندر؛ هیچ چیز بدونِ تأییدِ شما منتشر نمی‌شود.",
+        "en": "Automation levels (manual, assisted, automatic) with a weekly budget and render windows; nothing is published without your approval."
+      }
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-10-28",
+    "title": {
+      "fa": "روندِ استودیو و رابطِ دوزبانه",
+      "en": "The studio workflow and the bilingual interface"
+    },
+    "items": [
+      {
+        "fa": "اتاق توسعه، تختهٔ ایده، پژوهشِ سریال واقعی، پیش‌تولید (فیلم‌نامه، استوری‌بورد، انیماتیک، طراحی، انتخاب صدا) و کتابخانهٔ سبک‌ها و تم‌ها؛ قالب‌ها داده‌اند نه کد.",
+        "en": "Development room, idea board, real-series research, pre-production (script, storyboard, animatic, design, casting) and a library of styles and themes; formats are data, not code."
+      },
+      {
+        "fa": "رابط فارسی (راست‌به‌چپ) و انگلیسی؛ هر متن در هر دو زبان وجود دارد.",
+        "en": "Persian (right to left) and English interface; every text exists in both languages."
+      }
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-10-28",
+    "title": {
+      "fa": "پایه: صفحه، سریال، قسمت، صف و مونتاژ",
+      "en": "Foundation: pages, series, episodes, queue and assembly"
+    },
+    "items": [
+      {
+        "fa": "ثبتِ پیج، سریال و قسمت با فیلم‌نامه و استوری‌بورد، صفِ کار با یک worker و نوبت‌دهِ کارت گرافیک، مونتاژِ ۹:۱۶ با زیرنویس فارسی و START.bat برای راه‌اندازیِ یک‌کلیکی.",
+        "en": "Pages, series and episodes with script and storyboard, a job queue with one worker and a graphics card arbiter, 9:16 assembly with Persian subtitles and a one-click START.bat."
+      }
+    ]
+  }
+]

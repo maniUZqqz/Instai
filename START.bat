@@ -1,5 +1,4 @@
 @echo off
-title InstAI
 rem ================================================================
 rem  InstAI - the ONLY file you need to run.
 rem  Double-click it. It checks and repairs the environment (Python, virtual
@@ -12,13 +11,16 @@ rem  Optional switches (environment variables): INSTAI_NO_BROWSER=1, INSTAI_NO_P
 rem  NOTE: this folder may contain spaces and parentheses; all paths below are relative on purpose.
 rem ================================================================
 cd /d "%~dp0"
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI v%IVER%
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 set "PIP_DISABLE_PIP_VERSION_CHECK=1"
 
 echo.
-echo  InstAI - starting
-echo  -----------------
+echo  InstAI v%IVER% - starting
+echo  ----------------------
 
 rem ---- 1. Python 3.10 - 3.13 --------------------------------------
 set "PY="
@@ -78,7 +80,7 @@ if errorlevel 2 goto open_browser
 :open_browser
 for /f "usebackq delims=" %%U in (`".venv\Scripts\python.exe" scripts\wait_ready.py --print-url`) do set "URL=%%U"
 echo.
-echo  [OK] InstAI is running at %URL%
+echo  [OK] InstAI v%IVER% is running at %URL%
 if not "%INSTAI_NO_BROWSER%"=="1" start "" "%URL%"
 echo  To stop it, run STOP.bat. You can close this window.
 if not "%INSTAI_NO_PAUSE%"=="1" timeout /t 8 >nul

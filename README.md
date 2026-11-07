@@ -97,6 +97,22 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 
 ---
 
+## صفِ پردازش، گزارش کامپیوترها، دانلودِ زمان‌بندی‌شده و شمارهٔ نسخه (فارسی)
+
+از نسخهٔ ۰٫۶٫۰. همه در منوی کنار صفحه هستند.
+
+**شمارهٔ نسخه.** گوشهٔ پایینِ همهٔ صفحه‌ها (مثل `v0.6.0`) و در عنوان پنجره‌های `START.bat` و `START-WORKER.bat`. با زدن روی آن صفحهٔ «چه چیزی تازه است» در زبانهٔ تازه باز می‌شود.
+
+**صفِ پردازش** (منو ← «صفِ پردازش»). کاری که برای کامپیوتر دوم (B)، Ollama، ComfyUI یا کارت گرافیک فرستاده شود و آن‌ها آماده نباشند **ناموفق نمی‌شود**: همان‌جا با دلیلِ انتظار می‌ماند («منتظر روشن شدن رایانهٔ B — از ۱۲ دقیقه پیش») و وقتی آماده شدند خودش انجام می‌شود. فقط خطای واقعی (بعد از چند بار تلاش) یا دکمهٔ «لغو» کار را تمام می‌کند. اگر B وسط کار خاموش شود هم از تلاش‌ها کم نمی‌شود. کنار ساعتِ بالای صفحه شمارهٔ کارهای منتظر نشان داده می‌شود.
+
+**گزارش کامپیوترها** (منو ← «گزارش کامپیوترها»). برای A و B: زمان‌های آنلاین و آفلاین، بار کارت گرافیک، حافظهٔ کارت (VRAM)، RAM و دیسک، تعدادِ کارهای موفق/ناموفق/لغوشده به تفکیکِ نوع، میانگین زمان اجرا و انتظار در صف، خطاها به زبان ساده با راه‌حل، لاگ‌ها با جست‌وجو، دانلودها، بازهٔ تاریخ (امروز، ۷ روز، ۳۰ روز، دلخواه) و دکمه‌های «گرفتن فایل اکسل (CSV)». نسخهٔ برنامهٔ B هم آن‌جا نوشته می‌شود و اگر از A قدیمی‌تر باشد هشدار می‌دهد.
+
+**دانلودها و زمان‌بندی** (منو ← «دانلودها و زمان‌بندی»). هر دانلودی (مدل‌ها، صداها، ffmpeg، مدل Ollama) را می‌شود «همین الان»، «در ساعتِ …» یا «در بازهٔ شبانه» (پیش‌فرض ۰۲:۰۰ تا ۰۷:۰۰ به وقتِ همان کامپیوتر) گذاشت، روی A یا روی B. دانلود هم منتظر ساعتش می‌ماند هم منتظر روشن بودن کامپیوتر مقصد؛ اگر بازه وسط دانلود تمام شود دانلود می‌ایستد و شب بعد از همان‌جا ادامه می‌دهد. همین انتخاب کنار دکمهٔ دانلودِ صفحه‌های «مدل‌ها» و «تنظیمات» هم هست.
+
+**به‌روزرسانیِ هر دو کامپیوتر.** پوشهٔ InstAI را تازه کنید (گیت‌هاب ← «Code ← Download ZIP» و فایل‌ها را روی پوشهٔ قبلی بریزید؛ پوشه‌های `data` و `.env` و `models` را دست نزنید). روی A دوباره `START.bat` و روی B دوباره `START-WORKER.bat` را بزنید. پایگاه داده خودش به‌روز می‌شود.
+
+---
+
 ## For developers (English)
 
 ```
@@ -121,6 +137,9 @@ instai/providers/ollama.py     streamed chat (idle timeout per silence, retry po
 instai/core/gpu_diag.py        GPU panel (live) + deep "why is the GPU not used" check; model_tests.py = the Test buttons of the Models page
 instai/jobs/describe.py        the queue's plain-language state of each job (step, target, model, device, live line); JobContext.live() feeds it
 instai/gpu/arbiter.py          one heavy GPU job at a time, unload/wait logic
+instai/ops/                    platform (0.6.0): report (sessions/samples/events, plain-language error explanations, CSV), queue page states, scheduled downloads, /api/version
+instai/core/dbretry.py         retry on SQLite "database is locked" (queue writes); jobs/queue.py `defer` = wait without failing (WAIT_CODES), jobs/schedule.py = night window
+VERSION, CHANGELOG.json        the ONE version file (read by settings, /api/version, the .bat windows, the worker agent) and the bilingual "what is new"
 instai/gpu/compute.py          routes GPU tasks to this PC or a paired worker PC (capability, VRAM, busy, speed); executors.py = the tasks
 instai/remote/agent.py         the worker agent of PC B (START-WORKER.bat); instai/lan.py = LAN listener (worker API only)
 instai/render/puppet/          2D puppet engine (rig, motions, lip-sync, parallax renderer); render/retake.py = time-range retake

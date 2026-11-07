@@ -1,5 +1,4 @@
 @echo off
-title InstAI - GPU test
 rem ================================================================
 rem  1) GPU CHECK: is the graphics card really used by Ollama and ComfyUI?
 rem     It prints a clear verdict:  VERDICT: GPU USED = YES / PARTLY / NO  and WHY.
@@ -11,6 +10,9 @@ rem  Note: in Task Manager the default GPU graph is "3D". AI work shows under "C
 rem  "Compute_0": click the title of a graph and pick it. Or just read the verdict here.
 rem ================================================================
 cd /d "%~dp0"
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI v%IVER% - GPU test
 set "PYTHONIOENCODING=utf-8"
 if not exist ".venv\Scripts\python.exe" (
   echo Run START.bat once first - it prepares everything.

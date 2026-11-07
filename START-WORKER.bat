@@ -1,5 +1,4 @@
 @echo off
-title InstAI worker (PC B)
 rem ================================================================
 rem  InstAI worker for the SECOND computer (PC B). Double-click it.
 rem  First run: it prepares Python and the packages, then asks ONCE for
@@ -9,6 +8,9 @@ rem  on THIS computer's GPU (ComfyUI / voice models must be set up here).
 rem  Console text is English on purpose (the Windows console garbles Persian).
 rem ================================================================
 cd /d "%~dp0"
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI worker (PC B) v%IVER%
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 set "PIP_DISABLE_PIP_VERSION_CHECK=1"
@@ -39,7 +41,7 @@ if errorlevel 1 goto fail
 if errorlevel 2 goto fail
 
 echo.
-echo  [OK] Starting the worker. Keep this window open (close it to stop the worker).
+echo  [OK] Starting the worker v%IVER%. Keep this window open (close it to stop the worker).
 :loop
 ".venv\Scripts\python.exe" -m instai.remote.agent
 echo.

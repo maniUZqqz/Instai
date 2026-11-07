@@ -1,5 +1,4 @@
 @echo off
-title InstAI - download models and tools
 rem ================================================================
 rem  InstAI - downloads the models and tools InstAI can use.
 rem  Safe to run again: finished files are skipped, broken downloads continue
@@ -14,6 +13,9 @@ rem  The optional packs can also be installed from a button in Settings.
 rem  Log: data\logs\download-models.log
 rem ================================================================
 cd /d "%~dp0"
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI v%IVER% - download models and tools
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 set "PY="
