@@ -9,6 +9,7 @@ import { Icon, type IconName } from './Icon'
 import { Link, NavLink, Progress, Button } from './ui'
 import { LabNavLink } from '../lab/LabNavLink'
 import { NotificationBell } from '../lab/NotificationBell'
+import { QueueBadge } from '../ops/QueueBadge'
 
 // ---------------------------------------------------------------- app-wide facts (demo mode)
 interface AppCtx {
@@ -109,6 +110,9 @@ const NAV: { to: string; key: Parameters<ReturnType<typeof useI18n>['t']>[0]; ic
   { to: '/pages', key: 'nav.pages', icon: 'pages' },
   { to: '/library', key: 'nav.library', icon: 'palette' },
   { to: '/monitor', key: 'nav.monitor', icon: 'monitor' },
+  { to: '/queue', key: 'ops.nav.queue', icon: 'list' },
+  { to: '/report', key: 'ops.nav.report', icon: 'system' },
+  { to: '/downloads', key: 'ops.nav.downloads', icon: 'download' },
   { to: '/publishing', key: 'nav.publishing', icon: 'publish' },
   { to: '/system', key: 'nav.system', icon: 'system' },
   { to: '/models', key: 'nav.models', icon: 'layers' },
@@ -174,6 +178,7 @@ export function Shell() {
           <header className="topbar">
             <Button className="menu-btn" variant="ghost" iconOnly icon={open ? 'close' : 'menu'} aria-label={t('shell.menu')} aria-expanded={open} onClick={() => setOpen((o) => !o)} />
             <div className="spacer" />
+            <QueueBadge />
             <JobIndicator />
             <NotificationBell />
             <Button variant="ghost" size="sm" onClick={() => setLang(lang === 'fa' ? 'en' : 'fa')} aria-label={t('shell.lang_switch')} title={t('shell.lang_switch')}>

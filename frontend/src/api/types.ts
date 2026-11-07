@@ -52,6 +52,13 @@ export interface Job {
   live?: Record<string, any>
   /** always sent by the API now; optional here so an old cached payload still type-checks */
   activity?: JobActivity
+  /** platform queue (0.6.0) */
+  window?: string
+  wait_code?: string
+  waiting_since?: string | null
+  deferrals?: number
+  node?: string
+  run_after?: string | null
 }
 
 export type EpisodeState =

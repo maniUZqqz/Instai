@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Monitor, ModelRow, ModelsPayload, PackageInfo, SettingsPayload } from '../api/types'
-import { useConfirm } from '../components/feedback'
+import { useConfirm, useToast } from '../components/feedback'
 import { JobView } from '../components/domain'
 import { useApp } from '../components/Shell'
 import { Async, Badge, Button, Card, CardSkeletons, ChoiceGrid, Link, Notice, PageHead, SelectField, SwitchField, TextField, type Tone } from '../components/ui'
 import { useFormats } from '../formats'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { ScheduleField } from '../ops/ScheduleField'
+import type { When } from '../ops/types'
 
 type Values = Record<string, string>
 
@@ -220,11 +222,29 @@ function ModelsSection() {
   const q = useQuery<ModelsPayload>('/models')
   const runner = useJobRunner({ onFinished: () => q.reload() })
   const [installing, setInstalling] = useState<string | null>(null)
+  const when = useRef<When>({ mode: 'now' })
+  const toast = useToast()
   const install = async (pkg: string, info?: PackageInfo) => {
     const size = info?.size ? f.bytes(info.size) : ''
-    if (!(await confirm({ message: t('set.install_confirm', { size }), confirmLabel: t('set.install') }))) return
+    when.current = { mode: 'now' }
+    const msg = (
+      <div className="stack-sm">
+        <div>{t('set.install_confirm', { size })}</div>
+        <ScheduleField onChange={(w) => { when.current = w }} />
+      </div>
+    )
+    if (!(await confirm({ message: msg, confirmLabel: t('set.install') }))) return
     setInstalling(pkg)
-    runner.start(() => api.post('/downloads', { packages: [pkg] }))
+    if (when.current.mode === 'now') {
+      runner.start(() => api.post('/downloads', { packages: [pkg], when: when.current }))
+    } else {
+      try {
+        await api.post('/downloads', { packages: [pkg], when: when.current })
+        toast.ok(t('ops.dl.added'))
+      } catch (e) {
+        toast.err(String((e as Error).message))
+      }
+    }
   }
   return (
     <Card title={t('set.models_title')} actions={<><Link to="/models" className="btn sm">{t('nav.models')}</Link><Button size="sm" icon="refresh" onClick={q.reload}>{t('common.refresh')}</Button></>}>

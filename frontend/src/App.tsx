@@ -17,6 +17,11 @@ import PublishingCentre, { PublishingTab } from './pages/workspace/Publishing'
 import { ProfilesTab } from './pages/workspace/ProfilesTab'
 import { EpisodesTab, HistoryTab, Overview, SeriesTab, Workspace } from './pages/workspace/Workspace'
 import { labRoutes } from './lab/routes'
+import { VersionBadge } from './components/VersionBadge'
+import QueuePage from './ops/Queue'
+import ReportPage from './ops/Report'
+import DownloadsPage from './ops/Downloads'
+import WhatsNew from './ops/WhatsNew'
 
 function NotFound() {
   const { t } = useI18n()
@@ -36,6 +41,7 @@ function NotFound() {
 
 export default function App() {
   return (
+    <>
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Dashboard />} />
@@ -58,9 +64,15 @@ export default function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="system" element={<System />} />
         <Route path="models" element={<Models />} />
+        <Route path="queue" element={<QueuePage />} />
+        <Route path="report" element={<ReportPage />} />
+        <Route path="downloads" element={<DownloadsPage />} />
+        <Route path="whats-new" element={<WhatsNew />} />
         {labRoutes}
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
+    <VersionBadge />
+    </>
   )
 }

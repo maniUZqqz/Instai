@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { LoadedModel } from '../api/types'
 import { JobView } from '../components/domain'
@@ -8,6 +8,8 @@ import { ModelTestGate, TestButton, useModelTest } from '../components/ModelTest
 import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ExtLink, Notice, PageHead, TextField, type Tone } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { ScheduleField } from '../ops/ScheduleField'
+import type { When } from '../ops/types'
 
 // ---------------------------------------------------------------- what GET /api/models/found returns (instai/core/model_status.py)
 interface ComfyInstall {
@@ -423,7 +425,10 @@ function OffersCard({ m, onFinished }: { m: ModelsFound; onFinished: () => void 
   const confirm = useConfirm()
   const [current, setCurrent] = useState<Offer | null>(null)
   const runner = useJobRunner({ onFinished })
+  const toast = useToast()
+  const when = useRef<When>({ mode: 'now' })
   const download = async (o: Offer) => {
+    when.current = { mode: 'now' }
     const parts = o.needs.filter((n) => !n.complete)
     const tooBig = m.free_gb != null && o.missing_size > m.free_gb * 1e9
     const ok = await confirm({
@@ -444,12 +449,22 @@ function OffersCard({ m, onFinished }: { m: ModelsFound; onFinished: () => void 
           )}
           {tooBig && <Notice tone="err">{t('mdl.no_space', { n: f.num(m.free_gb ?? 0, 1) })}</Notice>}
           <div className="small muted">{t('mdl.confirm_note')}</div>
+          <ScheduleField onChange={(w) => { when.current = w }} />
         </div>
       ),
     })
     if (!ok) return
     setCurrent(o)
-    runner.start(() => api.post(`/models/offers/${o.id}/download`, { confirm: true }))
+    if (when.current.mode === 'now') {
+      runner.start(() => api.post(`/models/offers/${o.id}/download`, { confirm: true, when: when.current }))
+    } else {   // a download for later is not "running": it must not keep the other buttons busy for hours
+      try {
+        await api.post(`/models/offers/${o.id}/download`, { confirm: true, when: when.current })
+        toast.ok(t('ops.dl.added'))
+      } catch (e) {
+        toast.err(String((e as Error).message))
+      }
+    }
   }
   if (m.offers.length === 0) return null
   return (
