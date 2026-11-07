@@ -169,7 +169,7 @@ def reap_expired() -> int:
     n = 0
     for t in RemoteTask.objects.filter(status=RemoteTask.RUNNING, lease_expires__lt=now):
         RemoteTask.objects.filter(pk=t.pk, status=RemoteTask.RUNNING).update(status=RemoteTask.FAILED, error="worker stopped sending heartbeats", retryable=True,
-                                                                         finished_at=now, lease_expires=None)
+                                                                         error_code="worker_lost", finished_at=now, lease_expires=None)
         WorkerNode.objects.filter(pk=t.worker_id, current_task=t.pk).update(current_task=None)
         n += 1
     return n

@@ -116,6 +116,39 @@ def record_speed(device: str, worker_id: int | None, key: str, seconds: float) -
             WorkerNode.objects.filter(pk=w.pk).update(measured=m)
 
 
+_DEVICE_LOCK = threading.Lock()
+
+
+def _note_device(ctx, device: str, seconds: float) -> None:
+    """Remember on the job which computer did how many seconds of its GPU work (the report's per-computer numbers). Never raises."""
+    try:
+        from instai.jobs.models import Job
+
+        pk = ctx.job.pk
+        with _DEVICE_LOCK:
+            row = dict(Job.objects.filter(pk=pk).values_list("devices", flat=True).first() or {})
+            row[device] = round(float(row.get(device, 0)) + max(0.0, seconds), 2)
+            top = max(row, key=lambda k: row[k])
+            Job.objects.filter(pk=pk).update(devices=row, node="" if top == LOCAL else top)
+    except Exception:  # noqa: BLE001 - accounting must never break the work
+        log.debug("could not note the device", exc_info=True)
+
+
+def waiting_workers(needs: list[str], vram_mb: int) -> list:
+    """Paired, enabled worker PCs that could do this task but are offline right now (judged by what they reported the last time they were
+    online). The job waits for them instead of failing."""
+    from instai.jobs.models import WorkerNode
+
+    out = []
+    for w in WorkerNode.objects.filter(enabled=True):
+        if not all(n in (w.capabilities or []) for n in needs):
+            continue
+        if vram_mb and w.vram_total_mb and w.vram_total_mb < vram_mb:
+            continue
+        out.append(w)
+    return [w for w in out if not (w.last_seen and (timezone.now() - w.last_seen).total_seconds() < ONLINE_SECONDS)]
+
+
 def online_workers():
     from instai.jobs.models import WorkerNode
 
@@ -227,7 +260,15 @@ def _run_remote(ctx, cand: Candidate, kind: str, payload: dict, inputs: dict[str
                     from instai.jobs.context import JobCancelled
 
                     raise JobCancelled()
+                if t.error_code == "worker_lost":      # the worker vanished mid-task (not the task's fault): the job waits, no attempt is used
+                    raise ProviderError(f"worker {cand.name} stopped sending heartbeats", retryable=True, code="worker_lost")
                 raise ProviderError(t.error or f"worker {cand.name} could not do the task", retryable=t.retryable, code="worker_failed")
+            if t.status == RemoteTask.QUEUED and queue.is_cancel_requested(ctx.job.pk):
+                # nobody has taken it (the worker PC is off or busy): cancelling needs no answer from that PC
+                if RemoteTask.objects.filter(pk=t.pk, status=RemoteTask.QUEUED).update(status=RemoteTask.CANCELLED, cancel_requested=True, finished_at=timezone.now()):
+                    from instai.jobs.context import JobCancelled
+
+                    raise JobCancelled()
             if t.status == RemoteTask.RUNNING:
                 ctx.progress(t.progress, f"{cand.name}: {t.progress_text}"[:120])
             else:
@@ -248,7 +289,9 @@ def _run_remote(ctx, cand: Candidate, kind: str, payload: dict, inputs: dict[str
             if not cancel_sent:
                 ctx.check()
     except BaseException:
-        RemoteTask.objects.filter(pk=t.pk, status__in=(RemoteTask.QUEUED, RemoteTask.RUNNING)).update(cancel_requested=True)
+        # a task nobody took is simply closed (a pinned, unclaimed row would stay "queued" for ever); one a worker runs is asked to stop
+        RemoteTask.objects.filter(pk=t.pk, status=RemoteTask.QUEUED).update(status=RemoteTask.CANCELLED, cancel_requested=True, finished_at=timezone.now())
+        RemoteTask.objects.filter(pk=t.pk, status=RemoteTask.RUNNING).update(cancel_requested=True)
         raise
     secs = t.seconds or (time.time() - t0)
     ctx.add_gpu_seconds(secs)                                        # GPU time of a worker counts against the job (and the weekly budget)
@@ -265,6 +308,7 @@ def run_task(ctx, kind: str, payload: dict, inputs: dict[str, Path] | None = Non
     needs = capabilities.needs_for(kind, payload) if needs is None else needs
     vram = capabilities.vram_for(kind, payload) if vram_mb is None else vram_mb
     tried: list[str] = []
+    last_wait_code = ""
     t_wait = time.time()
     while True:
         ctx.check()
@@ -274,9 +318,16 @@ def run_task(ctx, kind: str, payload: dict, inputs: dict[str, Path] | None = Non
             if pick is not None:
                 _RESERVED[pick.name] = _RESERVED.get(pick.name, 0) + 1
         if not cands:
+            gone = waiting_workers(needs, vram) if remote_ok else []
+            if gone:                                  # a paired PC that can do it is off: wait for it, never fail because of that
+                names = "، ".join(w.name for w in gone)
+                raise ProviderError(f"waiting for worker PC {', '.join(w.name for w in gone)} (offline)", retryable=True, code="worker_offline",
+                                    fa=f"رایانهٔ «{names}» خاموش یا بدون ارتباط است؛ کار می‌ماند و همین که روشن شد خودش انجام می‌شود.")
             if not tried:
                 raise ProviderError("No PC can run this task (missing: " + ", ".join(needs or [kind]) + "). Check ComfyUI / the voice models on this PC or the worker.",
                                     retryable=False, code="not_ready")
+            if last_wait_code:                        # the worker did not answer (not a real task error) and nothing else can do it: wait
+                raise ProviderError("The worker did not answer and this PC cannot do the task itself.", retryable=True, code=last_wait_code)
             raise ProviderError("The worker failed and this PC cannot do the task itself.", retryable=True, code="worker_failed")
         if pick is None:
             ctx.waiting("waiting for a free GPU (" + ", ".join(c.name for c in cands) + " busy)")
@@ -301,8 +352,10 @@ def run_task(ctx, kind: str, payload: dict, inputs: dict[str, Path] | None = Non
             log.warning("worker %s failed (%s); trying another device", pick.name, e)
             ctx.log(f"worker {pick.name} failed ({str(e)[:160]}); trying another device", "warning")
             tried.append(pick.name)
+            last_wait_code = e.code if e.code in ("worker_offline", "worker_lost") else ""
             continue
         record_speed(res.device, pick.worker_id, key, res.seconds)
+        _note_device(ctx, res.device, res.seconds)
         res.attempts = tried
         return res
 

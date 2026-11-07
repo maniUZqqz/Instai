@@ -11,7 +11,7 @@ from .envfile import BASE_DIR, ENV_PATH, load_env, write_env_value
 
 load_env()
 
-VERSION = "0.1.0"
+from .version import VERSION  # noqa: E402  (the VERSION file at the project root is the single source)
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "instai.jobs",
     "instai.publishing",
     "instai.production",
+    "instai.ops",
 ]
 
 MIDDLEWARE = [

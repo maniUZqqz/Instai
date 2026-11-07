@@ -32,6 +32,16 @@ class Job(models.Model):
     error_code = models.CharField(max_length=40, blank=True, default="")
     waiting_reason = models.CharField(max_length=200, blank=True, default="")  # e.g. "GPU busy: another program uses 8.1 GB"
     live = models.JSONField(default=dict, blank=True)    # what the job is doing right now: phase, model, device, tokens, step (see jobs/describe.py)
+    # platform queue (0.6.0): waiting is not failing
+    window = models.CharField(max_length=11, blank=True, default="")   # "02:00-07:00": claimed only inside this local-time window (scheduled downloads)
+    ready_at = models.DateTimeField(null=True, blank=True)             # the first moment the job was allowed to start (queue wait = first_started_at - ready_at)
+    first_started_at = models.DateTimeField(null=True, blank=True)
+    waiting_since = models.DateTimeField(null=True, blank=True)        # since when the job waits for a computer / service (see wait_code)
+    wait_code = models.CharField(max_length=40, blank=True, default="")   # worker_offline | worker_lost | ollama_down | comfy_down | gpu_busy | window | scheduled
+    deferrals = models.IntegerField(default=0)                         # how many times it went back to the queue to wait (never counts as an attempt)
+    lost_count = models.IntegerField(default=0)                        # how many times the worker process died while it ran (also not an attempt, up to a limit)
+    node = models.CharField(max_length=80, blank=True, default="")     # the computer that did the GPU work ("" = this PC, or no GPU work)
+    devices = models.JSONField(default=dict, blank=True)               # {computer name: GPU seconds} (this PC is "local")
     # accounting
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
@@ -129,6 +139,7 @@ class RemoteTask(models.Model):
     progress_text = models.CharField(max_length=300, blank=True, default="")
     result = models.JSONField(default=dict, blank=True)
     error = models.TextField(blank=True, default="")
+    error_code = models.CharField(max_length=40, blank=True, default="")   # "worker_lost": the worker vanished (not the task's fault)
     retryable = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)

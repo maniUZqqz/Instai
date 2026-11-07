@@ -7,7 +7,7 @@ from __future__ import annotations
 
 TASK_NEEDS = {"voice.tts": lambda p: [f"voice:{p.get('engine')}"] if p.get("engine") in ("moss", "piper", "pocket") else [],
               "voice.sfx": lambda p: ["voice:sfx"], "voice.music": lambda p: ["voice:music"],
-              "comfy.graph": lambda p: [f"comfy:{p['workflow']}"] if p.get("workflow") else [], "bench.node": lambda p: []}
+              "comfy.graph": lambda p: [f"comfy:{p['workflow']}"] if p.get("workflow") else [], "bench.node": lambda p: [], "download.pack": lambda p: ["downloads"]}
 # free VRAM a task needs before it may start on a PC (MB); 0 = no GPU needed
 VRAM_NEED = {"comfy": 10500, "moss": 9500, "sfx": 8000, "music": 7000, "piper": 0, "pocket": 0}
 
@@ -17,7 +17,7 @@ def local_capabilities(refresh: bool = False) -> dict:
     from instai.providers.audio import services
     from instai.providers.tts import MossTTS, PiperTTS, PocketTTS
 
-    caps: list[str] = []
+    caps: list[str] = ["downloads"]            # every PC with the downloader can fetch models for itself (scripts/download_models.py)
     gpu = hardware.gpu_status()
     if gpu:
         caps.append("gpu")

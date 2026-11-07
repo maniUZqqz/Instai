@@ -18,7 +18,7 @@ from django.utils import timezone
 from instai.providers.base import ProviderError
 
 from . import queue
-from .context import JobCancelled, JobContext, JobTimeout, set_current
+from .context import JobCancelled, JobContext, JobDeferred, JobTimeout, set_current
 from .models import Job, Worker
 from .registry import HANDLERS, load_handlers
 
@@ -30,6 +30,7 @@ def execute(job: Job, worker: str = "inline") -> str:
     """Run one claimed job to its end state. Returns the resulting status. Never raises."""
     load_handlers()
     ctx = JobContext(job, worker, LEASE_SEC)
+    started_ts = time.time()
     fn = HANDLERS.get(job.kind)
     stop = threading.Event()
 
@@ -48,7 +49,7 @@ def execute(job: Job, worker: str = "inline") -> str:
     try:
         if fn is None:
             return queue.fail(job, f"no handler for job kind {job.kind}", retryable=False, code="no_handler")
-        queue.log_job(job, f"started (attempt {job.attempts}/{job.max_attempts}) by {worker}")
+        queue.log_job(job, f"started (attempt {job.attempts}/{job.max_attempts}) by {worker}", dedupe=True)
         ctx.check()
         result = fn(ctx) or {}
         queue.complete(job, result, ctx.gpu_seconds)
@@ -62,7 +63,13 @@ def execute(job: Job, worker: str = "inline") -> str:
         return Job.CANCELLED
     except JobTimeout as e:
         return queue.fail(job, str(e), retryable=True, code="timeout")
+    except JobDeferred as e:                # planned pause (the night window closed) or a wait the handler asked for
+        return queue.defer(job, e.reason, e.code, run_after=e.run_after, count=e.count)
     except ProviderError as e:
+        wcode = queue.wait_code_of(e)
+        if wcode:                           # a computer / service is not there (yet): wait, do not fail (queue.py)
+            since = None if time.time() - started_ts > 120 else job.waiting_since   # long real work before the wait: a new wait
+            return queue.defer(job, queue.wait_reason_text(wcode, e.fa), wcode, since=since)
         return queue.fail(job, e.user_text(), retryable=e.retryable, code=e.code)
     except Exception as e:  # noqa: BLE001 - a handler bug must not kill the worker
         from instai.agents.runner import AgentError
@@ -162,6 +169,13 @@ class WorkerRunner:
                                                                                                "gpu_lanes": self.gpu_lanes})
         running = list(Job.objects.filter(lease_owner=self.name, status=Job.RUNNING).values_list("pk", flat=True))
         Worker.objects.filter(pk=row.pk).update(current_jobs=running)
+        try:                  # the report: this PC is online (session), resource sample about once a minute
+            from instai.ops import report
+            from instai.version import read_version
+
+            report.record_heartbeat(report.LOCAL, stats_fn=report.local_stats, version=read_version(), info={"host": socket.gethostname()})
+        except Exception:  # noqa: BLE001
+            log.debug("report heartbeat failed", exc_info=True)
 
     def _automation_tick(self) -> None:
         try:
@@ -171,6 +185,9 @@ class WorkerRunner:
             workers.reap_expired()
             automation.tick()
             automation.check_worker_health()
+            from instai.ops import report
+
+            report.maintain()                                   # close silent sessions, thin and delete old report rows (at most every 10 minutes)
         except Exception:  # noqa: BLE001 - automation must never take the worker down
             log.exception("automation tick failed")
 
@@ -190,7 +207,9 @@ class WorkerRunner:
 
     def run_forever(self) -> None:
         load_handlers()
-        log.info("worker %s starting: %d cpu lanes, %d gpu lane(s)", self.name, self.cpu_lanes, self.gpu_lanes)
+        from instai.version import read_version
+
+        log.info("InstAI worker v%s %s starting: %d cpu lanes, %d gpu lane(s)", read_version(), self.name, self.cpu_lanes, self.gpu_lanes)
         reaped = queue.reap_expired()
         if reaped:
             log.info("re-queued %d job(s) left by a previous worker", reaped)

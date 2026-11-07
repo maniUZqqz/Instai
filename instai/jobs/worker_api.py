@@ -23,12 +23,33 @@ from django.urls import path
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+import functools
+
+from django.db import OperationalError
+
+from instai.core.dbretry import call_with_retry, is_lock_error
 from instai.gpu.compute import task_dir
 
 from . import workers
 from .models import RemoteTask, WorkerNode
 
 MAX_UPLOAD = 4 * 1024 ** 3
+
+
+def lock_safe(view):
+    """A view that hits "database is locked" even after the retries answers 503 + Retry-After (not 500): the worker agent treats that as
+    "try again", so a busy database never fails or loses a worker's task."""
+    @functools.wraps(view)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return call_with_retry(view, request, *args, _tries=3, _what=view.__name__, **kwargs)
+        except OperationalError as e:
+            if not is_lock_error(e):
+                raise
+            resp = JsonResponse({"error": {"code": "busy", "message": "The main PC's database is busy; try again in a few seconds."}}, status=503)
+            resp["Retry-After"] = "5"
+            return resp
+    return wrapper
 
 
 def _client(request) -> str:
@@ -76,17 +97,33 @@ def pair(request):
     return JsonResponse({"token": token, "worker": {"id": w.pk, "name": w.name}, "protocol": workers.PROTOCOL})
 
 
+def _record(w: WorkerNode, data: dict) -> None:
+    """Report bookkeeping of a hello (online session, resource sample, the agent's own log lines). Never raises."""
+    from instai.ops import report
+
+    info = data.get("info") if isinstance(data.get("info"), dict) else {}
+    stats = data.get("stats") if isinstance(data.get("stats"), dict) else None
+    report.record_heartbeat(w.name, stats=stats, version=str(info.get("instai") or "")[:20],
+                            info={k: str(info[k])[:80] for k in ("gpu_name", "host", "os", "agent") if info.get(k)})
+    if isinstance(data.get("log"), list):
+        report.store_agent_log(w.name, data["log"])
+
+
 @csrf_exempt
+@lock_safe
 def hello(request):
     w, err = _auth(request)
     if err:
         return err
-    workers.hello(w, _json(request), _client(request))
+    data = _json(request)
+    workers.hello(w, data, _client(request))
     workers.reap_expired()
+    _record(w, data)
     return JsonResponse({"protocol": workers.PROTOCOL, "worker": {"id": w.pk, "name": w.name}, "time": time.time()})
 
 
 @csrf_exempt
+@lock_safe
 def claim(request):
     w, err = _auth(request)
     if err:
@@ -97,6 +134,9 @@ def claim(request):
         if isinstance(d.get("caps"), list):
             WorkerNode.objects.filter(pk=w.pk).update(capabilities=[str(c)[:60] for c in d["caps"]][:80])
         w.refresh_from_db()
+    from instai.ops import report
+
+    report.record_heartbeat(w.name)                           # this PC is alive (the session row is touched at most every 10 s)
     deadline = time.time() + max(0.0, min(20.0, float(d.get("wait") or 0)))
     while True:
         workers.reap_expired()
@@ -133,6 +173,7 @@ def task_input(request, pk: int, name: str):
 
 
 @csrf_exempt
+@lock_safe
 def task_progress(request, pk: int):
     w, t, err = _task(request, pk)
     if err:
@@ -177,6 +218,7 @@ def task_output(request, pk: int, name: str):
 
 
 @csrf_exempt
+@lock_safe
 def task_finish(request, pk: int):
     w, t, err = _task(request, pk)
     if err:

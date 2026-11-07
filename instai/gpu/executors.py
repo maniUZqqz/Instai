@@ -24,7 +24,7 @@ from typing import Callable
 from instai.core import runtime
 from instai.providers.base import ProviderError
 
-OCCUPANT = {"comfy.graph": "comfy", "voice.tts": "voice", "voice.sfx": "voice", "voice.music": "voice", "bench.node": "comfy"}
+OCCUPANT = {"comfy.graph": "comfy", "voice.tts": "voice", "voice.sfx": "voice", "voice.music": "voice", "bench.node": "comfy", "download.pack": None}   # None: no GPU
 IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
 INPUT_REF = re.compile(r"^@input:(.+)$")
 
@@ -215,8 +215,60 @@ def run_bench_node(payload: dict, io: TaskIO) -> dict:
     return out
 
 
+_PCT = re.compile(r"(\d+(?:\.\d+)?)%")
+
+
+def run_download(payload: dict, io: TaskIO) -> dict:
+    """`download.pack`: fetch model packages/items on THIS PC (the worker PC) with the same downloader as Download-Models.bat
+    (resumable, verified). Stopping it (cancel, or the main PC's night window closing) kills the process; the next run continues from the
+    partial files. payload: {packages: [ids], mirror}"""
+    import subprocess
+    import sys
+
+    from instai.core import runtime as rt
+
+    ids = [p for p in payload.get("packages", []) if isinstance(p, str) and re.fullmatch(r"[\w.:-]+", p)]
+    if not ids:
+        return {"installed": []}
+    root = Path(__file__).resolve().parents[2]
+    cmd = [sys.executable, str(root / "scripts" / "download_models.py"), "--only", ",".join(ids), "--yes"]
+    io.progress(0.01, "starting the downloader")
+    p = subprocess.Popen(cmd, cwd=str(root), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
+                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    tail: list[str] = []
+
+    def reader():
+        for line in p.stdout:  # type: ignore[union-attr]
+            line = line.rstrip()
+            if not line:
+                continue
+            tail.append(line)
+            del tail[:-30]
+            m = _PCT.search(line)
+            if m:
+                io.progress(min(0.99, float(m.group(1)) / 100), line.strip()[:120])
+    import threading
+
+    t = threading.Thread(target=reader, daemon=True)
+    t.start()
+    try:
+        while p.poll() is None:
+            time.sleep(0.5)
+            if io.cancelled():
+                raise TaskCancelled()
+    except BaseException:
+        p.kill()
+        raise
+    finally:
+        t.join(timeout=2)
+    if p.returncode != 0:
+        raise ProviderError("the download did not finish: " + " | ".join(tail[-3:])[:300], retryable=True, code="download_failed",
+                            fa="دانلود روی این رایانه کامل نشد؛ دوباره امتحان کنید (ادامه از همان‌جا).")
+    return {"installed": ids}
+
+
 EXECUTORS: dict[str, Callable[[dict, TaskIO], dict]] = {"comfy.graph": run_comfy_graph, "voice.tts": run_voice_tts, "voice.sfx": run_voice_sfx,
-                                                         "voice.music": run_voice_music, "bench.node": run_bench_node}
+                                                         "voice.music": run_voice_music, "bench.node": run_bench_node, "download.pack": run_download}
 
 
 def run(kind: str, payload: dict, io: TaskIO) -> dict:

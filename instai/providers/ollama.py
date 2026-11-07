@@ -433,6 +433,46 @@ class OllamaProvider(TextProvider):
         except Exception:  # noqa: BLE001
             return []
 
+    def pull(self, model: str, on_progress=None, should_stop=None) -> dict:
+        """Download a model into Ollama (its own /api/pull, streamed). Ollama keeps the finished parts of a stopped pull, so a pull that is
+        stopped (`should_stop()` -> True, e.g. the night window closed) continues where it was the next time. `on_progress(fraction, text)`.
+        Returns {"status": "success"}. A refused connection is `ollama_down` (the job waits for Ollama)."""
+        try:
+            r = requests.post(self.base_url + "/api/pull", json={"model": model, "name": model, "stream": True}, stream=True, timeout=(5, 120))
+        except requests.RequestException as e:
+            raise ProviderError(f"Ollama is not reachable at {self.base_url}: {type(e).__name__}", code="ollama_down",
+                                fa=f"InstAI به Ollama وصل نشد ({self.base_url}). مطمئن شوید برنامهٔ Ollama روشن است.") from None
+        try:
+            if r.status_code != 200:
+                raise ProviderError(f"Ollama could not pull {model} (HTTP {r.status_code}): {r.text[:200]}", retryable=r.status_code >= 500, code="pull_failed",
+                                    fa=f"Ollama مدل «{model}» را نگرفت. نام مدل را بررسی کنید.")
+            last = {"status": ""}
+            for line in r.iter_lines():
+                if should_stop and should_stop():
+                    return {"status": "stopped"}
+                if not line:
+                    continue
+                try:
+                    last = json.loads(line)
+                except ValueError:
+                    continue
+                if last.get("error"):
+                    raise ProviderError(f"Ollama pull error: {last['error']}", retryable=False, code="pull_failed", fa=f"Ollama مدل «{model}» را نگرفت: {last['error'][:120]}")
+                total, done = last.get("total"), last.get("completed")
+                if on_progress and total:
+                    on_progress(min(1.0, (done or 0) / total), str(last.get("status") or "")[:100])
+                elif on_progress:
+                    on_progress(0.0, str(last.get("status") or "")[:100])
+            if last.get("status") != "success":
+                raise ProviderError(f"Ollama pull of {model} ended without success ({last.get('status')})", code="pull_failed",
+                                    fa="دانلود مدل کامل نشد؛ دوباره امتحان کنید (از همان‌جا ادامه می‌یابد).")
+            return last
+        except requests.RequestException as e:
+            raise ProviderError(f"Ollama connection lost while pulling {model}: {type(e).__name__}", code="pull_failed",
+                                fa="ارتباط با Ollama وسط دانلود قطع شد؛ دوباره امتحان می‌شود (از همان‌جا ادامه می‌یابد).") from None
+        finally:
+            r.close()
+
     def unload(self, keep: str | None = None) -> None:
         """keep_alive 0 for every loaded model except `keep` (frees VRAM for ComfyUI / voice models / another LLM)."""
         for name in self.loaded_models():

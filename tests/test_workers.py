@@ -359,7 +359,8 @@ def test_both_gpus_work_at_the_same_time(pc_b, tmp_path):
 
 
 def test_a_killed_worker_does_not_lose_the_task(pc_b):
-    """The worker process dies while a task runs: the lease expires, the task fails (retryable) and, with no other device, the job gets a clear error."""
+    """The worker process dies while a task runs: the lease expires, the task fails (retryable, "worker_lost") and, with no other device, the job
+    WAITS for that worker (0.6.0: it is not an error of the job; before it failed with `worker_failed`)."""
     from instai.gpu import compute
     from instai.jobs.models import RemoteTask
     from instai.providers.base import ProviderError
@@ -387,5 +388,8 @@ def test_a_killed_worker_does_not_lose_the_task(pc_b):
 
     workers.reap_expired()
     th.join(60)
-    assert err and err[0].code in ("worker_failed", "not_ready"), err
-    assert RemoteTask.objects.get().status == "failed"
+    assert err and err[0].code in ("worker_offline", "worker_lost"), err          # a wait-class error: the queue keeps the job, it does not fail
+    from instai.jobs import queue
+
+    assert queue.wait_code_of(err[0]) == err[0].code
+    assert RemoteTask.objects.get().status == "failed" and RemoteTask.objects.get().error_code == "worker_lost"

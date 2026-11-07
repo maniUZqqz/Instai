@@ -12,11 +12,14 @@ class ProviderError(Exception):
     `fa` is an optional plain-Persian explanation that says what to do; the job shows it first and keeps the English technical
     text below it (see `user_text`)."""
 
-    def __init__(self, message: str, *, retryable: bool = True, code: str = "provider_unavailable", fa: str = ""):
+    def __init__(self, message: str, *, retryable: bool = True, code: str = "provider_unavailable", fa: str = "", wait: str = ""):
         super().__init__(message)
         self.retryable = retryable
         self.code = code
         self.fa = fa
+        # `wait` (e.g. "comfy_down") says: this is not a real failure, a computer / service is just not there yet - the job WAITS
+        # for it instead of failing (jobs/queue.py WAIT_CODES). `code` stays what it was, so callers and tests that read it do not change.
+        self.wait = wait
 
     def user_text(self) -> str:
         """Persian line first (when there is one), then the English technical text: what a failed job stores."""

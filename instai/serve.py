@@ -17,7 +17,7 @@ def main() -> None:
     call_command("migrate", interactive=False, verbosity=0)
     from instai.wsgi import application
 
-    print(f"InstAI is running on http://{settings.HOST}:{settings.PORT}/  (Ctrl+C to stop)", flush=True)
+    print(f"InstAI v{settings.VERSION} is running on http://{settings.HOST}:{settings.PORT}/  (Ctrl+C to stop)", flush=True)
     serve(application, host=settings.HOST, port=settings.PORT, threads=8, ident="instai")
 
 

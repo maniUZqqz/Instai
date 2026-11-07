@@ -22,7 +22,7 @@ class JobSerializer(serializers.ModelSerializer):
         fields = ["id", "kind", "resource", "title", "status", "payload", "result", "progress", "progress_text", "priority", "attempts",
                   "max_attempts", "run_after", "timeout_sec", "cancel_requested", "error", "error_code", "waiting_reason", "created_at",
                   "started_at", "finished_at", "duration_sec", "gpu_seconds", "estimated_sec", "page", "episode", "parent", "idempotency_key",
-                  "live", "activity"]
+                  "live", "activity", "window", "ready_at", "first_started_at", "waiting_since", "wait_code", "deferrals", "node"]
 
     def get_activity(self, job: Job) -> dict:
         from .describe import activity

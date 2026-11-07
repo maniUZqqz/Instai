@@ -160,15 +160,16 @@ def models_view(request):
 
 @api_view(["POST"])
 def downloads_view(request):
-    from instai.jobs import queue
     from instai.jobs.api import job_response
+    from instai.ops import downloads
 
     pkgs = request.data.get("packages") or []
     known = _package_status()
     bad = [p for p in pkgs if p not in known]
     if not pkgs or bad:
         raise DomainError("validation_error", "بسته‌ی نامعتبر: " + ", ".join(bad or ["(خالی)"]), http_status=400)
-    return job_response(queue.enqueue("downloads.run", {"packages": pkgs}, title="دانلود: " + "، ".join(pkgs), idempotency_key="dl:" + ",".join(sorted(pkgs)) + f":{int(timezone.now().timestamp() // 60)}"))
+    # `when` (now | "03:30" | {mode: window}) and `target` (this PC or a worker PC) are optional: without them the owner's saved default applies
+    return job_response(downloads.start_packages(pkgs, "دانلود: " + "، ".join(pkgs), when=request.data.get("when"), target=request.data.get("target")))
 
 
 # ------------------------------------------------------------------ dashboard

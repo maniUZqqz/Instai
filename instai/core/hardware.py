@@ -151,6 +151,30 @@ def gpu_status() -> dict | None:
     return gpu
 
 
+def node_stats() -> dict:
+    """What a processing computer reports about itself for the report: GPU load/temperature/VRAM, RAM, the free disk of the data folder.
+    Missing parts are simply absent (no GPU, no nvidia-smi). Never raises."""
+    from . import runtime
+
+    out: dict = {}
+    try:
+        g = gpu_status()
+        if g:
+            out.update(gpu_util=g.get("utilization"), gpu_temp=g.get("temperature"), vram_used_mb=g.get("used_mb"), vram_total_mb=g.get("total_mb"),
+                       gpu_name=g.get("name") or "")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        r = ram_info()
+        if r.get("total_mb"):
+            out.update(ram_total_mb=r["total_mb"], ram_used_mb=max(0, r["total_mb"] - (r.get("available_mb") or 0)))
+        d = disk_info(runtime.media_root())
+        out.update(disk_free_gb=d["free_gb"], disk_total_gb=d["total_gb"])
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def check_gpu() -> dict:
     g = gpu_status()
     if not g:

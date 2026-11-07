@@ -193,9 +193,9 @@ def ensure_running(progress=None, cancelled=None, timeout: float = 420) -> str:
     r = start()
     if r["error"] and not r["already_running"]:
         raise ProviderError(f"ComfyUI is not running and InstAI cannot start it: {r['error']}. Start ComfyUI yourself or set its folder "
-                            "on the Models page.", retryable=False, code="not_ready",
+                            "on the Models page.", retryable=False, code="not_ready", wait="comfy_down",   # the job WAITS for ComfyUI (jobs/queue.py)
                             fa="ComfyUI روشن نیست و InstAI هم نتوانست آن را روشن کند. ComfyUI را خودتان با run_nvidia_gpu.bat روشن کنید "
-                               "یا پوشهٔ آن را در صفحهٔ «مدل‌ها» بدهید.")
+                               "یا پوشهٔ آن را در صفحهٔ «مدل‌ها» بدهید؛ کار منتظر می‌ماند و بعد از روشن شدن خودش ادامه می‌یابد.")
     t0 = time.time()
     while time.time() - t0 < timeout:
         if _up(url):

@@ -8,6 +8,7 @@ It only ever talks to the main PC; the main PC never connects to it. Idea and pr
 from __future__ import annotations
 
 import argparse
+import collections
 import hashlib
 import json
 import logging
@@ -33,6 +34,31 @@ HELLO_EVERY = 20.0
 
 class AuthError(Exception):
     pass
+
+
+class LogShipper(logging.Handler):
+    """Keeps this PC's own log lines (INFO and above, InstAI loggers only) so the next hello can send them to the main PC, where the
+    report page shows and searches them. A bounded buffer: a long outage cannot grow it."""
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.INFO)
+        self.lines: collections.deque = collections.deque(maxlen=200)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if not record.name.startswith("instai"):
+            return
+        try:
+            self.lines.append({"at": record.created, "level": record.levelname.lower(), "message": record.getMessage()[:400]})
+        except Exception:  # noqa: BLE001
+            pass
+
+    def take(self) -> list[dict]:
+        out = list(self.lines)
+        self.lines.clear()
+        return out
+
+    def give_back(self, rows: list[dict]) -> None:
+        self.lines.extendleft(reversed(rows))
 
 
 class Server:
@@ -107,6 +133,8 @@ class Agent:
         self._task_id: int | None = None
         self.last_hello = 0.0
         self.done = 0
+        self.shipper = LogShipper()
+        logging.getLogger().addHandler(self.shipper)
 
     # ---- reporting
     def set_progress(self, fraction: float | None, text: str) -> None:
@@ -128,12 +156,22 @@ class Agent:
     def hello(self) -> None:
         from instai.gpu import capabilities
 
+        from instai.core import hardware
+        from instai.version import read_version
+
         cap = capabilities.local_capabilities(refresh=True)
         gpu = {"name": cap["gpu_name"], "total_mb": cap["vram_total_mb"], "free_mb": cap["vram_free_mb"]}
-        r = self.server.call("POST", "/api/worker/hello", json_body={"gpu": gpu, "caps": cap["caps"], "models": cap["models"],
-                                                                      "info": {"agent": VERSION, "os": platform.platform(), "python": platform.python_version(),
-                                                                               "host": socket.gethostname()}}, timeout=60)
+        lines = self.shipper.take()
+        body = {"gpu": gpu, "caps": cap["caps"], "models": cap["models"], "stats": hardware.node_stats(), "log": lines,
+                "info": {"agent": VERSION, "instai": read_version(), "os": platform.platform(), "python": platform.python_version(),
+                         "host": socket.gethostname(), "gpu_name": cap["gpu_name"]}}
+        try:
+            r = self.server.call("POST", "/api/worker/hello", json_body=body, timeout=60)
+        except ConnectionError:
+            self.shipper.give_back(lines)         # not delivered: keep them for the next try
+            raise
         if r.status_code != 200:
+            self.shipper.give_back(lines)
             raise ConnectionError(f"hello answered HTTP {r.status_code}")
         self.last_hello = time.time()
         self.caps, self.free_mb = cap["caps"], cap["vram_free_mb"]
@@ -207,8 +245,12 @@ class Agent:
         try:
             self.download_inputs(task, in_dir)
             io = executors.TaskIO(in_dir, out_dir, progress=lambda f, t="": self.set_progress(f, t), cancelled=self.cancel_flag.is_set)
-            with ARBITER.hold(ctx, executors.OCCUPANT.get(task["kind"], "comfy")):
+            occupant = executors.OCCUPANT.get(task["kind"], "comfy")
+            if occupant is None:                  # downloads need no GPU: they must not unload the models another task is using
                 result = executors.run(task["kind"], task["payload"], io)
+            else:
+                with ARBITER.hold(ctx, occupant):
+                    result = executors.run(task["kind"], task["payload"], io)
             self.set_progress(0.97, "uploading results")
             names = self.upload_outputs(tid, out_dir)
             body = {"ok": True, "result": result, "outputs": names, "seconds": round(time.time() - t0, 2)}
@@ -221,18 +263,33 @@ class Agent:
             body = {"ok": False, "error": f"{type(e).__name__}: {e}"[:1500], "retryable": True}
         finally:
             self._task_id = None
-        try:
-            self.server.call("POST", f"/api/worker/tasks/{tid}/finish", json_body=body, timeout=60)
-        except ConnectionError as e:
-            log.warning("could not report task %s: %s", tid, e)
+        self.report_finish(tid, body)
         shutil.rmtree(work, ignore_errors=True)
         self.done += 1
         log.info("task %s (%s) %s in %.1fs", tid, task["kind"], "done" if body["ok"] else "failed: " + body.get("error", "")[:100], time.time() - t0)
 
+    def report_finish(self, tid: int, body: dict) -> None:
+        """Tell the main PC the result. If it is restarting or busy (connection refused, 5xx) keep trying for about two minutes: the work
+        was done and must not be lost because the answer arrived a few seconds too early."""
+        last = ""
+        for attempt, pause in enumerate((0, 2, 4, 8, 16, 30, 30, 30)):
+            if pause:
+                time.sleep(pause)
+            try:
+                r = self.server.call("POST", f"/api/worker/tasks/{tid}/finish", json_body=body, timeout=60)
+                if r.status_code < 500:
+                    return
+                last = f"HTTP {r.status_code}"
+            except ConnectionError as e:
+                last = str(e)
+        log.warning("could not report task %s: %s", tid, last)
+
     # ---- main loop
     def run_forever(self) -> None:
         backoff = 3.0
-        log.info("worker %s ready; waiting for work from %s", self.name, self.server.base)
+        from instai.version import read_version
+
+        log.info("InstAI worker v%s (%s) ready; waiting for work from %s", read_version(), self.name, self.server.base)
         while not self.stop.is_set():
             try:
                 if time.time() - self.last_hello > HELLO_EVERY:
@@ -240,7 +297,7 @@ class Agent:
                 r = self.server.call("POST", "/api/worker/claim", json_body={"caps": getattr(self, "caps", None), "free_mb": getattr(self, "free_mb", None), "wait": 15},
                                      timeout=45)
                 if r.status_code != 200:
-                    raise ConnectionError(f"claim answered HTTP {r.status_code}")
+                    raise ConnectionError(f"claim answered HTTP {r.status_code}" + (" (the main PC is busy; trying again)" if r.status_code == 503 else ""))
                 task = r.json().get("task")
                 backoff = 3.0
                 if task:

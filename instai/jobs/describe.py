@@ -48,6 +48,7 @@ KIND_TEXT: dict[str, tuple[str, str]] = {
     "publish.export": ("آماده‌سازی بستهٔ انتشار", "Preparing the publishing package"),
     "publish.send": ("ارسال برای انتشار", "Sending for publishing"),
     "models.test": ("تست مدل", "Model test"),
+    "downloads.ollama": ("دانلود مدل Ollama", "Downloading an Ollama model"),
 }
 
 PHASE_FA = {
@@ -183,6 +184,10 @@ def _title(job, live: dict) -> tuple[str, str]:
 def _line(job, live: dict, now) -> tuple[str, str, str]:
     """(phase, persian live line, english live line)."""
     if job.status == "queued":
+        if job.wait_code and job.waiting_reason:         # waiting for a computer / service / the night window: not a failure
+            from .queue import WAIT_TEXT_EN
+
+            return "waiting_" + job.wait_code, job.waiting_reason, WAIT_TEXT_EN.get(job.wait_code, job.waiting_reason)
         if job.attempts and job.error:
             return "queued", "تلاش قبلی ناموفق بود؛ به‌زودی دوباره امتحان می‌شود.", "The last try failed; it will be tried again soon."
         return "queued", "در صف؛ منتظر نوبت.", "Queued; waiting for its turn."

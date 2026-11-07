@@ -40,6 +40,16 @@ class JobTimeout(Exception):
     pass
 
 
+class JobDeferred(Exception):
+    """Raised by a handler (or `JobContext.check` at the end of a scheduled window) to say: this job cannot go on NOW but nothing is
+    wrong - put it back in the queue. `run_after` is when to look again (None = soon, the queue's own pause); `count=False` marks a
+    planned pause (the night window closed) rather than a broken thing. It never costs an attempt."""
+
+    def __init__(self, reason: str, code: str = "scheduled", *, run_after=None, count: bool = True):
+        super().__init__(reason)
+        self.reason, self.code, self.run_after, self.count = reason, code, run_after, count
+
+
 class JobContext:
     def __init__(self, job: Job, worker: str = "inline", lease_sec: int = 90):
         self.job = job
@@ -61,6 +71,16 @@ class JobContext:
             raise JobCancelled()
         if time.time() > self.deadline:
             raise JobTimeout(f"job exceeded its timeout of {self.job.timeout_sec}s")
+        if self.job.window:
+            self._check_window()
+
+    def _check_window(self) -> None:
+        """A job that may only run inside a window (a scheduled download) stops cleanly when the window closes; it resumes at the next opening."""
+        from . import schedule
+
+        if not schedule.in_window(self.job.window):
+            raise JobDeferred("بازهٔ شبانه تمام شد؛ ادامه از بازهٔ بعدی (از همان‌جا که مانده بود).", "window",
+                              run_after=schedule.next_window_start(self.job.window), count=False)
 
     def sleep(self, seconds: float) -> None:
         end = time.time() + seconds

@@ -71,8 +71,8 @@ def start_comfyui(request):
 def download_offer(request, offer_id: str):
     """Download one optional model (plus the pieces it needs that are missing). Only with `confirm: true`: the UI shows the name, the
     size, the licence and why first, and sends the confirmation the owner gave."""
-    from instai.jobs import queue
     from instai.jobs.api import job_response
+    from instai.ops import downloads
 
     offer = next((o for o in model_status.offers() if o["id"] == offer_id), None)
     if offer is None:
@@ -83,8 +83,8 @@ def download_offer(request, offer_id: str):
     if offer["complete"] and all(n["complete"] for n in offer["needs"]):
         raise DomainError("conflict", "این مدل از قبل روی این رایانه هست.", message_en="This model is already on this PC.")
     parts = [n["id"] for n in offer["needs"] if not n["complete"]] + [offer_id]
-    job = queue.enqueue("downloads.run", {"packages": parts, "offer": offer_id, "confirmed_at": timezone.now().isoformat()},
-                        title="دانلود: " + offer["name"], idempotency_key=f"offer:{offer_id}:{int(timezone.now().timestamp() // 60)}")
+    job = downloads.start_packages(parts, "دانلود: " + offer["name"], when=request.data.get("when"), target=request.data.get("target"),
+                                   extra={"offer": offer_id, "confirmed_at": timezone.now().isoformat()}, key_extra=f":offer:{offer_id}")
     return job_response(job)
 
 

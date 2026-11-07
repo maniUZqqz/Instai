@@ -30,5 +30,7 @@ class Command(BaseCommand):
             n = runner.drain()
             self.stdout.write(f"ran {n} job(s)")
             return
-        self.stdout.write("InstAI worker is running (Ctrl+C to stop)")
+        from instai.version import read_version
+
+        self.stdout.write(f"InstAI worker v{read_version()} is running (Ctrl+C to stop)")
         runner.run_forever()
