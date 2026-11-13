@@ -73,8 +73,7 @@ def _lang(payload: dict, page: ContentPage) -> str:
 
 
 def look_summary(series: Series) -> dict:
-    vis = series.page.profile("visual")
-    look = {**{k: vis.get(k, "") for k in ("style_key", "realism", "theme_key")}, **(series.look or {})}
+    look = library.look_of(series.page, series)
     st = library.get_style(look["style_key"]) or {}
     th = library.get_theme(look.get("theme_key") or st.get("theme_key", "")) or {}
     return {"realism": look.get("realism") or st.get("realism", ""), "style": st.get("name_en", look["style_key"]), "animation": st.get("animation", ""),
@@ -355,7 +354,7 @@ def design_job(ctx):
     page = ep.series.page
     lang = _lang(p, page)
     chars = preprod.episode_characters(ep) or list(page.characters.all())[:4]
-    comp = library.compose_for_page(page)
+    comp = library.compose_for_episode(ep)
     meta = {"language": lang, "format": page.format, "page_name": page.name, "title": ep.title, "visual_style": comp["positive"], "negative": comp["negative"],
             "look": look_summary(ep.series), "episode": {"number": ep.number, "title": ep.title, "logline": ep.logline}, "scenes": _scenes_meta(ep),
             "characters_detail": [{"name": c.name, "role": c.role, "appearance": c.appearance, "personality": c.personality} for c in chars]}
@@ -446,7 +445,7 @@ def design_image_job(ctx):
 
     sheet = DesignSheet.objects.select_related("episode__series__page", "page").get(pk=ctx.payload["sheet_id"])
     page = sheet.page
-    comp = library.compose_for_page(page)
+    comp = library.compose_for_series(sheet.episode.series) if sheet.episode_id else library.compose_for_page(page)    # the look in force for that episode
     w, h = (1024, 704) if sheet.kind in ("character", "expression", "prop") else (576, 1024)
     sheet.status, sheet.last_error = "generating", ""
     sheet.save(update_fields=["status", "last_error", "updated_at"])
@@ -473,7 +472,8 @@ def design_image_job(ctx):
                                     fa="ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست). صفحهٔ «مدل‌ها» دلیلش را می‌گوید.")
             spec = get_workflow(wid)
             prompt = ", ".join(x for x in (sheet.prompt, comp["positive"]) if x)
-            inputs = {"prompt": prompt, "negative_prompt": ", ".join(x for x in (sheet.negative, comp["negative"]) if x), "width": w, "height": h, "seed": seed, "steps": 20}
+            inputs = {"prompt": prompt, "negative_prompt": ", ".join(x for x in (sheet.negative, comp["negative"]) if x), "width": w, "height": h, "seed": seed,
+                      "steps": max(16, min(30, int((comp.get("gen") or {}).get("steps") or 20)))}
             res = compute.run_task(ctx, "comfy.graph", {"graph": spec.build(inputs), "workflow": wid, "timeout": 1800, "expected": spec.expected_seconds})
             try:
                 pics = res.of_kind(".png", ".jpg", ".jpeg", ".webp")

@@ -32,6 +32,7 @@ from instai.render import ffmpeg
 from instai.render.placeholders import make_placeholder
 from instai.story import costs, services, states
 from instai.story.models import Episode, Shot
+from instai.styles import library as style_library
 
 from . import hero
 
@@ -58,10 +59,37 @@ def render_options(ep: Episode, mode: str) -> asm.RenderOptions:
                                       subtitle_style=vis["subtitle"], target_lufs=float(aud["target_lufs"]))
 
 
+def look(ep: Episode) -> dict:
+    """The look in force for this episode: the series' own pick (made once per project) over the page's, composed from the style library."""
+    return style_library.compose_for_episode(ep)
+
+
 def style_prompt(ep: Episode) -> str:
-    vis = page_of(ep).profile("visual")
+    comp = look(ep)
+    if comp["positive"]:
+        return comp["positive"]
+    vis = page_of(ep).profile("visual")                      # a style key the library does not know (old data): the older plain lookup
     base = next((s["prompt"] for s in formats.STYLES if s["key"] == vis["style_key"]), "")
     return ", ".join(x for x in (base, vis.get("style_notes", "")) if x)
+
+
+def style_negative(ep: Episode) -> str:
+    return look(ep)["negative"]
+
+
+def style_video(ep: Episode) -> tuple[str, str]:
+    """(positive, negative) motion fragments of the look for the image-to-video model."""
+    comp = look(ep)
+    return comp["video_positive"], comp["video_negative"]
+
+
+def style_steps(ep: Episode, default: int = 24) -> int:
+    """Sampler steps the look recommends (final quality only); never below 12 or above 40."""
+    try:
+        n = int((look(ep).get("gen") or {}).get("steps") or default)
+    except (TypeError, ValueError):
+        n = default
+    return max(12, min(40, n))
 
 
 def image_engine() -> str:
@@ -70,7 +98,7 @@ def image_engine() -> str:
 
 def keyframe_hash(shot: Shot, ep: Episode, mode: str) -> str:
     w, h = KF_SIZE[mode]
-    return _h("kf", shot.image_prompt, shot.negative_prompt, shot.seed, w, h, style_prompt(ep), image_engine(),
+    return _h("kf", shot.image_prompt, shot.negative_prompt, shot.seed, w, h, style_prompt(ep), style_negative(ep), image_engine(),
               settings_store.effective("image_workflow"), mode if image_engine() != "placeholder" else "", "plate" if shot.technique == "puppet_2d" else "",
               _reference_key(shot, ep))
 
@@ -139,7 +167,8 @@ def next_keyframe(shot: Shot, ep: Episode) -> Asset | None:
 def clip_hash(shot: Shot, kf: Asset, ep: Episode | None = None) -> str:
     end = next_keyframe(shot, ep) if (ep is not None and shot.technique == "wan_flf") else None
     model = hero.anime_model(ep.series.page) if ep is not None else ""
-    return _h("wan", kf.sha256, shot.image_prompt, shot.description, shot.duration_sec, shot.seed, shot.technique, end.sha256 if end else "", model)
+    motion = style_video(ep) if ep is not None else ("", "")
+    return _h("wan", kf.sha256, shot.image_prompt, shot.description, shot.duration_sec, shot.seed, shot.technique, end.sha256 if end else "", model, motion)
 
 
 def missing_clips(ep: Episode) -> list[Shot]:
@@ -273,8 +302,8 @@ def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
         else:
             plate = shot.technique == "puppet_2d"      # the puppet is drawn on top: the keyframe is only the background
             prompt = ", ".join(x for x in (shot.image_prompt, style_prompt(ep), PLATE_SUFFIX if plate else "") if x)
-            neg = ", ".join(x for x in (shot.negative_prompt, PLATE_NEGATIVE if plate else "") if x)
-            base = {"prompt": prompt, "negative_prompt": neg, "width": w, "height": h, "seed": shot.seed, "steps": 12 if mode == PREVIEW else 24}
+            neg = ", ".join(x for x in (shot.negative_prompt, style_negative(ep), PLATE_NEGATIVE if plate else "") if x)
+            base = {"prompt": prompt, "negative_prompt": neg, "width": w, "height": h, "seed": shot.seed, "steps": 12 if mode == PREVIEW else style_steps(ep)}
             use_wid, inputs, files, note = hero.keyframe_inputs(shot, ep, base, {})
             use_wid = use_wid or wid
             spec = get_workflow(use_wid)
@@ -415,8 +444,10 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
         kf = current(shot, "keyframe")
         rec = ShotRender.objects.create(shot=shot, technique=shot.technique, status="running", params={"workflow": wid, "duration": shot.duration_sec})
         try:
-            r = hero.make_clip(ctx, shot, ep, kf, next_keyframe(shot, ep) if shot.technique == "wan_flf" else None, prompt=shot.image_prompt or shot.description,
-                               seed=shot.seed or 1, flf=shot.technique == "wan_flf")
+            v_pos, v_neg = style_video(ep)
+            r = hero.make_clip(ctx, shot, ep, kf, next_keyframe(shot, ep) if shot.technique == "wan_flf" else None,
+                               prompt=", ".join(x for x in (shot.image_prompt or shot.description, v_pos) if x),
+                               seed=shot.seed or 1, flf=shot.technique == "wan_flf", negative_extra=v_neg)
         except BaseException as e:
             ShotRender.objects.filter(pk=rec.pk).update(status="failed", error=str(e)[:500])
             raise

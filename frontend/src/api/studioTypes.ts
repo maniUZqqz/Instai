@@ -40,6 +40,28 @@ export interface StylePreset {
   thumbnail_asset: number | null
   thumbnail_url?: string | null
   notes: string
+  /** the art/animation library (v2): browse group, what the look suits, generation hints, the built-in preview picture */
+  group: string
+  suitability: Suit[]
+  gen: StyleGen
+  motif: string
+  preview_url?: string
+  /** search-only names (never shown as labels, never sent to a model) */
+  search_terms?: string[]
+  /** the name the owner knows this look by (display-only "inspired by" caption; never sent to a model) */
+  known_as?: string
+}
+export type Suit = 'image' | 'video' | 'character'
+export interface StyleGen {
+  model: string
+  alt_model: string
+  lora: string[]
+  sampler: string
+  scheduler: string
+  cfg: number
+  guidance: number
+  steps: number
+  aspect: string
 }
 export interface ThemePreset {
   key: string
@@ -73,6 +95,10 @@ export interface Library {
   families: VocabItem[]
   animations: VocabItem[]
   techniques: string[]
+  groups: VocabItem[]
+  suitability: VocabItem[]
+  aspects: string[]
+  base_models: string[]
   palette_roles: string[]
   typography: { title_weights: string[]; title_cases: string[]; title_animations: string[]; subtitle_positions: string[] }
 }

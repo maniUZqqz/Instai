@@ -49,6 +49,26 @@ ANIMATIONS = {
     "painted_parallax": {"fa": "نقاشی متحرک با پارالاکس", "en": "Painted art with parallax"},
 }
 
+# The main browse axis of the art/animation style library (the owner's "main library"): where a look comes from.
+GROUPS = {
+    "cinematic": {"fa": "سینمایی و واقع‌نما", "en": "Cinematic & realistic", "order": 1},
+    "anime_toon": {"fa": "انیمه و کارتون", "en": "Anime & cartoon", "order": 2},
+    "hand_drawn": {"fa": "نقاشی و طراحیِ دست", "en": "Drawn & painted", "order": 3},
+    "cg_3d": {"fa": "سه‌بعدی و CGI", "en": "3D & CGI", "order": 4},
+    "craft": {"fa": "دست‌ساز و استاپ‌موشن", "en": "Handmade & stop-motion", "order": 5},
+    "graphic_design": {"fa": "جنبش‌های گرافیکی", "en": "Graphic design movements", "order": 6},
+    "motion_type": {"fa": "موشن و تایپوگرافی", "en": "Motion & typography", "order": 7},
+    "retro_digital": {"fa": "رترو و دیجیتال", "en": "Retro & digital", "order": 8},
+}
+
+# What a look is good for: still images (keyframes, covers), video (holds together when an image-to-video model moves it),
+# characters (one recognisable character can be drawn again and again in it).
+SUITABILITY = ["image", "video", "character"]
+ASPECTS = ["9:16", "1:1", "16:9", "4:5"]
+BASE_MODELS = ["flux_dev", "sdxl_anime", "any"]
+# Sampler hints are advice shown to the owner (and the step count is used); they never name a file the PC may not have.
+GEN_FIELDS = {"model": "flux_dev", "alt_model": "", "lora": [], "sampler": "euler", "scheduler": "simple", "cfg": 1.0, "guidance": 3.5, "steps": 24, "aspect": "9:16"}
+
 TECHNIQUES = ["still_kenburns", "parallax_25d", "puppet_2d", "motion_graphics", "wan_i2v", "wan_flf", "talking_video", "three_d"]
 
 STYLE_FIELDS = {
@@ -56,6 +76,8 @@ STYLE_FIELDS = {
     "fps_feel": 12, "image_positive": "", "image_negative": "", "video_positive": "", "video_negative": "", "palette": [], "lighting": "",
     "mood": "", "techniques": ["still_kenburns", "parallax_25d"], "sample_prompt": "", "theme_key": "", "tags": [], "thumbnail_asset": None,
     "notes": "",
+    # the art/animation library (v2): browse group, what it suits, generation hints and the pattern of the built-in preview picture
+    "group": "", "suitability": ["image", "video", "character"], "gen": dict(GEN_FIELDS), "motif": "",
 }
 THEME_FIELDS = {
     "name_fa": "", "name_en": "", "description_fa": "", "description_en": "",
@@ -118,6 +140,14 @@ def normalize_style(data: dict | None) -> dict:
                 v = default
         elif k == "thumbnail_asset":
             v = int(v) if isinstance(v, (int, str)) and str(v).isdigit() else None
+        elif k == "suitability":
+            v = [x for x in _str_list(v) if x in SUITABILITY] or list(default)
+        elif k == "gen":
+            v = normalize_gen(v)
+        elif k == "group":
+            v = _str(v) if _str(v) in GROUPS else ""
+        elif k == "motif":
+            v = _KEY.sub("", _str(v).lower())[:24]
         else:
             v = _str(v, default if isinstance(default, str) else "")
         out[k] = v
@@ -128,6 +158,27 @@ def normalize_style(data: dict | None) -> dict:
     if out["animation"] not in ANIMATIONS:
         out["animation"] = "limited_2d"
     return out
+
+
+def normalize_gen(v: Any) -> dict:
+    """Generation hints: clamped numbers, known base models and aspects, a short list of LoRA descriptions. Never raises."""
+    base = dict(GEN_FIELDS)
+    d = v if isinstance(v, dict) else {}
+    for k in ("sampler", "scheduler"):
+        if _str(d.get(k)):
+            base[k] = _str(d[k])[:32]
+    if d.get("model") in BASE_MODELS:
+        base["model"] = d["model"]
+    base["alt_model"] = d["alt_model"] if d.get("alt_model") in BASE_MODELS else ""
+    base["lora"] = [x[:120] for x in _str_list(d.get("lora"), 6)]
+    if d.get("aspect") in ASPECTS:
+        base["aspect"] = d["aspect"]
+    for k, lo, hi, cast in (("cfg", 0.0, 30.0, float), ("guidance", 0.0, 30.0, float), ("steps", 4, 60, int)):
+        try:
+            base[k] = max(lo, min(hi, cast(d[k]))) if k in d else base[k]
+        except (TypeError, ValueError):
+            pass
+    return base
 
 
 def normalize_theme(data: dict | None) -> dict:

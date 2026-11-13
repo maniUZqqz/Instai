@@ -1,5 +1,6 @@
 """Browser checks (Playwright). Separate from the Django suite: it starts the real server + worker as subprocesses in demo mode and
 drives chromium. Run:  python -m pytest tests_ui -q   (any Python that has pytest + playwright; the project's venv does not need them).
+Set INSTAI_UI_BASE=http://host:port to drive an app that is already running instead of starting one.
 Playwright's chromium must be installed already (this uses launch(channel="chromium"), falling back to the default)."""
 from __future__ import annotations
 
@@ -61,6 +62,10 @@ class Api:
 
 @pytest.fixture(scope="session")
 def server():
+    external = os.environ.get("INSTAI_UI_BASE", "").rstrip("/")      # an app that is already running (e.g. on another machine, reached through a tunnel)
+    if external:
+        yield external
+        return
     data = tempfile.mkdtemp(prefix="instai-ui-")
     port = _free_port()
     env = {**os.environ, "INSTAI_DATA_DIR": os.path.join(data, "data"), "INSTAI_PORT": str(port), "INSTAI_SECRET_KEY": "ui-test-key",

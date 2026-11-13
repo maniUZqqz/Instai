@@ -4,6 +4,7 @@ import { Shell } from './components/Shell'
 import { Empty, LinkButton, Loading } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
+import IdeasPage from './pages/Ideas'
 import LibraryPage from './pages/Library'
 import Models from './pages/Models'
 import Monitor from './pages/Monitor'
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="episodes/:id" element={<EpisodeEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
         <Route path="library" element={<LibraryPage />} />
+        <Route path="ideas" element={<IdeasPage />} />
         <Route path="monitor" element={<Monitor />} />
         <Route path="settings" element={<Settings />} />
         <Route path="system" element={<System />} />

@@ -191,6 +191,9 @@ class WorkerRunner:
             from instai.gpu import coexist
 
             coexist.release_idle()                              # no GPU work for a while: give ComfyUI's VRAM back to the other programs on this PC
+            from instai.styles import previews
+
+            previews.auto_queue()                               # real sample pictures of the styles, by themselves, in the night window, once ComfyUI is ready
         except Exception:  # noqa: BLE001 - automation must never take the worker down
             log.exception("automation tick failed")
 
