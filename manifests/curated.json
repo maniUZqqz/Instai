@@ -1,0 +1,935 @@
+{
+ "group": "curated",
+ "title": "Curated model library for an RTX 3060 12 GB (Hugging Face / GitHub; every file pinned with size + sha256)",
+ "licence_note": "Read on 2026-11-13 from each repository's model-card licence field (not the full legal text). Packages whose licence is not plainly permissive are off by default and need a separate confirmation.",
+ "generated_by": "scripts/gen_curated_manifest.py",
+ "generated_at": "2026-11-13",
+ "packages": {
+  "flux-schnell": {
+   "title": "FLUX.1 [schnell] FP8, all-in-one checkpoint (fast, 4 steps)",
+   "default": false,
+   "licence": "Apache-2.0 (model card license field)",
+   "licence_verified": true,
+   "curated": {
+    "group": "image",
+    "commercial": "yes",
+    "vram": "12 GB (fp8; ComfyUI offloads what does not fit)",
+    "why": {
+     "fa": "نسخهٔ سریع و آزاد FLUX: با ۴ گام تصویر با کیفیت می‌سازد و مجوزش (Apache-2.0) استفادهٔ تجاری را آزاد می‌گذارد. یک فایل همه‌چیز را دارد (مدل + رمزگذار متن + VAE) و روی ۱۲ گیگابایت با بارگذاری خودکار ComfyUI کار می‌کند.",
+     "en": "The fast, freely licensed FLUX: good images in 4 steps, Apache-2.0 so commercial use is allowed. One file holds everything (model + text encoders + VAE); runs on 12 GB with ComfyUI's automatic offloading."
+    },
+    "note": {},
+    "licence_url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/blob/main/LICENSE.md",
+    "checked": "2026-11-13",
+    "order": 10,
+    "needs": []
+   }
+  },
+  "flux-parts": {
+   "title": "FLUX text encoders + VAE (t5xxl fp8, clip_l, ae) for the split FLUX loaders",
+   "default": false,
+   "licence": "Apache-2.0 (encoders: model card; VAE: Lumina repack card)",
+   "licence_verified": true,
+   "curated": {
+    "group": "image",
+    "commercial": "yes",
+    "vram": "T5 fp8 about 5 GB in RAM / VRAM while encoding",
+    "why": {
+     "fa": "برای وقتی که FLUX را با بارگذارهای جدا (UNET + رمزگذار متن + VAE) یا با مدل‌های GGUF اجرا می‌کنید: رمزگذار T5 (fp8)، CLIP-L و VAE. اگر معادلش از قبل روی ComfyUI هست دوباره دانلود نمی‌شود.",
+     "en": "For running FLUX with the split loaders (UNET + text encoders + VAE) or with GGUF models: T5 (fp8), CLIP-L and the VAE. An equivalent file ComfyUI already has is not downloaded again."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 11,
+    "needs": []
+   }
+  },
+  "sdxl-base": {
+   "title": "Stable Diffusion XL base 1.0 (the reference SDXL checkpoint)",
+   "default": false,
+   "licence": "CreativeML Open RAIL++-M (model card license field: openrail++)",
+   "licence_verified": true,
+   "curated": {
+    "group": "image",
+    "commercial": "yes",
+    "vram": "SDXL size (about 7 to 9 GB with the VAE)",
+    "why": {
+     "fa": "پایهٔ استاندارد SDXL؛ برای ControlNet، IP-Adapter و لورا‌های SDXL لازم است. مجوز Open RAIL++-M استفادهٔ تجاری را با محدودیت‌های رفتاری مجاز می‌داند.",
+     "en": "The standard SDXL base; the foundation for SDXL ControlNet, IP-Adapter and LoRAs. Open RAIL++-M allows commercial use with use-based restrictions."
+    },
+    "note": {},
+    "licence_url": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/LICENSE.md",
+    "checked": "2026-11-13",
+    "order": 20,
+    "needs": []
+   }
+  },
+  "sdxl-realvis": {
+   "title": "RealVisXL V4.0 (photoreal SDXL checkpoint, permissive licence)",
+   "default": false,
+   "licence": "CreativeML Open RAIL++-M (model card license field: openrail++)",
+   "licence_verified": true,
+   "curated": {
+    "group": "image",
+    "commercial": "yes",
+    "vram": "SDXL size (about 7 GB)",
+    "why": {
+     "fa": "چک‌پوینت SDXL فوتورئال با مجوز آزاد (Open RAIL++-M)؛ برای آدم و محصول واقع‌نما، سریع‌تر و سبک‌تر از FLUX روی ۱۲ گیگابایت.",
+     "en": "A photoreal SDXL checkpoint under a permissive licence (Open RAIL++-M); realistic people and products, lighter and faster than FLUX on 12 GB."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 21,
+    "needs": []
+   }
+  },
+  "controlnet-union-sdxl": {
+   "title": "ControlNet Union SDXL (promax): pose, depth, canny, lines ... in one model",
+   "default": false,
+   "licence": "Apache-2.0 (model card license field)",
+   "licence_verified": true,
+   "curated": {
+    "group": "control",
+    "commercial": "yes",
+    "vram": "about 2.5 GB",
+    "why": {
+     "fa": "یک مدل ControlNet برای SDXL که همه‌کاره است: ژست، عمق، لبه، خط و ... . برای نگه داشتن ژست و ترکیب‌بندی شخصیت‌ها بین شات‌ها.",
+     "en": "One ControlNet for SDXL that does everything: pose, depth, edges, lines ... Keeps a character's pose and composition across shots."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 30,
+    "needs": []
+   }
+  },
+  "ipadapter-sdxl": {
+   "title": "IP-Adapter Plus + Plus-Face (SDXL, ViT-H) + CLIP-ViT-H image encoder + the ComfyUI_IPAdapter_plus node",
+   "default": false,
+   "licence": "Apache-2.0 (IP-Adapter model card); node: GPL-3.0 (GitHub licence field)",
+   "licence_verified": true,
+   "curated": {
+    "group": "control",
+    "commercial": "yes",
+    "vram": "about 4.3 GB in total",
+    "why": {
+     "fa": "برای «همان شخصیت در همهٔ شات‌ها»: چهره و سبک از یک تصویر مرجع گرفته می‌شود. چهار فایل: دو مدل IP-Adapter، رمزگذار تصویر CLIP-ViT-H و گرهٔ ComfyUI_IPAdapter_plus. بعد از نصب، ComfyUI را یک بار ببندید و باز کنید.",
+     "en": "For \"the same character in every shot\": face and style are taken from one reference picture. Four parts: two IP-Adapter models, the CLIP-ViT-H image encoder and the ComfyUI_IPAdapter_plus node. Restart ComfyUI once afterwards."
+    },
+    "note": {
+     "fa": "گرهٔ ComfyUI_IPAdapter_plus مجوز GPL-3.0 دارد؛ فقط کنار ComfyUI اجرا می‌شود و با InstAI پیوند نمی‌خورد.",
+     "en": "The ComfyUI_IPAdapter_plus node is GPL-3.0; it only runs inside ComfyUI and is not linked into InstAI."
+    },
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 31,
+    "needs": []
+   }
+  },
+  "pulid-flux": {
+   "title": "PuLID for FLUX (identity-preserving portraits) + node + EVA-CLIP + InsightFace antelopev2",
+   "default": false,
+   "licence": "PuLID weights Apache-2.0; InsightFace antelopev2 is NON-COMMERCIAL research use",
+   "licence_verified": true,
+   "curated": {
+    "group": "control",
+    "commercial": "no",
+    "vram": "FLUX fp8 plus about 3 GB of face models",
+    "why": {
+     "fa": "حفظ هویت چهره با FLUX (شبیه IP-Adapter ولی دقیق‌تر). ⚠ وزن‌های InsightFace (تشخیص چهره) فقط برای پژوهش و غیرتجاری‌اند، پس این بسته پیش‌فرض خاموش است و دانلودش تأیید جداگانه می‌خواهد. همچنین بستهٔ پایتونِ insightface باید داخل ComfyUI نصب شود (خودکار نصب نمی‌شود).",
+     "en": "Identity-preserving faces with FLUX (like IP-Adapter, but sharper). WARNING: the InsightFace face-detection weights are research / non-commercial only, so this package is off by default and needs its own confirmation. The insightface Python package must also be installed inside ComfyUI (not done automatically)."
+    },
+    "note": {
+     "fa": "فقط برای استفادهٔ غیرتجاری. گرهٔ ComfyUI-PuLID-Flux مجوز Apache-2.0 دارد.",
+     "en": "Non-commercial use only. The ComfyUI-PuLID-Flux node is Apache-2.0."
+    },
+    "licence_url": "https://github.com/deepinsight/insightface#license",
+    "checked": "2026-11-13",
+    "order": 32,
+    "needs": []
+   }
+  },
+  "upscale-realesrgan": {
+   "title": "Real-ESRGAN x4plus (upscaler, BSD-3-Clause)",
+   "default": false,
+   "licence": "BSD-3-Clause (Comfy-Org repack card)",
+   "licence_verified": true,
+   "curated": {
+    "group": "upscale",
+    "commercial": "yes",
+    "vram": "under 2 GB",
+    "why": {
+     "fa": "بزرگ‌نمایی ۴ برابری عکس و فریم با حفظ جزئیات؛ سبک و سریع روی GPU. مجوز BSD-3.",
+     "en": "4x upscaling of pictures and frames with detail; light and fast on the GPU. BSD-3 licence."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 40,
+    "needs": []
+   }
+  },
+  "upscale-ultrasharp": {
+   "title": "4x-UltraSharp (sharp upscaler; NON-COMMERCIAL licence)",
+   "default": false,
+   "licence": "CC-BY-NC-SA-4.0 (model card license field) - NON-COMMERCIAL",
+   "licence_verified": true,
+   "curated": {
+    "group": "upscale",
+    "commercial": "no",
+    "vram": "under 2 GB",
+    "why": {
+     "fa": "یکی از محبوب‌ترین بزرگ‌نماها برای جزئیات تیز. ⚠ مجوزش CC-BY-NC-SA 4.0 است (غیرتجاری)، پس پیش‌فرض خاموش است و دانلودش تأیید جداگانه می‌خواهد.",
+     "en": "A very popular sharp upscaler. WARNING: its licence is CC-BY-NC-SA 4.0 (non-commercial), so it is off by default and needs its own confirmation."
+    },
+    "note": {},
+    "licence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+    "checked": "2026-11-13",
+    "order": 41,
+    "needs": []
+   }
+  },
+  "wan22-ti2v-5b": {
+   "title": "Wan 2.2 TI2V-5B (text+image to video, light: fits 12 GB comfortably)",
+   "default": false,
+   "licence": "Apache-2.0 (Comfy-Org repack card)",
+   "licence_verified": true,
+   "curated": {
+    "group": "video",
+    "commercial": "yes",
+    "vram": "about 10 GB (fp16) plus encoder and VAE; comfortable on 12 GB",
+    "why": {
+     "fa": "نسخهٔ سبک Wan 2.2 (۵ میلیارد پارامتر): متن‌به‌ویدئو و تصویر‌به‌ویدئو در یک مدل، با VAE تازهٔ Wan 2.2؛ برای ۱۲ گیگابایت بسیار راحت‌تر از مدل ۱۴ میلیاردی است. رمزگذار متن umt5 با بستهٔ Wan 2.2 مشترک است و اگر دارید دوباره دانلود نمی‌شود.",
+     "en": "The light Wan 2.2 (5B parameters): text-to-video and image-to-video in one model with the new Wan 2.2 VAE; far easier on 12 GB than the 14B pair. The umt5 text encoder is shared with the Wan 2.2 package and not downloaded twice."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 50,
+    "needs": []
+   }
+  },
+  "ltx-distilled": {
+   "title": "LTX-Video 2B 0.9.8 distilled FP8 (very fast video; licence 'other')",
+   "default": false,
+   "licence": "LTX-Video licence (model card license field: other) - read it before commercial use",
+   "licence_verified": true,
+   "curated": {
+    "group": "video",
+    "commercial": "unknown",
+    "vram": "about 4.5 GB + T5 encoder",
+    "why": {
+     "fa": "مدل ویدئوی بسیار سریع (چند گام)، مناسب پیش‌نمایش و شات‌های کوتاه. مجوز در کارت مدل «other» است و در این‌جا بررسی نشده؛ پیش از انتشار تجاری متن مجوز را بخوانید، پس پیش‌فرض خاموش است.",
+     "en": "A very fast few-step video model, good for previews and short shots. Its licence is 'other' on the model card and was not audited here; read it before commercial use, so it is off by default."
+    },
+    "note": {},
+    "licence_url": "https://huggingface.co/Lightricks/LTX-Video",
+    "checked": "2026-11-13",
+    "order": 51,
+    "needs": []
+   }
+  },
+  "rife": {
+   "title": "RIFE v4.25 frame interpolation (smoother video: 2x frames)",
+   "default": false,
+   "licence": "MIT + Apache-2.0 (Comfy-Org repack card: mit-and-apache-2.0)",
+   "licence_verified": true,
+   "curated": {
+    "group": "video",
+    "commercial": "yes",
+    "vram": "under 1 GB",
+    "why": {
+     "fa": "فریم‌های میانی می‌سازد تا ویدئوی ۲۴ فریمی نرم‌تر شود (دو برابر). فایل کوچک است. به نسخه‌ای از ComfyUI نیاز دارد که گره‌های «درون‌یابی فریم» را دارد.",
+     "en": "Creates in-between frames so 24 fps video becomes smoother (2x). A small file. Needs a ComfyUI version that has the frame-interpolation nodes."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 52,
+    "needs": []
+   }
+  },
+  "piper-fa-voices": {
+   "title": "Four more Persian Piper voices (amir, ganji, ganji_adabi, reza_ibrahim; CPU, offline)",
+   "default": false,
+   "licence": "CC0 dataset licence stated on each voice's MODEL_CARD",
+   "licence_verified": true,
+   "curated": {
+    "group": "voice",
+    "commercial": "yes",
+    "vram": "CPU, about 64 MB each",
+    "why": {
+     "fa": "چهار صدای فارسی دیگر برای Piper (روی CPU و بدون اینترنت): «امیر»، «گنجی»، «گنجی ادبی» و «رضا ابراهیم». دادهٔ آموزش هر چهار CC0 است. بعد از دانلود در انتخاب صدا دیده می‌شوند.",
+     "en": "Four more Persian voices for Piper (CPU, offline): amir, ganji, ganji_adabi and reza_ibrahim. The training data of all four is CC0. They appear in the voice picker after the download."
+    },
+    "note": {},
+    "licence_url": "",
+    "checked": "2026-11-13",
+    "order": 60,
+    "needs": []
+   }
+  }
+ },
+ "items": [
+  {
+   "id": "flux-schnell:fp8-checkpoint",
+   "package": "flux-schnell",
+   "kind": "file",
+   "title": "FLUX.1 [schnell] FP8 checkpoint (Comfy-Org repack)",
+   "urls": [
+    "{HF}/Comfy-Org/Flux-1-Schnell/resolve/d31e04067066d92c55ece2b01748dcc337725d7a/flux1-schnell-fp8.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\flux1-schnell-fp8.safetensors",
+   "size": 17236328572,
+   "sha256": "ead426278b49030e9da5df862994f25ce94ab2ee4df38b556ddddb3db093bf72",
+   "hf": {
+    "repo": "Comfy-Org/Flux-1-Schnell",
+    "revision": "d31e04067066d92c55ece2b01748dcc337725d7a",
+    "path": "flux1-schnell-fp8.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit d31e040; size and sha256 of the LFS object)",
+   "aliases": [
+    "FLUX.1 [schnell] FP8.safetensors"
+   ]
+  },
+  {
+   "id": "flux-parts:t5xxl-fp8",
+   "package": "flux-parts",
+   "kind": "file",
+   "title": "T5-XXL text encoder, fp8 (e4m3fn)",
+   "urls": [
+    "{HF}/comfyanonymous/flux_text_encoders/resolve/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5/t5xxl_fp8_e4m3fn.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\text_encoders\\t5xxl_fp8_e4m3fn.safetensors",
+   "size": 4893934904,
+   "sha256": "7d330da4816157540d6bb7838bf63a0f02f573fc48ca4d8de34bb0cbfd514f09",
+   "hf": {
+    "repo": "comfyanonymous/flux_text_encoders",
+    "revision": "6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5",
+    "path": "t5xxl_fp8_e4m3fn.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 6af2a98; size and sha256 of the LFS object)",
+   "aliases": [
+    "t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "t5xxl_fp16.safetensors"
+   ]
+  },
+  {
+   "id": "flux-parts:clip-l",
+   "package": "flux-parts",
+   "kind": "file",
+   "title": "CLIP-L text encoder",
+   "urls": [
+    "{HF}/comfyanonymous/flux_text_encoders/resolve/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5/clip_l.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\text_encoders\\clip_l.safetensors",
+   "size": 246144152,
+   "sha256": "660c6f5b1abae9dc498ac2d21e1347d2abdb0cf6c0c0c8576cd796491d9a6cdd",
+   "hf": {
+    "repo": "comfyanonymous/flux_text_encoders",
+    "revision": "6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5",
+    "path": "clip_l.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 6af2a98; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "flux-parts:ae",
+   "package": "flux-parts",
+   "kind": "file",
+   "title": "FLUX VAE (ae.safetensors, ungated repack)",
+   "urls": [
+    "{HF}/Comfy-Org/Lumina-Image-2/resolve/5b072540ef86570fecb8249c505f23d5bdeb88cd/split_files/vae/ae.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\vae\\ae.safetensors",
+   "size": 335304388,
+   "sha256": "afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
+   "hf": {
+    "repo": "Comfy-Org/Lumina-Image-2",
+    "revision": "5b072540ef86570fecb8249c505f23d5bdeb88cd",
+    "path": "split_files/vae/ae.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 5b07254; size and sha256 of the LFS object)",
+   "aliases": [
+    "flux_vae.safetensors",
+    "ae.sft"
+   ]
+  },
+  {
+   "id": "sdxl-base:base-1.0",
+   "package": "sdxl-base",
+   "kind": "file",
+   "title": "SDXL base 1.0 checkpoint",
+   "urls": [
+    "{HF}/stabilityai/stable-diffusion-xl-base-1.0/resolve/462165984030d82259a11f4367a4eed129e94a7b/sd_xl_base_1.0.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\sd_xl_base_1.0.safetensors",
+   "size": 6938078334,
+   "sha256": "31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b",
+   "hf": {
+    "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+    "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+    "path": "sd_xl_base_1.0.safetensors",
+    "license": "openrail++"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 4621659; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "sdxl-realvis:v4.0",
+   "package": "sdxl-realvis",
+   "kind": "file",
+   "title": "RealVisXL V4.0 checkpoint",
+   "urls": [
+    "{HF}/SG161222/RealVisXL_V4.0/resolve/26dfe44930964cd70d0a817b6d1cc945c130e38d/RealVisXL_V4.0.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\RealVisXL_V4.0.safetensors",
+   "size": 6938040706,
+   "sha256": "912c9dc74f5855175c31a7993f863a043ac8dcc31732b324cd05d75cd7e16844",
+   "hf": {
+    "repo": "SG161222/RealVisXL_V4.0",
+    "revision": "26dfe44930964cd70d0a817b6d1cc945c130e38d",
+    "path": "RealVisXL_V4.0.safetensors",
+    "license": "openrail++"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 26dfe44; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "controlnet-union-sdxl:promax",
+   "package": "controlnet-union-sdxl",
+   "kind": "file",
+   "title": "ControlNet Union SDXL promax",
+   "urls": [
+    "{HF}/xinsir/controlnet-union-sdxl-1.0/resolve/801a4a3fa3d4c936f4feea95b98607bc6726f80c/diffusion_pytorch_model_promax.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\controlnet\\controlnet-union-sdxl-1.0-promax.safetensors",
+   "size": 2513342408,
+   "sha256": "9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc",
+   "hf": {
+    "repo": "xinsir/controlnet-union-sdxl-1.0",
+    "revision": "801a4a3fa3d4c936f4feea95b98607bc6726f80c",
+    "path": "diffusion_pytorch_model_promax.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 801a4a3; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "ipadapter-sdxl:plus-sdxl",
+   "package": "ipadapter-sdxl",
+   "kind": "file",
+   "title": "IP-Adapter Plus SDXL (ViT-H)",
+   "urls": [
+    "{HF}/h94/IP-Adapter/resolve/018e402774aeeddd60609b4ecdb7e298259dc729/sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\ipadapter\\ip-adapter-plus_sdxl_vit-h.safetensors",
+   "size": 847517512,
+   "sha256": "3f5062b8400c94b7159665b21ba5c62acdcd7682262743d7f2aefedef00e6581",
+   "hf": {
+    "repo": "h94/IP-Adapter",
+    "revision": "018e402774aeeddd60609b4ecdb7e298259dc729",
+    "path": "sdxl_models/ip-adapter-plus_sdxl_vit-h.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 018e402; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "ipadapter-sdxl:plus-face-sdxl",
+   "package": "ipadapter-sdxl",
+   "kind": "file",
+   "title": "IP-Adapter Plus Face SDXL (ViT-H)",
+   "urls": [
+    "{HF}/h94/IP-Adapter/resolve/018e402774aeeddd60609b4ecdb7e298259dc729/sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\ipadapter\\ip-adapter-plus-face_sdxl_vit-h.safetensors",
+   "size": 847517512,
+   "sha256": "677ad8860204f7d0bfba12d29e6c31ded9beefdf3e4bbd102518357d31a292c1",
+   "hf": {
+    "repo": "h94/IP-Adapter",
+    "revision": "018e402774aeeddd60609b4ecdb7e298259dc729",
+    "path": "sdxl_models/ip-adapter-plus-face_sdxl_vit-h.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 018e402; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "ipadapter-sdxl:clip-vit-h",
+   "package": "ipadapter-sdxl",
+   "kind": "file",
+   "title": "CLIP-ViT-H-14 image encoder (laion2B), named as the IPAdapter node expects",
+   "urls": [
+    "{HF}/h94/IP-Adapter/resolve/018e402774aeeddd60609b4ecdb7e298259dc729/models/image_encoder/model.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\clip_vision\\CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+   "size": 2528373448,
+   "sha256": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
+   "hf": {
+    "repo": "h94/IP-Adapter",
+    "revision": "018e402774aeeddd60609b4ecdb7e298259dc729",
+    "path": "models/image_encoder/model.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 018e402; size and sha256 of the LFS object)",
+   "aliases": [
+    "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+    "clip_vision_vit_h.safetensors"
+   ]
+  },
+  {
+   "id": "ipadapter-sdxl:node",
+   "package": "ipadapter-sdxl",
+   "kind": "zip",
+   "strip": true,
+   "title": "ComfyUI_IPAdapter_plus custom node (cubiq) (commit a0f451a)",
+   "urls": [
+    "https://codeload.github.com/cubiq/ComfyUI_IPAdapter_plus/zip/a0f451a5113cf9becb0847b92884cb10cbdec0ef",
+    "https://github.com/cubiq/ComfyUI_IPAdapter_plus/archive/a0f451a5113cf9becb0847b92884cb10cbdec0ef.zip"
+   ],
+   "dest": "{COMFYUI}\\custom_nodes\\ComfyUI_IPAdapter_plus",
+   "marker": "IPAdapterPlus.py",
+   "size": 306422,
+   "sha256": "c6c49c82aa65cb96b93bdf9f9b547f9c95310a2668a7a9aaa0285cccf4590347",
+   "source": "GitHub archive of the pinned commit, size and sha256 measured 2026-11-13"
+  },
+  {
+   "id": "pulid-flux:pulid-v0.9.1",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "PuLID-FLUX v0.9.1",
+   "urls": [
+    "{HF}/guozinan/PuLID/resolve/492b1451255dc9d9bc3c857259690b5f8b998d4a/pulid_flux_v0.9.1.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\pulid\\pulid_flux_v0.9.1.safetensors",
+   "size": 1142099520,
+   "sha256": "92c41c3af322b02e58e1b32842e4601e08c8f16ec1fe80089dbe957df510f51d",
+   "hf": {
+    "repo": "guozinan/PuLID",
+    "revision": "492b1451255dc9d9bc3c857259690b5f8b998d4a",
+    "path": "pulid_flux_v0.9.1.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 492b145; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:eva02-clip-l-336",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "EVA02-CLIP-L-336 (PuLID's image encoder)",
+   "urls": [
+    "{HF}/QuanSun/EVA-CLIP/resolve/11afd202f2ae80869d6cef18b1ec775e79bd8d12/EVA02_CLIP_L_336_psz14_s6B.pt"
+   ],
+   "dest": "{COMFYUI}\\models\\clip\\EVA02_CLIP_L_336_psz14_s6B.pt",
+   "size": 856461210,
+   "sha256": "84c3a17a228c567a155259b2245b0b59072bf7da510260a0a02ec54de6d50b05",
+   "hf": {
+    "repo": "QuanSun/EVA-CLIP",
+    "revision": "11afd202f2ae80869d6cef18b1ec775e79bd8d12",
+    "path": "EVA02_CLIP_L_336_psz14_s6B.pt",
+    "license": "mit"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 11afd20; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:antelopev2-1k3d68",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "InsightFace antelopev2: 1k3d68.onnx",
+   "urls": [
+    "{HF}/DIAMONIK7777/antelopev2/resolve/ba0c3e10f4548361eb9a63265d87ce1140ab5a05/1k3d68.onnx"
+   ],
+   "dest": "{COMFYUI}\\models\\insightface\\models\\antelopev2\\1k3d68.onnx",
+   "size": 143607619,
+   "sha256": "df5c06b8a0c12e422b2ed8947b8869faa4105387f199c477af038aa01f9a45cc",
+   "hf": {
+    "repo": "DIAMONIK7777/antelopev2",
+    "revision": "ba0c3e10f4548361eb9a63265d87ce1140ab5a05",
+    "path": "1k3d68.onnx",
+    "license": ""
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ba0c3e1; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:antelopev2-2d106det",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "InsightFace antelopev2: 2d106det.onnx",
+   "urls": [
+    "{HF}/DIAMONIK7777/antelopev2/resolve/ba0c3e10f4548361eb9a63265d87ce1140ab5a05/2d106det.onnx"
+   ],
+   "dest": "{COMFYUI}\\models\\insightface\\models\\antelopev2\\2d106det.onnx",
+   "size": 5030888,
+   "sha256": "f001b856447c413801ef5c42091ed0cd516fcd21f2d6b79635b1e733a7109dbf",
+   "hf": {
+    "repo": "DIAMONIK7777/antelopev2",
+    "revision": "ba0c3e10f4548361eb9a63265d87ce1140ab5a05",
+    "path": "2d106det.onnx",
+    "license": ""
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ba0c3e1; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:antelopev2-genderage",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "InsightFace antelopev2: genderage.onnx",
+   "urls": [
+    "{HF}/DIAMONIK7777/antelopev2/resolve/ba0c3e10f4548361eb9a63265d87ce1140ab5a05/genderage.onnx"
+   ],
+   "dest": "{COMFYUI}\\models\\insightface\\models\\antelopev2\\genderage.onnx",
+   "size": 1322532,
+   "sha256": "4fde69b1c810857b88c64a335084f1c3fe8f01246c9a191b48c7bb756d6652fb",
+   "hf": {
+    "repo": "DIAMONIK7777/antelopev2",
+    "revision": "ba0c3e10f4548361eb9a63265d87ce1140ab5a05",
+    "path": "genderage.onnx",
+    "license": ""
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ba0c3e1; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:antelopev2-glintr100",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "InsightFace antelopev2: glintr100.onnx",
+   "urls": [
+    "{HF}/DIAMONIK7777/antelopev2/resolve/ba0c3e10f4548361eb9a63265d87ce1140ab5a05/glintr100.onnx"
+   ],
+   "dest": "{COMFYUI}\\models\\insightface\\models\\antelopev2\\glintr100.onnx",
+   "size": 260665334,
+   "sha256": "4ab1d6435d639628a6f3e5008dd4f929edf4c4124b1a7169e1048f9fef534cdf",
+   "hf": {
+    "repo": "DIAMONIK7777/antelopev2",
+    "revision": "ba0c3e10f4548361eb9a63265d87ce1140ab5a05",
+    "path": "glintr100.onnx",
+    "license": ""
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ba0c3e1; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:antelopev2-scrfd_10g_bnkps",
+   "package": "pulid-flux",
+   "kind": "file",
+   "title": "InsightFace antelopev2: scrfd_10g_bnkps.onnx",
+   "urls": [
+    "{HF}/DIAMONIK7777/antelopev2/resolve/ba0c3e10f4548361eb9a63265d87ce1140ab5a05/scrfd_10g_bnkps.onnx"
+   ],
+   "dest": "{COMFYUI}\\models\\insightface\\models\\antelopev2\\scrfd_10g_bnkps.onnx",
+   "size": 16923827,
+   "sha256": "5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91",
+   "hf": {
+    "repo": "DIAMONIK7777/antelopev2",
+    "revision": "ba0c3e10f4548361eb9a63265d87ce1140ab5a05",
+    "path": "scrfd_10g_bnkps.onnx",
+    "license": ""
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ba0c3e1; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "pulid-flux:node",
+   "package": "pulid-flux",
+   "kind": "zip",
+   "strip": true,
+   "title": "ComfyUI-PuLID-Flux custom node (balazik) (commit a80912f)",
+   "urls": [
+    "https://codeload.github.com/balazik/ComfyUI-PuLID-Flux/zip/a80912fc3435c358607bf4b43a58dbcbebdb09ff",
+    "https://github.com/balazik/ComfyUI-PuLID-Flux/archive/a80912fc3435c358607bf4b43a58dbcbebdb09ff.zip"
+   ],
+   "dest": "{COMFYUI}\\custom_nodes\\ComfyUI-PuLID-Flux",
+   "marker": "pulidflux.py",
+   "size": 2325063,
+   "sha256": "f4dfe96f783983afe61a7d42ef8616dfa267b5a80ab8b20aab964793f6c56ba4",
+   "source": "GitHub archive of the pinned commit, size and sha256 measured 2026-11-13"
+  },
+  {
+   "id": "upscale-realesrgan:x4plus",
+   "package": "upscale-realesrgan",
+   "kind": "file",
+   "title": "Real-ESRGAN x4plus",
+   "urls": [
+    "{HF}/Comfy-Org/Real-ESRGAN/resolve/5fd49b7b278836f48af63ecd314d0f98ab336105/RealESRGAN_x4plus.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\upscale_models\\RealESRGAN_x4plus.safetensors",
+   "size": 66857836,
+   "sha256": "37f9a931c215f040aa6d50f711f2cb115f713c46df1d0d6469a8bd7bfe9a60bb",
+   "hf": {
+    "repo": "Comfy-Org/Real-ESRGAN",
+    "revision": "5fd49b7b278836f48af63ecd314d0f98ab336105",
+    "path": "RealESRGAN_x4plus.safetensors",
+    "license": "bsd-3-clause"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 5fd49b7; size and sha256 of the LFS object)",
+   "aliases": [
+    "RealESRGAN_x4plus.pth",
+    "RealESRGAN_x4.pth"
+   ]
+  },
+  {
+   "id": "upscale-ultrasharp:4x",
+   "package": "upscale-ultrasharp",
+   "kind": "file",
+   "title": "4x-UltraSharp",
+   "urls": [
+    "{HF}/Kim2091/UltraSharp/resolve/920fe218c211f831b43cb30327f203e2b59f5dab/4x-UltraSharp.pth"
+   ],
+   "dest": "{COMFYUI}\\models\\upscale_models\\4x-UltraSharp.pth",
+   "size": 66961958,
+   "sha256": "a5812231fc936b42af08a5edba784195495d303d5b3248c24489ef0c4021fe01",
+   "hf": {
+    "repo": "Kim2091/UltraSharp",
+    "revision": "920fe218c211f831b43cb30327f203e2b59f5dab",
+    "path": "4x-UltraSharp.pth",
+    "license": "cc-by-nc-sa-4.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 920fe21; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "wan22-ti2v-5b:ti2v-5b-fp16",
+   "package": "wan22-ti2v-5b",
+   "kind": "file",
+   "title": "Wan 2.2 TI2V 5B (fp16)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\diffusion_models\\wan2.2_ti2v_5B_fp16.safetensors",
+   "size": 9999658848,
+   "sha256": "456f901338bd9eadbded3828b819109a9b68e8a525ca5cf8d0049a69fcfeca1e",
+   "hf": {
+    "repo": "Comfy-Org/Wan-2.2",
+    "revision": "ee6f4a40737a995bf5818954cfce6d59443b0f04",
+    "path": "split_files/diffusion_models/wan2.2_ti2v_5B_fp16.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ee6f4a4; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "wan22-ti2v-5b:vae",
+   "package": "wan22-ti2v-5b",
+   "kind": "file",
+   "title": "Wan 2.2 VAE",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/vae/wan2.2_vae.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\vae\\wan2.2_vae.safetensors",
+   "size": 1409400960,
+   "sha256": "e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156",
+   "hf": {
+    "repo": "Comfy-Org/Wan-2.2",
+    "revision": "ee6f4a40737a995bf5818954cfce6d59443b0f04",
+    "path": "split_files/vae/wan2.2_vae.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ee6f4a4; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "wan22-ti2v-5b:umt5-xxl-fp8",
+   "package": "wan22-ti2v-5b",
+   "kind": "file",
+   "title": "umT5-XXL text encoder (fp8 scaled)",
+   "urls": [
+    "{HF}/Comfy-Org/Wan-2.2/resolve/ee6f4a40737a995bf5818954cfce6d59443b0f04/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\text_encoders\\umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+   "size": 6735906897,
+   "sha256": "c3355d30191f1f066b26d93fba017ae9809dce6c627dda5f6a66eaa651204f68",
+   "hf": {
+    "repo": "Comfy-Org/Wan-2.2",
+    "revision": "ee6f4a40737a995bf5818954cfce6d59443b0f04",
+    "path": "split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit ee6f4a4; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "ltx-distilled:2b-distilled-fp8",
+   "package": "ltx-distilled",
+   "kind": "file",
+   "title": "LTX-Video 2B 0.9.8 distilled (fp8)",
+   "urls": [
+    "{HF}/Lightricks/LTX-Video/resolve/8984fa25007f376c1a299016d0957a37a2f797bb/ltxv-2b-0.9.8-distilled-fp8.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\checkpoints\\ltxv-2b-0.9.8-distilled-fp8.safetensors",
+   "size": 4461695684,
+   "sha256": "d6d8fa8ed3a98346787c2503ac80fb5d7cebcf80e356b79a2ba361fbadf97e15",
+   "hf": {
+    "repo": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+    "path": "ltxv-2b-0.9.8-distilled-fp8.safetensors",
+    "license": "other"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 8984fa2; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "ltx-distilled:t5xxl-fp8-scaled",
+   "package": "ltx-distilled",
+   "kind": "file",
+   "title": "T5-XXL text encoder, fp8 scaled",
+   "urls": [
+    "{HF}/comfyanonymous/flux_text_encoders/resolve/6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5/t5xxl_fp8_e4m3fn_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\text_encoders\\t5xxl_fp8_e4m3fn_scaled.safetensors",
+   "size": 5157348688,
+   "sha256": "a498f0485dc9536735258018417c3fd7758dc3bccc0a645feaa472b34955557a",
+   "hf": {
+    "repo": "comfyanonymous/flux_text_encoders",
+    "revision": "6af2a98e3f615bdfa612fbd85da93d1ed5f69ef5",
+    "path": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "license": "apache-2.0"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 6af2a98; size and sha256 of the LFS object)",
+   "aliases": [
+    "t5xxl_fp16.safetensors",
+    "t5xxl_fp8_e4m3fn.safetensors"
+   ]
+  },
+  {
+   "id": "rife:v4.25",
+   "package": "rife",
+   "kind": "file",
+   "title": "RIFE v4.25 (ComfyUI repack)",
+   "urls": [
+    "{HF}/Comfy-Org/Frame-Interpolation/resolve/aa7009be4d1471ea0bac91d6fe4d7e4b637cbbfc/frame_interpolation/rife_v4.25.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\frame_interpolation\\rife_v4.25.safetensors",
+   "size": 22674688,
+   "sha256": "1505884b9bdae956795430d2a70f7e2317b2abd8f130f8cfdb35a5759f909481",
+   "hf": {
+    "repo": "Comfy-Org/Frame-Interpolation",
+    "revision": "aa7009be4d1471ea0bac91d6fe4d7e4b637cbbfc",
+    "path": "frame_interpolation/rife_v4.25.safetensors",
+    "license": "other"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit aa7009b; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "piper-fa-voices:amir",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-amir-medium",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-amir-medium.onnx",
+   "size": 63531379,
+   "sha256": "fb815380d969ea372b0b21b0de14421f58fe481047e153e69685d079b6e1a9d1",
+   "hf": {
+    "repo": "rhasspy/piper-voices",
+    "revision": "2f358b6a560e3a913ebf509b2f3344f20b367f94",
+    "path": "fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx",
+    "license": "mit"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 2f358b6; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "piper-fa-voices:amir.json",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-amir-medium (settings)",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx.json"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-amir-medium.onnx.json",
+   "size": 4958,
+   "sha256": null,
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; small text file, size from the tree, no LFS hash: verified by size and recorded on first download)"
+  },
+  {
+   "id": "piper-fa-voices:ganji",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-ganji-medium",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-ganji-medium.onnx",
+   "size": 63516050,
+   "sha256": "6a98504bb77dc2fd3a863c977d37e67a6a525fdf661917385d569a3ff78e6cae",
+   "hf": {
+    "repo": "rhasspy/piper-voices",
+    "revision": "2f358b6a560e3a913ebf509b2f3344f20b367f94",
+    "path": "fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx",
+    "license": "mit"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 2f358b6; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "piper-fa-voices:ganji.json",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-ganji-medium (settings)",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx.json"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-ganji-medium.onnx.json",
+   "size": 4958,
+   "sha256": null,
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; small text file, size from the tree, no LFS hash: verified by size and recorded on first download)"
+  },
+  {
+   "id": "piper-fa-voices:ganji_adabi",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-ganji_adabi-medium",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/ganji_adabi/medium/fa_IR-ganji_adabi-medium.onnx"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-ganji_adabi-medium.onnx",
+   "size": 63516050,
+   "sha256": "e9073b41ae65759dcf95778e569c8f3780406dac99549436f6ab8e7d2336ed72",
+   "hf": {
+    "repo": "rhasspy/piper-voices",
+    "revision": "2f358b6a560e3a913ebf509b2f3344f20b367f94",
+    "path": "fa/fa_IR/ganji_adabi/medium/fa_IR-ganji_adabi-medium.onnx",
+    "license": "mit"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 2f358b6; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "piper-fa-voices:ganji_adabi.json",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-ganji_adabi-medium (settings)",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/ganji_adabi/medium/fa_IR-ganji_adabi-medium.onnx.json"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-ganji_adabi-medium.onnx.json",
+   "size": 4964,
+   "sha256": null,
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; small text file, size from the tree, no LFS hash: verified by size and recorded on first download)"
+  },
+  {
+   "id": "piper-fa-voices:reza_ibrahim",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-reza_ibrahim-medium",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/reza_ibrahim/medium/fa_IR-reza_ibrahim-medium.onnx"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-reza_ibrahim-medium.onnx",
+   "size": 63511038,
+   "sha256": "99f0c31464a2120831ca87d079e10a9a2b3e426cc1ee662d80ff9042df15cd3c",
+   "hf": {
+    "repo": "rhasspy/piper-voices",
+    "revision": "2f358b6a560e3a913ebf509b2f3344f20b367f94",
+    "path": "fa/fa_IR/reza_ibrahim/medium/fa_IR-reza_ibrahim-medium.onnx",
+    "license": "mit"
+   },
+   "source": "Hugging Face API read 2026-11-13 (pinned commit 2f358b6; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "piper-fa-voices:reza_ibrahim.json",
+   "package": "piper-fa-voices",
+   "kind": "file",
+   "title": "Piper voice fa_IR-reza_ibrahim-medium (settings)",
+   "urls": [
+    "{HF}/rhasspy/piper-voices/resolve/2f358b6a560e3a913ebf509b2f3344f20b367f94/fa/fa_IR/reza_ibrahim/medium/fa_IR-reza_ibrahim-medium.onnx.json"
+   ],
+   "dest": "{MODELS}\\piper\\fa_IR-reza_ibrahim-medium.onnx.json",
+   "size": 4967,
+   "sha256": null,
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; small text file, size from the tree, no LFS hash: verified by size and recorded on first download)"
+  }
+ ]
+}

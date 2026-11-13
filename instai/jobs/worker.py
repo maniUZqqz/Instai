@@ -188,6 +188,9 @@ class WorkerRunner:
             from instai.ops import report
 
             report.maintain()                                   # close silent sessions, thin and delete old report rows (at most every 10 minutes)
+            from instai.gpu import coexist
+
+            coexist.release_idle()                              # no GPU work for a while: give ComfyUI's VRAM back to the other programs on this PC
         except Exception:  # noqa: BLE001 - automation must never take the worker down
             log.exception("automation tick failed")
 

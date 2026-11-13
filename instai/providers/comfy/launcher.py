@@ -101,6 +101,15 @@ def start(install: dict | None = None) -> dict:
     install = install or selected()
     if not install:
         return {"started": False, "already_running": False, "cmd": None, "error": "no ComfyUI was found on this PC"}
+    try:                                                         # another program (the NMarketing agent) is starting this ComfyUI: wait for it
+        from instai.gpu import coexist
+
+        other = coexist.comfy_booting(install.get("root") or "", url)
+        if other and not running_ours():
+            log.info("ComfyUI is already starting (pid %s, started by another program); waiting for it instead of starting a second copy", other.get("pid"))
+            return {"started": False, "already_running": True, "cmd": None, "error": ""}
+    except Exception:  # noqa: BLE001 - never let the neighbour check stop a start
+        pass
     cmd = command(install)
     if not cmd:
         why = ("only run_cpu.bat was found and its python could not be located" if os.path.basename(install.get("launcher") or "").lower() == "run_cpu.bat"

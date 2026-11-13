@@ -114,16 +114,73 @@ def run_now(job: Job) -> Job:
     return reschedule(job, "now")
 
 
+CURATED_GROUPS = ("image", "control", "upscale", "video", "voice")
+HF_MIRROR = "https://hf-mirror.com"
+
+
+def _folder_of(dest: str) -> str:
+    r"""The folder a file lands in, as the owner reads it: `{COMFYUI}\models\checkpoints\x.safetensors` -> `ComfyUI\models\checkpoints`."""
+    folder = dest.rsplit("\\", 1)[0] if "\\" in dest else dest
+    return folder.replace("{COMFYUI}", "ComfyUI").replace("{MODELS}", "InstAI\\models").replace("{TOOLS}", "InstAI\\tools")
+
+
+def curated(packages: dict | None = None, items: list | None = None, status: dict | None = None) -> list[dict]:
+    """The curated model library (manifests/curated.json + the `curated` block of other packages): for each package its files with the exact
+    repository / commit / path, size, sha256, destination folder, the mirror link and - from the downloader - whether each file is already
+    here (`reused` = the same weights are present under another name or in another folder: de-duplication, nothing is downloaded)."""
+    from instai.core import model_status
+
+    if packages is None or items is None:
+        packages, items = model_status.manifests()
+    status = model_status.package_status(detail=True) if status is None else status
+    out = []
+    for pid, p in packages.items():
+        c = p.get("curated")
+        if not c:
+            continue
+        st = status.get(pid, {})
+        det = {d["id"]: d for d in st.get("details", [])}
+        files = []
+        for it in (i for i in items if i.get("package") == pid and not i.get("fallback_for")):
+            hf = it.get("hf") or {}
+            d = det.get(it["id"], {})
+            files.append({"id": it["id"], "title": it.get("title", it["id"]), "kind": it.get("kind", "file"), "size": int(it.get("size") or 0),
+                          "sha256": it.get("sha256") or "", "folder": _folder_of(it.get("dest", "")), "name": str(it.get("dest", "")).rsplit("\\", 1)[-1],
+                          "repo": hf.get("repo", ""), "revision": hf.get("revision", ""), "path": hf.get("path", ""), "license": hf.get("license", ""),
+                          "url": (it.get("urls") or [""])[0].replace("{HF}", "https://huggingface.co"),
+                          "mirror": (it.get("urls") or [""])[0].replace("{HF}", HF_MIRROR) if "{HF}" in ((it.get("urls") or [""])[0]) else "",
+                          "installed": bool(d.get("installed")), "reused": bool(d.get("reused")), "where": d.get("where", "") if d.get("installed") else ""})
+        commercial = c.get("commercial", "unknown")
+        out.append({"id": pid, "title": p.get("title", pid), "group": c.get("group", "image"), "order": int(c.get("order") or 99), "commercial": commercial,
+                    "needs_confirm": commercial != "yes", "licence": p.get("licence", ""), "licence_url": c.get("licence_url", ""), "vram": c.get("vram", ""),
+                    "why": c.get("why") or {}, "note": c.get("note") or {}, "checked": c.get("checked", ""), "files": files, "needs": c.get("needs") or [],
+                    "size": sum(f["size"] for f in files), "missing_size": sum(f["size"] for f in files if not f["installed"]),
+                    "installed": sum(1 for f in files if f["installed"]), "reused": sum(1 for f in files if f["reused"]),
+                    "complete": bool(files) and all(f["installed"] for f in files), "default": False})
+    out.sort(key=lambda x: (CURATED_GROUPS.index(x["group"]) if x["group"] in CURATED_GROUPS else 99, x["order"], x["id"]))
+    return out
+
+
+def needs_licence_confirmation(package_ids: list[str]) -> list[str]:
+    """Curated packages among `package_ids` whose licence is not plainly commercial (the UI must have shown it and the owner confirmed)."""
+    from instai.core import model_status
+
+    packages, _ = model_status.manifests()
+    return [pid for pid in package_ids if ((packages.get(pid) or {}).get("curated") or {}).get("commercial", "yes") != "yes"]
+
+
 def catalog() -> dict:
     """What can be downloaded (for the Downloads page): packages with sizes, Ollama suggestions, the places a download can go, the defaults."""
     from instai.core import model_status
 
-    packages, _ = model_status.manifests()
-    status = model_status.package_status()
+    packages, _items = model_status.manifests()
+    status = model_status.package_status(detail=True)
     items = []
     for pid, p in packages.items():
         st = status.get(pid, {})
-        items.append({"id": pid, "title": p.get("title", pid), "group": p.get("group", ""), "offer": bool(p.get("offer")), "size": int(st.get("size") or 0),
+        items.append({"id": pid, "title": p.get("title", pid), "group": p.get("group", ""), "offer": bool(p.get("offer")), "curated": bool(p.get("curated")),
+                      "size": int(st.get("size") or 0),
                       "missing_size": int(st.get("missing_size") or 0), "complete": bool(st.get("complete")), "default": bool(p.get("default")),
                       "licence": p.get("licence", "")})
-    return {"packages": items, "ollama": OLLAMA_SUGGESTIONS, "targets": targets(), "config": schedule.config()}
+    return {"packages": items, "ollama": OLLAMA_SUGGESTIONS, "targets": targets(), "config": schedule.config(),
+            "curated": curated(packages, _items, status)}

@@ -168,6 +168,11 @@ def downloads_view(request):
     bad = [p for p in pkgs if p not in known]
     if not pkgs or bad:
         raise DomainError("validation_error", "بسته‌ی نامعتبر: " + ", ".join(bad or ["(خالی)"]), http_status=400)
+    ask = downloads.needs_licence_confirmation(pkgs)          # curated packages whose licence is not plainly commercial: the UI showed it, the owner confirmed
+    if ask and request.data.get("confirm_licence") is not True:
+        raise DomainError("validation_error", "این بسته مجوز غیرتجاری یا نامشخص دارد؛ دانلودش فقط پس از تأیید شما شروع می‌شود: " + "، ".join(ask),
+                          http_status=400, details={"confirm_licence": ask},
+                          message_en="This package has a non-commercial or unclear licence; the download starts only after you confirm it: " + ", ".join(ask))
     # `when` (now | "03:30" | {mode: window}) and `target` (this PC or a worker PC) are optional: without them the owner's saved default applies
     return job_response(downloads.start_packages(pkgs, "دانلود: " + "، ".join(pkgs), when=request.data.get("when"), target=request.data.get("target")))
 

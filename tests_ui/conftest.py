@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 if not PY.exists():
     PY = ROOT / ".venv" / "bin" / "python"
+if not PY.exists():
+    PY = Path(os.environ.get("INSTAI_UI_PY") or sys.executable)      # no project venv (a developer PC): the Python that runs the tests, with the app's packages installed
 
 
 def _free_port() -> int:

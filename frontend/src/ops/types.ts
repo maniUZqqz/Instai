@@ -224,6 +224,7 @@ export interface CatalogItem {
   title: string
   group: string
   offer: boolean
+  curated?: boolean
   size: number
   missing_size: number
   complete: boolean
@@ -231,8 +232,49 @@ export interface CatalogItem {
   licence: string
 }
 
+export interface CuratedFile {
+  id: string
+  title: string
+  kind: string
+  size: number
+  sha256: string
+  folder: string
+  name: string
+  repo: string
+  revision: string
+  path: string
+  license: string
+  url: string
+  mirror: string
+  installed: boolean
+  reused: boolean
+  where: string
+}
+
+export interface CuratedPackage {
+  id: string
+  title: string
+  group: 'image' | 'control' | 'upscale' | 'video' | 'voice'
+  commercial: 'yes' | 'conditional' | 'no' | 'unknown'
+  needs_confirm: boolean
+  licence: string
+  licence_url: string
+  vram: string
+  why: { fa?: string; en?: string }
+  note: { fa?: string; en?: string }
+  checked: string
+  files: CuratedFile[]
+  needs: string[]
+  size: number
+  missing_size: number
+  installed: number
+  reused: number
+  complete: boolean
+}
+
 export interface Catalog {
   packages: CatalogItem[]
+  curated?: CuratedPackage[]
   ollama: { model: string; fa: string; en: string; gb: number }[]
   targets: { id: string; name: string; name_en: string; online: boolean; can_download?: boolean }[]
   config: OpsConfig

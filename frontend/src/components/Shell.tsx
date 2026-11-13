@@ -113,6 +113,7 @@ const NAV: { to: string; key: Parameters<ReturnType<typeof useI18n>['t']>[0]; ic
   { to: '/queue', key: 'ops.nav.queue', icon: 'list' },
   { to: '/report', key: 'ops.nav.report', icon: 'system' },
   { to: '/downloads', key: 'ops.nav.downloads', icon: 'download' },
+  { to: '/remotion', key: 'nav.remotion', icon: 'film' },
   { to: '/publishing', key: 'nav.publishing', icon: 'publish' },
   { to: '/system', key: 'nav.system', icon: 'system' },
   { to: '/models', key: 'nav.models', icon: 'layers' },

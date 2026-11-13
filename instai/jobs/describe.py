@@ -49,6 +49,8 @@ KIND_TEXT: dict[str, tuple[str, str]] = {
     "publish.send": ("ارسال برای انتشار", "Sending for publishing"),
     "models.test": ("تست مدل", "Model test"),
     "downloads.ollama": ("دانلود مدل Ollama", "Downloading an Ollama model"),
+    "remotion.setup": ("آماده‌سازی Remotion (ویدئو با کد)", "Setting up Remotion (video with code)"),
+    "remotion.render": ("ساخت ویدئو با Remotion", "Rendering a video with Remotion"),
 }
 
 PHASE_FA = {

@@ -149,7 +149,20 @@ def expand(s: str, hf: str) -> str:
 
 
 def dest_of(item: dict) -> str:
-    return os.path.normpath(expand(item["dest"], HF))
+    return os.path.normpath(expand(item["dest"], HF).replace("\\", os.sep))      # manifests are written with Windows separators
+
+
+_TREE: dict = {}
+
+
+def comfy_tree(cd: str) -> dict:
+    """{lower-case file name: [paths]} of everything under ComfyUI's models folder, listed ONCE per process (a status run asks about ~40 files)."""
+    if cd not in _TREE:
+        out: dict = {}
+        for f in glob.glob(os.path.join(cd, "models", "**", "*"), recursive=True):
+            out.setdefault(os.path.basename(f).lower(), []).append(f)
+        _TREE[cd] = out
+    return _TREE[cd]
 
 
 def reuse_path(item: dict) -> str | None:
@@ -174,11 +187,11 @@ def reuse_path(item: dict) -> str | None:
                 return "ComfyUI lists " + api[n]
         cd = comfy_dir()
         if cd:
-            wanted = dict(names)
-            for f in glob.glob(os.path.join(cd, "models", "**", "*"), recursive=True):
-                low = os.path.basename(f).lower()
-                if low in wanted and os.path.isfile(f) and wanted[low] in (None, os.path.getsize(f)):
-                    return f
+            tree = comfy_tree(cd)
+            for n, want in names:
+                for f in tree.get(n, []):
+                    if os.path.isfile(f) and want in (None, os.path.getsize(f)):
+                        return f
         return None
     if dest.startswith("{MODELS}"):
         rel = dest[len("{MODELS}"):].strip("\\/").replace("\\", os.sep)
@@ -217,6 +230,83 @@ def sha256_of(path: str) -> str:
     return h.hexdigest()
 
 
+ALIASES = os.path.join(DATA, "downloads", "aliases.json")
+
+
+def load_aliases() -> dict:
+    try:
+        with open(ALIASES, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_alias(item_id: str, path: str) -> None:
+    d = load_aliases()
+    d[item_id] = path
+    os.makedirs(os.path.dirname(ALIASES), exist_ok=True)
+    with open(ALIASES, "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=1)
+
+
+def find_same_weights(item: dict, min_size: int | None = None) -> str | None:
+    """De-duplication by CONTENT: InstAI and NMarketing share this PC and its ComfyUI, so the same weights often sit under another name
+    (or in another folder). A file anywhere under ComfyUI's models folder with EXACTLY the manifest's size is hashed once (the result is
+    remembered) and counts only when its sha256 equals the manifest's. Needs a sha256 in the manifest; never reads small files."""
+    want, size = (item.get("sha256") or "").lower(), item.get("size")
+    cd = comfy_dir()
+    if min_size is None:
+        min_size = int(os.environ.get("INSTAI_DEDUP_MIN_BYTES") or 50 * 1024 * 1024)
+    if item.get("kind", "file") != "file" or not want or not size or size < min_size or "{COMFYUI}" not in item.get("dest", "") or not cd:
+        return None
+    cache_path = os.path.join(DATA, "downloads", "hashes.json")
+    try:
+        with open(cache_path, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        cache = {}
+    target = dest_of(item)
+    for root, _dirs, files in os.walk(os.path.join(cd, "models")):
+        for name in files:
+            p = os.path.join(root, name)
+            if os.path.normcase(p) == os.path.normcase(target) or name.endswith(".part") or ".bad-" in name:
+                continue
+            try:
+                st = os.stat(p)
+            except OSError:
+                continue
+            if st.st_size != size:
+                continue
+            key = "%s|%d|%d" % (os.path.normcase(p), st.st_size, int(st.st_mtime))
+            if key not in cache:
+                log("  same size as %s under another name: checking that it is the same file (sha256) ..." % item["id"])
+                cache[key] = sha256_of(p)
+                os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                with open(cache_path, "w", encoding="utf-8") as f:
+                    json.dump(cache, f)
+            if cache[key] == want:
+                return p
+    return None
+
+
+def adopt_existing(item: dict) -> bool:
+    """Make a file ComfyUI already has under another name / folder available at this item's destination WITHOUT a second copy
+    (an NTFS hard link: same disk, no extra space). When linking is impossible the alias is remembered and the file counts as present."""
+    src = find_same_weights(item)
+    if not src:
+        return False
+    dest = dest_of(item)
+    try:
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        os.link(src, dest)
+        log("  %s is the same file as %s - linked, nothing downloaded" % (item["id"], src))
+        return True
+    except OSError:
+        save_alias(item["id"], src)
+        log("  %s is the same file as %s (cannot link) - remembered, nothing downloaded" % (item["id"], src))
+        return True
+
+
 def _site_packages(python: str) -> list[str]:
     base = os.path.dirname(python)
     return [os.path.join(base, "Lib", "site-packages"), os.path.join(os.path.dirname(base), "Lib", "site-packages")]
@@ -249,7 +339,12 @@ def is_installed(item: dict) -> tuple[bool, str]:
         size = item.get("size")
         return (size is None or os.path.getsize(d) == size), d
     r = reuse_path(item)
-    return (True, r) if r else (False, d)
+    if r:
+        return True, r
+    a = load_aliases().get(item["id"])
+    if a and os.path.isfile(a) and item.get("size") in (None, os.path.getsize(a)):
+        return True, a
+    return False, d
 
 
 # ------------------------------------------------------------------ transfer
@@ -278,47 +373,56 @@ def head(url: str) -> tuple[bool, int | None, str]:
 
 
 def download_file(urls: list[str], dest: str, size: int | None, retries: int = 12) -> bool:
+    """Resumable download. The links (the original first, then the mirror, e.g. hf-mirror.com) are used in ROTATION: after a failed
+    attempt the next link is tried at once, so a blocked or slow host costs seconds, not minutes. A link that answers 401/403/404 leaves
+    the rotation. The .part file is shared by all links (they serve the same pinned file), the final size / sha256 check decides."""
     part = dest + ".part"
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     if size and os.path.exists(part) and os.path.getsize(part) == size:  # finished earlier, only the rename was missing
         os.replace(part, dest)
         return True
-    for url in urls:
-        for attempt in range(1, retries + 1):
-            start = os.path.getsize(part) if os.path.exists(part) else 0
-            try:
-                with open_url(url, start) as r:
-                    code = getattr(r, "status", 200)
-                    if start and code != 206:  # server ignored Range: start over
-                        start = 0
-                    total = size or (int(r.headers.get("Content-Length", 0)) + start) or None
-                    t0, last, done = time.time(), 0.0, start
-                    with open(part, "ab" if start else "wb") as f:
-                        while True:
-                            buf = r.read(CHUNK)
-                            if not buf:
-                                break
-                            f.write(buf)
-                            done += len(buf)
-                            if time.time() - last > 5:
-                                last = time.time()
-                                sp = (done - start) / max(0.1, time.time() - t0)
-                                pct = " %5.1f%%" % (100.0 * done / total) if total else ""
-                                log("  %s%s  %s/s" % (human(done), pct, human(sp)))
-                if size and os.path.getsize(part) != size:
-                    raise OSError("size mismatch %d != %d" % (os.path.getsize(part), size))
-                os.replace(part, dest)
-                return True
-            except (urllib.error.URLError, OSError, TimeoutError) as e:
-                if isinstance(e, urllib.error.HTTPError) and e.code == 416 and os.path.exists(part):  # bad range: start over
-                    os.remove(part)
-                    continue
-                if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403, 404):
-                    log("  %s -> HTTP %d (skipping this link)" % (url.split("//")[-1][:60], e.code))
-                    break
-                wait = min(30, 2 ** min(attempt, 5))
-                log("  attempt %d/%d failed (%s); retry in %ds" % (attempt, retries, type(e).__name__, wait))
-                time.sleep(wait)
+    live = list(urls)
+    for attempt in range(1, max(1, retries) * max(1, len(urls)) + 1):
+        if not live:
+            break
+        url = live[(attempt - 1) % len(live)]
+        start = os.path.getsize(part) if os.path.exists(part) else 0
+        try:
+            with open_url(url, start) as r:
+                code = getattr(r, "status", 200)
+                if start and code != 206:  # server ignored Range: start over
+                    start = 0
+                total = size or (int(r.headers.get("Content-Length", 0)) + start) or None
+                t0, last, done = time.time(), 0.0, start
+                with open(part, "ab" if start else "wb") as f:
+                    while True:
+                        buf = r.read(CHUNK)
+                        if not buf:
+                            break
+                        f.write(buf)
+                        done += len(buf)
+                        if time.time() - last > 5:
+                            last = time.time()
+                            sp = (done - start) / max(0.1, time.time() - t0)
+                            pct = " %5.1f%%" % (100.0 * done / total) if total else ""
+                            log("  %s%s  %s/s" % (human(done), pct, human(sp)))
+            if size and os.path.getsize(part) != size:
+                raise OSError("size mismatch %d != %d" % (os.path.getsize(part), size))
+            os.replace(part, dest)
+            return True
+        except (urllib.error.URLError, OSError, TimeoutError) as e:
+            if isinstance(e, urllib.error.HTTPError) and e.code == 416 and os.path.exists(part):  # bad range: start over
+                os.remove(part)
+                continue
+            if isinstance(e, urllib.error.HTTPError) and e.code in (401, 403, 404):
+                log("  %s -> HTTP %d (this link is skipped)" % (url.split("//")[-1][:60], e.code))
+                live.remove(url)
+                continue
+            # another link to try: go on at once; only after a full round of failures wait (2, 4, 8 ... 30 s)
+            round_done = len(live) <= 1 or attempt % len(live) == 0
+            wait = min(30, 2 ** min((attempt - 1) // max(1, len(live)) + 1, 5)) if round_done else 0
+            log("  attempt %d failed on %s (%s); %s" % (attempt, url.split("//")[-1][:40], type(e).__name__, "retry in %ds" % wait if wait else "trying the next link"))
+            time.sleep(0 if os.environ.get("INSTAI_DL_FAST") else wait)
     return False
 
 
@@ -391,6 +495,8 @@ def install(item: dict, mirror: str | None) -> bool:
         return install_pypi_member(item, dest)
     urls = urls_for(item, mirror)
     if kind == "file":
+        if adopt_existing(item):
+            return is_installed(item)[0]
         if not download_file(urls, dest, item.get("size")):
             return False
         return verify(item, dest)
@@ -487,17 +593,23 @@ def fallbacks_for(items: list, failed: list[str], skip_ids: set) -> list[dict]:
     return [i for i in items if i.get("fallback_for") in failed and i["id"] not in skip_ids]
 
 
-def status_json(packages: dict, items: list) -> dict:
+def status_json(packages: dict, items: list, detail: bool = False) -> dict:
+    """Per package: how much is installed. With `detail`, every item too: {id, installed, where, reused}. `reused` = the file is not at
+    the package's own destination but ComfyUI (or NMarketing) already has the same weights, so nothing will be downloaded for it."""
     out: dict = {}
     for pid, p in packages.items():
         its = [i for i in items if i.get("package") == pid and not i.get("fallback_for")]
-        have = [i for i in its if is_installed(i)[0]]
+        states = {i["id"]: is_installed(i) for i in its}
+        have = [i for i in its if states[i["id"]][0]]
         out[pid] = {"title": p.get("title", pid), "default": bool(p.get("default")), "licence": p.get("licence", ""),
                     "licence_verified": bool(p.get("licence_verified")), "size": sum(i.get("size") or 0 for i in its),
                     "missing_size": sum(i.get("size") or 0 for i in its if i not in have),
                     "missing_ids": [i["id"] for i in its if i not in have],
                     "items": len(its), "installed": len(have), "complete": bool(its) and len(have) == len(its),
                     "note": p.get("note", "")}
+        if detail:
+            out[pid]["details"] = [{"id": i["id"], "installed": states[i["id"]][0], "where": states[i["id"]][1],
+                                    "reused": bool(states[i["id"]][0] and os.path.normcase(states[i["id"]][1]) != os.path.normcase(dest_of(i)))} for i in its]
     return out
 
 
@@ -506,6 +618,7 @@ def main(argv=None) -> int:
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--detail", action="store_true", help="with --status: also every item (installed, where, reused)")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--yes", action="store_true")
     ap.add_argument("--only", action="append")
@@ -514,7 +627,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     packages, items = load_manifests()
     if args.status:
-        print(json.dumps(status_json(packages, items)))
+        print(json.dumps(status_json(packages, items, detail=args.detail)))
         return 0
     chosen = select(packages, items, args)
     todo = []

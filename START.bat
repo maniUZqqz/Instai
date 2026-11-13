@@ -7,7 +7,7 @@ rem  starts the server and the worker, and opens the browser.
 rem  Running it again when everything is fine takes a few seconds.
 rem  Console text is English on purpose (the Windows console garbles Persian).
 rem
-rem  Optional switches (environment variables): INSTAI_NO_BROWSER=1, INSTAI_NO_PAUSE=1, INSTAI_SKIP_BENCH_PROMPT=1
+rem  Optional switches (environment variables): INSTAI_NO_BROWSER=1, INSTAI_NO_PAUSE=1, INSTAI_SKIP_BENCH_PROMPT=1, INSTAI_NO_UPDATE=1, INSTAI_REMOTION_AUTO=0
 rem  NOTE: this folder may contain spaces and parentheses; all paths below are relative on purpose.
 rem ================================================================
 cd /d "%~dp0"
@@ -49,9 +49,24 @@ if errorlevel 1 goto venv_failed
 :have_venv
 if not exist ".venv\Scripts\python.exe" goto venv_failed
 
+rem ---- 1b. bring the latest InstAI from GitHub (main) ------------------
+rem  Never blocks start-up (offline = "continuing"); not done while the server runs (STOP.bat first); your data, .env and models are never touched.
+rem  Everything is also written to data\logs\update.log. Switch it off with INSTAI_NO_UPDATE=1 (or INSTAI_AUTO_UPDATE=0 in .env).
+rem  Exit code 10 = START.bat itself was replaced: it starts again from the top (one line on purpose: cmd must not read the new file half-way).
+if "%INSTAI_NO_UPDATE%"=="1" goto after_update
+".venv\Scripts\python.exe" scripts\self_update.py & if errorlevel 10 (goto) 2>nul & set "INSTAI_NO_UPDATE=1" & call "%~dp0START.bat" & exit /b
+:after_update
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI v%IVER%
+
 rem ---- 2. packages, .env, ffmpeg, UI build, database, checklist ----
 ".venv\Scripts\python.exe" scripts\bootstrap.py
 if errorlevel 2 goto fail
+
+rem ---- 2b. code-to-video (Remotion): Node.js + packages + a browser are set up in the BACKGROUND by themselves (never blocks the start;
+rem      progress on the "Video with code" page and in data\logs\remotion-setup.log; switch off with INSTAI_REMOTION_AUTO=0) ----
+".venv\Scripts\python.exe" scripts\setup_remotion.py --background
 
 rem ---- 3. already running? ------------------------------------------
 ".venv\Scripts\python.exe" scripts\wait_ready.py --once

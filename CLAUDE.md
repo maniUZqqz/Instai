@@ -67,3 +67,11 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Version:** edit `VERSION` and add the newest entry (fa + en) to `CHANGELOG.json` together (`tests/test_platform_version.py` checks they agree). The badge is in `App.tsx` outside `<Routes>`; every .bat window reads `VERSION`.
 - New screens use the `ops.*` keys in `frontend/src/i18n/packs/ops.ts`; server-sent texts come as `*_fa` / `*_en` pairs and the UI picks one.
 
+## 0.8.0: update, Remotion, curated models, GPU first (reasons in `docs/DECISIONS.md`)
+- **START.bat / START-WORKER.bat call `scripts/self_update.py` first** (exit code 10 = a start script itself changed: the one-line re-run trick; do not split that line). Protected folders live in `PROTECTED` there; never ship user data in the repo. A new top-level folder that belongs to the owner's PC must be added to `PROTECTED`.
+- **Curated model library**: `manifests/curated.json` is generated (`scripts/gen_curated_manifest.py`); `ops/downloads.curated()` feeds the Downloads page; non-commercial / unclear licences need `confirm_licence`. `tests/test_curated.py` lists the owner's brief item by item.
+- **Remotion**: `remotion/` (compositions + `render.mjs`), `instai/remotion/` (kit, toolchain, API), `instai/jobs/handlers/remotion.py` (`remotion.setup`, `remotion.render`), `scripts/setup_remotion.py` (automatic Node.js / npm / browser), page `frontend/src/remotion/`. A style vocabulary change in `instai/styles/schema.py` (animations, families) needs the matching entry in `remotion/src/kit/motion.ts` / `Stage.tsx` (a test checks). Never write a Remotion colour without `readableOn` / `accentOn` against its own surface. `render.mjs` events are lines starting `INSTAI_REMOTION `.
+- **GPU / neighbours**: `gpu/ollama_tune.py` (plan + Ollama env), `gpu/coexist.py` (neighbours, ports, VRAM report, `release_idle`), `docs/COEXISTENCE.md`. New GPU-using code still goes through `gpu/compute.run_task`.
+- **Gotcha when editing with a script**: a heredoc that holds Python source with backslashes can silently turn `
+` into a real newline; write such files with a file tool, not a shell heredoc.
+- UI QA: `python -m pytest tests_ui/test_qa_sweep.py` (see its docstring); the built UI is rebuilt by the lead, `tests/test_platform_version.py` fails until it is.

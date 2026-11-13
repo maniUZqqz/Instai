@@ -1,6 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { Shell } from './components/Shell'
-import { Empty, LinkButton } from './components/ui'
+import { Empty, LinkButton, Loading } from './components/ui'
 import { useI18n } from './i18n'
 import Dashboard from './pages/Dashboard'
 import LibraryPage from './pages/Library'
@@ -22,6 +23,9 @@ import QueuePage from './ops/Queue'
 import ReportPage from './ops/Report'
 import DownloadsPage from './ops/Downloads'
 import WhatsNew from './ops/WhatsNew'
+
+// the Remotion page carries the Remotion player: loaded only when the page is opened
+const RemotionPage = lazy(() => import('./remotion/RemotionPage'))
 
 function NotFound() {
   const { t } = useI18n()
@@ -68,6 +72,7 @@ export default function App() {
         <Route path="report" element={<ReportPage />} />
         <Route path="downloads" element={<DownloadsPage />} />
         <Route path="whats-new" element={<WhatsNew />} />
+        <Route path="remotion" element={<Suspense fallback={<Loading />}><RemotionPage /></Suspense>} />
         {labRoutes}
         <Route path="*" element={<NotFound />} />
       </Route>
