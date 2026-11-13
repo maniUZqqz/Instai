@@ -6,6 +6,8 @@ ANIME = "anime_whatif"
 CHARACTER = "recurring_character"
 EXPLAINER = "concept_explainer"
 CUSTOM = "custom"
+MINISERIES = "mini_series_channel"
+CHOICE = "choice_story"
 
 FORMATS: dict[str, dict] = {
     ANIME: {
@@ -37,6 +39,26 @@ FORMATS: dict[str, dict] = {
         "policy": {"original_default": False, "fan_notice": False, "sourced": True, "synthetic_presenter_only": True},
         "idea_hint_fa": "مثلاً: سرمایه‌داری چیست؟ چندجهانی در فیزیک یعنی چه؟ فاشیسم چگونه تعریف می‌شود؟",
         "description_en": 'A presenter (2D cartoon, stylised 3D, or a real-looking presenter where permitted) explains hard ideas simply, with sources and fact-checking.', "idea_hint_en": 'e.g. what is capitalism? what does multiverse mean in physics? how is fascism defined?',
+    },
+    MINISERIES: {
+        "label_fa": "کانال مینی‌سریال", "label_en": "Mini-series channel",
+        "description_fa": "قسمت‌های کوتاه با شخصیت‌های اورجینالِ تکرارشونده، قلاب در ثانیه‌های اول، پایان باز و برنامهٔ انتشار ثابت (مثل سریال‌های آدمک چوبی).",
+        "needs": ["characters", "season_plan", "cliffhangers", "schedule"],
+        "default_techniques": ["puppet_2d", "still_kenburns"],
+        "default_series": {"episodes": 8, "episode_length_sec": 30},
+        "policy": {"original_default": True, "fan_notice": False, "sourced": False, "synthetic_presenter_only": False},
+        "idea_hint_fa": "مثلاً: یک آدمک چوبیِ آبی که هر هفته از جایی تازه فرار می‌کند و هر قسمت با یک سؤال تمام می‌شود.",
+        "description_en": 'Short episodes with recurring ORIGINAL characters, a hook in the first seconds, an open ending and a fixed posting schedule (the stick-figure series format).', "idea_hint_en": 'e.g. a blue stick figure who escapes from somewhere new every week, each episode ending on a question.',
+    },
+    CHOICE: {
+        "label_fa": "داستان تعاملی (انتخابی)", "label_en": "Interactive choice story",
+        "description_fa": "داستان شاخه‌شاخه برای اینستاگرام: هر پست با چند انتخاب تمام می‌شود («اگر الف را بزنی برو پست ۷»). شماره‌ها خودکار و درست می‌شوند.",
+        "needs": ["characters", "branch_graph", "numbering", "endings"],
+        "default_techniques": ["still_kenburns"],
+        "default_series": {"episodes": 1, "episode_length_sec": 30},
+        "policy": {"original_default": True, "fan_notice": False, "sourced": False, "synthetic_presenter_only": False},
+        "idea_hint_fa": "مثلاً: فرار از زندان؛ هر پست دو راه جلوی بازیکن می‌گذارد و بعضی راه‌ها زود به پایان بد می‌رسند.",
+        "description_en": 'A branching story for Instagram: each post ends with choices ("if you choose A go to post 7"). The post numbers are planned and filled in for you.', "idea_hint_en": 'e.g. a prison escape; each post gives two ways on and some lead quickly to a bad ending.',
     },
     CUSTOM: {
         "label_fa": "قالب دلخواه", "label_en": "Custom",

@@ -69,3 +69,9 @@ are NOT measured yet; the anime video candidates are judged in Production lab > 
 | Animagine XL 4.0 Opt (anime images) (`animagine`, workflow `sdxl_anime_t2i`) | anime image | 6.9 GB | - | CreativeML Open RAIL++-M (model card read 2026-10-29: commercial use allowed, use-based restrictions) | yes |
 | Index-AniSora V3.2 (GGUF Q4_0) (`anisora`, workflow `anisora_v32_i2v_gguf`) | anime video | 18.1 GB | comfy-gguf, umt5_xxl_fp8, wan21_vae, lightx2v_rank64 | Apache-2.0 + extra restrictions for retraining/derivatives (bilibili Index-anisora LICENSE) | unknown |
 | AnimeGen I2V by AIdeaLab (GGUF Q4_K_M) (`animegen`, workflow `animegen_i2v_gguf`) | anime video | 19.3 GB | comfy-gguf, umt5_xxl_fp8, wan21_vae, lightx2v_rank64 | Apache-2.0 (card tag commercial-use) | yes |
+
+## Added in 0.8.0 (identity)
+
+| Workflow | Models | Licence | State |
+|---|---|---|---|
+| `qwen_image_edit_multiref` (up to three character model sheets -> a new picture) | the same four files as `qwen_image_edit_ref` (Qwen-Image-Edit-2509 fp8, Qwen2.5-VL 7B fp8, Qwen-Image VAE, Qwen-Image-Lightning 4-step LoRA) | Apache-2.0 | graph written from ComfyUI's template documentation, **never run** on a real ComfyUI; needs the model downloads |

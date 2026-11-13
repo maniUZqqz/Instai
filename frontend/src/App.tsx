@@ -18,6 +18,7 @@ import PublishingCentre, { PublishingTab } from './pages/workspace/Publishing'
 import { ProfilesTab } from './pages/workspace/ProfilesTab'
 import { EpisodesTab, HistoryTab, Overview, SeriesTab, Workspace } from './pages/workspace/Workspace'
 import { labRoutes } from './lab/routes'
+import ChoiceEditor, { ChoiceListTab } from './pipeline/Choice'
 import { VersionBadge } from './components/VersionBadge'
 import QueuePage from './ops/Queue'
 import ReportPage from './ops/Report'
@@ -54,11 +55,13 @@ export default function App() {
           <Route path="characters" element={<CharactersTab />} />
           <Route path="series" element={<SeriesTab />} />
           <Route path="episodes" element={<EpisodesTab />} />
+          <Route path="choice" element={<ChoiceListTab />} />
           <Route path="publishing" element={<PublishingTab />} />
           <Route path="history" element={<HistoryTab />} />
         </Route>
         <Route path="series/:id" element={<SeriesBuilder />} />
         <Route path="episodes/:id" element={<EpisodeEditor />} />
+        <Route path="choice/:id" element={<ChoiceEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
         <Route path="library" element={<LibraryPage />} />
         <Route path="ideas" element={<IdeasPage />} />

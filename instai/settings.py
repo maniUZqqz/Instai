@@ -72,6 +72,9 @@ INSTALLED_APPS = [
     "instai.jobs",
     "instai.publishing",
     "instai.production",
+    "instai.identity",
+    "instai.choice",
+    "instai.channel",
     "instai.ops",
 ]
 

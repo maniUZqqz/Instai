@@ -11,8 +11,10 @@ import { ANIME, EXPLAINER } from '../formats'
 import { useAction, useHashTabOpt, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 import Develop from './series/Develop'
+import { LadderPanel } from '../pipeline/Ladder'
+import { ChannelTab } from '../pipeline/Channel'
 
-const TABS = ['develop', 'info', 'arcs', 'episodes', 'plan', 'memory', 'sources'] as const
+const TABS = ['develop', 'ladder', 'channel', 'info', 'arcs', 'episodes', 'plan', 'memory', 'sources'] as const
 type Tab = (typeof TABS)[number]
 
 export default function SeriesBuilder() {
@@ -31,7 +33,7 @@ export default function SeriesBuilder() {
   // a series still in development opens in the development room; older series that already have episodes open on their info
   const dflt: Tab = s.dev_status === 'developing' || (s.dev_status === 'none' && s.episodes.length === 0) ? 'develop' : 'info'
   const tab: Tab = hashTab && tabs.includes(hashTab) ? hashTab : dflt
-  const labels: Record<Tab, string> = { develop: t('sb.tab_develop'), info: t('sb.tab_info'), arcs: t('sb.tab_arcs'), episodes: t('sb.tab_episodes'), plan: t('sb.tab_plan'), memory: t('sb.tab_memory'), sources: t('sb.tab_sources') }
+  const labels: Record<Tab, string> = { develop: t('sb.tab_develop'), ladder: t('sb.tab_ladder'), channel: t('sb.tab_channel'), info: t('sb.tab_info'), arcs: t('sb.tab_arcs'), episodes: t('sb.tab_episodes'), plan: t('sb.tab_plan'), memory: t('sb.tab_memory'), sources: t('sb.tab_sources') }
   const crumbs = [{ label: t('nav.pages'), to: '/pages' }, { label: page.data?.name ?? '…', to: `/pages/${s.page}` }, { label: t('ws.tab_series'), to: `/pages/${s.page}/series` }, { label: s.title }]
   return (
     <div className="stack">
@@ -48,6 +50,8 @@ export default function SeriesBuilder() {
       ))}
       <Tabs tabs={tabs.map((k) => ({ key: k, label: labels[k] }))} value={tab} onChange={setTab} label={t('sb.tabs')} />
       {tab === 'develop' && <Develop seriesId={s.id} />}
+      {tab === 'ladder' && <LadderPanel scope="series" id={s.id} />}
+      {tab === 'channel' && <ChannelTab seriesId={s.id} page={page.data} />}
       {tab === 'info' && <InfoTab s={s} isAnime={isAnime} onSaved={(d) => q.setData(d)} />}
       {tab === 'arcs' && <ArcsTab s={s} reload={q.reload} />}
       {tab === 'episodes' && <EpisodesTab s={s} reload={q.reload} />}

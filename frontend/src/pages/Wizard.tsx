@@ -51,6 +51,8 @@ const DEFAULT_STYLE: Record<string, { style: string; realism: string; theme: str
   anime_whatif: { style: 'modern_tv_anime', realism: 'anime', theme: 'pastel_dream' },
   recurring_character: { style: 'western_2d_tv', realism: 'cartoon', theme: 'candy_bright' },
   concept_explainer: { style: 'flat_vector_motion', realism: 'graphic', theme: 'ocean_calm' },
+  mini_series_channel: { style: 'stickman_doodle', realism: 'graphic', theme: 'mono_paper' },
+  choice_story: { style: 'stickman_doodle', realism: 'graphic', theme: 'mono_paper' },
 }
 const FALLBACK_STYLE = { style: 'modern_tv_anime', realism: 'anime', theme: 'pastel_dream' }
 const STEPS = ['wiz.step1', 'wiz.step2', 'wiz.step3', 'wiz.step4', 'wiz.step5', 'wiz.step6'] as const

@@ -77,6 +77,11 @@ def reference_sheet(shot, ep) -> tuple[Path | None, object | None]:
 
 def keyframe_inputs(shot, ep, base_inputs: dict, files: dict) -> tuple[str, dict, dict, str]:
     """(workflow id, inputs, input files, note) for a keyframe: from the character sheet when the shot is a hero shot and a sheet exists."""
+    from instai.identity import service as identity
+
+    plan = identity.plan_for_shot(shot, ep, base_inputs, reference_workflow)          # a LOCKED character identity wins (any technique, several characters)
+    if plan is not None:
+        return plan.workflow, plan.inputs, plan.files, plan.note
     sheet, _ = reference_sheet(shot, ep) if shot.technique in HERO_TECHNIQUES else (None, None)
     wid = reference_workflow() if sheet else None
     if not sheet or not wid:

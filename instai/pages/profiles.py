@@ -22,6 +22,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
                    "preview_height": 640, "final_height": 1920,
                    # studio gates: animatic / design / casting must be approved before an episode goes to production (off = old behaviour)
                    "studio_mode": False,
+                   # ladder gate: with studio_mode on, an episode goes to production only when every pre-production ladder stage is approved (off = old behaviour)
+                   "ladder_gate": False,
                    # text model choice per task group: {"default": {provider, model}, "fallback": {...}, "groups": {group: {provider, model}}}
                    "llm": {"default": {"provider": "", "model": ""}, "fallback": {"provider": "", "model": ""}, "groups": {}}},
     "publishing": {"platform": "instagram", "per_week": 3, "days": ["sat", "mon", "wed"], "time": "20:00", "caption_style": "",

@@ -89,6 +89,19 @@ def episode_meta(ep: Episode) -> dict:
              previous_summaries=services.memory_digest(s, before_episode=ep.number)["previous_summaries"])
     if ep.research:
         m["claims"] = [{"claim": c["claim"], "stance": c["stance"]} for c in ep.research.get("claims", [])]
+    from instai.channel.services import script_context
+    from instai.studio import ladder
+
+    ch = script_context(s, ep.number)                    # a mini-series channel: the hook / cliffhanger rules and this episode's slate row
+    if ch:
+        m["channel"] = ch
+    try:
+        d = ladder.doc(s, ep, "beat_sheet")
+        v = ladder.latest(d) if d else None
+        if v and v.data.get("beats"):
+            m["beats"] = v.data["beats"]                 # the approved beat sheet of the studio ladder
+    except Exception:  # noqa: BLE001 - the ladder is optional context
+        pass
     return m
 
 

@@ -7,6 +7,7 @@ import { Badge, Button, Card, CheckField, Empty, Notice, SelectField, TextField,
 import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { useWs } from './Workspace'
+import { IdentityCard } from '../../pipeline/Identity'
 
 const REF_KINDS = ['sheet', 'image', 'pose', 'expression', 'lora', 'voice']
 
@@ -113,6 +114,8 @@ function CharacterCard({ c, onChanged }: { c: Character; onChanged: () => void }
           <hr className="divider" />
           <CheckField label={t('chars.approve')} hint={t('chars.approve_hint')} checked={c.approved} onChange={(v) => patch({ approved: v })} />
           <References c={c} onChanged={onChanged} />
+          <hr className="divider" />
+          <IdentityCard characterId={c.id} onChanged={onChanged} />
         </div>
       )}
       {!open && (

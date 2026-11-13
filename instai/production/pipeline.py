@@ -104,13 +104,16 @@ def keyframe_hash(shot: Shot, ep: Episode, mode: str) -> str:
 
 
 def _reference_key(shot: Shot, ep: Episode) -> str:
-    """Changes when the character sheet used as a reference for a hero keyframe changes (so the keyframe is made again)."""
+    """Changes when the character sheet used as a reference for a hero keyframe changes, or a locked identity in the shot changes (so the keyframe is made again)."""
+    from instai.identity import service as identity
+
+    ident = identity.hash_part(shot, ep)
     if shot.technique not in hero.HERO_TECHNIQUES:
-        return ""
+        return ident
     sheet, _ = hero.reference_sheet(shot, ep)
     if sheet is None:
-        return "no-sheet"
-    return _h(Path(sheet).name, Path(sheet).stat().st_size)
+        return "no-sheet" + ident
+    return _h(Path(sheet).name, Path(sheet).stat().st_size, ident)
 
 
 PLATE_SUFFIX = "empty background plate, no characters, no people, no text"
@@ -278,10 +281,21 @@ def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
     w, h = KF_SIZE[mode]
     wid = str(settings_store.effective("image_workflow"))
     notes: list[str] = []
+    from instai.identity import service as identity, stickshots
+
     for shot in shots:
         if shot.seed is None:
-            shot.seed = int(_h("seed", ep.pk, shot.pk), 16) % (2 ** 31)
+            shot.seed = identity.default_seed(shot, ep) or int(_h("seed", ep.pk, shot.pk), 16) % (2 ** 31)       # a locked identity brings its own seed
             shot.save(update_fields=["seed"])
+    stick = [s for s in shots if stickshots.applies(s, ep)]                    # stick-figure shots are DRAWN by code: no image model, no graphics card
+    if stick:
+        for i, shot in enumerate(stick):
+            ctx.check()
+            ctx.progress(i / len(shots), f"stick keyframe {i + 1}/{len(stick)}")
+            stickshots.make_keyframe(ctx, shot, ep, keyframe_hash(shot, ep, mode), KF_SIZE[mode])
+        shots = [s for s in shots if s not in stick]
+        if not shots:
+            return {"generated": len(stick), "stick": len(stick)}
     if engine != "placeholder":
         from instai.gpu import compute
         from instai.providers.comfy.workflows import get_workflow
