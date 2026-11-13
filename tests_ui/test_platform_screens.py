@@ -96,6 +96,10 @@ def free_port() -> int:
 
 @pytest.fixture(scope="module")
 def base():
+    external = os.environ.get("INSTAI_UI_PLATFORM_BASE", "").rstrip("/")   # a server that already runs with the SEED data below (e.g. on another machine, reached through a tunnel)
+    if external:
+        yield external
+        return
     data = tempfile.mkdtemp(prefix="instai-ui-platform-")
     port = free_port()
     env = {**os.environ, "INSTAI_DATA_DIR": os.path.join(data, "data"), "INSTAI_PORT": str(port), "INSTAI_SECRET_KEY": "ui-test-key", "INSTAI_LLM_PROVIDER": "fake",
@@ -314,8 +318,9 @@ def test_downloads_page_schedules_a_download_for_the_night(browser, base):
     try:
         text = page.locator("main").inner_text()
         assert "دانلودها و زمان‌بندی" in text and "ffmpeg" in text
-        page.get_by_label("در بازهٔ شبانه").check()
-        page.get_by_role("button", name="ثبت دانلود").first.click()
+        card = page.locator("section", has=page.get_by_role("heading", name="دانلود تازه", exact=True))     # the curated library card above has its own schedule choice
+        card.get_by_label("در بازهٔ شبانه").check()
+        card.get_by_role("button", name="ثبت دانلود").first.click()
         page.wait_for_function("document.querySelectorAll('[data-testid^=dl-]').length >= 2", timeout=30000)   # (the server first asks the downloader what exists)
         assert page.locator("[data-testid^=dl-]").count() >= 2
         assert "بازهٔ شبانه" in page.locator("main").inner_text()

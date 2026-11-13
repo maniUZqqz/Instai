@@ -7,6 +7,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import time
 from pathlib import Path
 
 from django.conf import settings
@@ -33,10 +34,27 @@ def work_dir() -> Path:
     return Path(settings.DATA_DIR) / "remotion"
 
 
+_NOW: dict = {"at": 0.0, "val": None}
+NOW_TTL = 6.0
+
+
+def _now_cached(m) -> dict:
+    """`status_now()` starts `node -v` and looks for a browser: the page polls the status every few seconds while the setup runs, so the answer is
+    reused for a few seconds (the status FILE the setup writes is read fresh every time)."""
+    t = time.time()
+    if _NOW["val"] is None or t - _NOW["at"] > NOW_TTL:
+        _NOW.update(val=m.status_now(), at=t)
+    return _NOW["val"]
+
+
+def clear_cache() -> None:
+    _NOW.update(val=None, at=0.0)
+
+
 def status() -> dict:
     """{ready, node, packages, browser, state, phase, message_fa, message_en, error, remotion, project} for the page. Installs nothing."""
     m = setup_module()
-    now = m.status_now()
+    now = _now_cached(m)
     saved = m.read_status()
     state = saved.get("state") or ("ready" if now["ready"] else "idle")
     if now["ready"]:

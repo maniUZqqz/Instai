@@ -28,6 +28,15 @@ import setup_remotion as sr  # noqa: E402
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
+@pytest.fixture(autouse=True)
+def _fresh_toolchain_probe():
+    from instai.remotion import toolchain
+
+    toolchain.clear_cache()
+    yield
+    toolchain.clear_cache()
+
+
 # ------------------------------------------------------------------ the project's own files
 
 def catalog_ids() -> list[str]:
@@ -116,6 +125,8 @@ def test_status_code_and_kits_endpoints(api):
     assert {x["name"] for x in code["shared"]} == {"theme.ts", "motion.ts", "Stage.tsx", "catalog.ts", "render.mjs"}
     kits = api.get("/api/remotion/kits").json()
     assert len(kits["kits"]) >= 20 and kits["default"] == "cinematic_realistic"
+    keys = {g["key"] for g in kits["groups"]}
+    assert keys and all(k["group"] in keys | {""} for k in kits["kits"]), "the picker can filter the styles by the library's own groups"
     one = api.get("/api/remotion/kit", {"style": kits["kits"][3]["key"]}).json()
     assert one["key"] == kits["kits"][3]["key"]
     assert api.get("/api/remotion/kit", {"style": "../../etc"}).status_code == 400

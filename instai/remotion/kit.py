@@ -32,7 +32,7 @@ def style_kit(style_key: str | None = None, theme_key: str | None = None) -> dic
         "palette": _palette(style, theme),
         "typography": {"title_weight": typo.get("title_weight", "bold"), "title_case": typo.get("title_case", "normal"),
                        "title_animation": typo.get("title_animation", "fade"), "subtitle_color": typo.get("subtitle_color", "#FFFFFF")},
-        "mood": style.get("mood") or (theme or {}).get("mood", ""),
+        "mood": style.get("mood") or (theme or {}).get("mood", ""), "group": style.get("group", ""),
     }
 
 

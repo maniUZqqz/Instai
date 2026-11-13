@@ -149,7 +149,7 @@ export default function RemotionPage() {
   useTitle(t('rm.title'))
   const act = useAction()
   const status = useQuery<RmStatus>('/remotion/status', { interval: (d) => (d && d.ready ? 20000 : 2500) })
-  const kits = useQuery<{ kits: RmKit[]; default: string }>('/remotion/kits')
+  const kits = useQuery<{ kits: RmKit[]; default: string; groups?: { key: string; fa: string; en: string }[] }>('/remotion/kits')
   const code = useQuery<RmCode>('/remotion/code')
   const renders = useQuery<RmRenders>('/remotion/renders', { interval: 8000 })
   const [tab, setTab] = useStored<TabKey>('rm.tab', 'preview')
@@ -176,8 +176,11 @@ export default function RemotionPage() {
   const playerRef = useRef<PlayerRef>(null)
   const runner = useJobRunner({ onFinished: () => renders.reload() })
 
-  const list = kits.data?.kits ?? []
-  const kit: RmKit | undefined = list.find((k) => k.key === styleKey) ?? list.find((k) => k.key === kits.data?.default) ?? list[0]
+  const all = kits.data?.kits ?? []
+  const styleGroups = (kits.data?.groups ?? []).filter((g) => all.some((k) => k.group === g.key))
+  const [styleGroup, setStyleGroup] = useState('all')
+  const list = styleGroup === 'all' ? all : all.filter((k) => k.group === styleGroup)
+  const kit: RmKit | undefined = all.find((k) => k.key === styleKey) ?? all.find((k) => k.key === kits.data?.default) ?? all[0]
   const props = useMemo(() => propsOf(def, draft), [def, draft])
   const meta = useMemo(() => metaFor(def.id, { ...props, size }), [def, props, size])
   const inputProps = useMemo(() => ({ ...props, kit: (kit ?? undefined) as StyleKit | undefined, size, fontBase: 'page' }), [props, kit, size])
@@ -234,6 +237,9 @@ export default function RemotionPage() {
               <div className="stack-sm">
                 <div className="strong">{t('rm.style')}</div>
                 <p className="small muted">{t('rm.style_hint')}</p>
+                {styleGroups.length > 0 && (
+                  <Segmented<string> label={t('rm.style_groups')} value={styleGroup} onChange={setStyleGroup} options={[{ key: 'all', label: t('rm.style_all') }, ...styleGroups.map((g) => ({ key: g.key, label: lang === 'en' ? g.en : g.fa }))]} />
+                )}
                 <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))', gap: '0.5rem', maxHeight: '15rem', overflow: 'auto' }} data-testid="rm-styles">
                   {list.map((k) => <KitChip key={k.key} k={k} lang={lang} active={kit?.key === k.key} onPick={() => setStyleKey(k.key)} />)}
                 </div>

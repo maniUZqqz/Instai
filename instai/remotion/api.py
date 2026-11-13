@@ -22,6 +22,8 @@ from instai.jobs import queue
 from instai.jobs.api import job_response
 from instai.jobs.models import Job
 
+from instai.styles import schema
+
 from . import kit as kitmod
 from . import toolchain
 
@@ -97,7 +99,8 @@ def code_view(request):
 
 @api_view(["GET"])
 def kits_view(request):
-    return Response({"kits": kitmod.all_kits(), "default": kitmod.DEFAULT_KEY})
+    groups = [{"key": k, "fa": v.get("fa", k), "en": v.get("en", k)} for k, v in sorted(getattr(schema, "GROUPS", {}).items(), key=lambda kv: kv[1].get("order", 99))]
+    return Response({"kits": kitmod.all_kits(), "default": kitmod.DEFAULT_KEY, "groups": groups})
 
 
 @api_view(["GET"])

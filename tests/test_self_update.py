@@ -256,6 +256,14 @@ def test_archive_paths_cannot_escape_the_folder():
         su.archive_files(zipfile.ZipFile(io.BytesIO(_two_tops())))
 
 
+def test_a_batch_file_without_windows_line_endings_gets_them():
+    z = zipfile.ZipFile(io.BytesIO(make_zip({"START.bat": "@echo off\nrem x\n", "OTHER.bat": "@echo off\r\nrem y\r\n", "a.py": "x = 1\n"})))
+    files = su.archive_files(z)
+    assert files["START.bat"] == b"@echo off\r\nrem x\r\n", "cmd.exe needs CRLF"
+    assert files["OTHER.bat"] == b"@echo off\r\nrem y\r\n", "an already correct file is not doubled"
+    assert files["a.py"] == b"x = 1\n"
+
+
 def _two_tops() -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:

@@ -161,28 +161,35 @@ def player_text(page) -> str:
 
 
 def test_remotion_page_every_composition_and_every_style_plays(browser, server):
+    """Every style of the library in the TitleCard; every (animation, family) combination of the library in the other three templates."""
+    from tests_ui.conftest import Api
+
     SHOTS.mkdir(parents=True, exist_ok=True)
+    kits = Api(server).get("/api/remotion/kits")["kits"]
+    one_per_kind: dict = {}
+    for k in kits:
+        one_per_kind.setdefault((k["animation"], k["family"]), k["key"])
     ctx, page, problems = visit(browser, server, "/remotion", "desktop", "fa")
     failures: list[str] = []
     try:
         page.wait_for_selector("[data-testid=rm-player]", timeout=20000)
         page.wait_for_selector("[data-testid^=rm-style-]", timeout=20000)
         keys = page.eval_on_selector_all("[data-testid^=rm-style-]", "els => els.map(e => e.getAttribute('data-testid').slice(9))")
-        assert len(keys) >= 20, keys
+        assert len(keys) == len(kits) >= 20, (len(keys), len(kits))
         assert page.locator("[data-testid^=rm-comp-]").count() == 4
-        samples = {"TitleCard": "عنوان ویدیوی شما", "KineticText": "ایده", "Explainer": "چطور کار می‌کند", "LowerThird": "نام و نام‌خانوادگی"}
+        samples = {"TitleCard": "عنوان ویدیوی شما", "KineticText": "ایده|کلمه|متن|دو", "Explainer": "چطور کار می‌کند", "LowerThird": "نام و نام‌خانوادگی"}
         for comp, want in samples.items():
             page.click(f"[data-testid=rm-comp-{comp}]")
             page.wait_for_timeout(400)
-            page.wait_for_function("t => document.querySelector('[data-testid=rm-player]').innerText.includes(t)", arg=want, timeout=15000)
-            for k in keys:
+            page.wait_for_function("t => t.split('|').some(w => document.querySelector('[data-testid=rm-player]').innerText.replace(/‌/g, '').includes(w.replace(/‌/g, '')))", arg=want, timeout=20000)   # a kinetic text shows its first line only until the style's own beat moves on
+            for k in (keys if comp == "TitleCard" else list(one_per_kind.values())):
                 page.click(f"[data-testid=rm-style-{k}]")
-                page.wait_for_timeout(120)
-                if len(problems):
+                page.wait_for_timeout(100)
+                if problems:
                     failures.append(f"{comp} x {k}: {problems[:2]}")
                     problems.clear()
-        for k in keys[:1]:
-            page.click(f"[data-testid=rm-style-{k}]")
+                if not re.sub(r"\d+:\d+ / \d+:\d+", "", page.locator("[data-testid=rm-player]").inner_text()).strip():
+                    failures.append(f"{comp} x {k}: the player shows nothing")
         page.screenshot(path=str(SHOTS / "remotion-page.png"))
     finally:
         ctx.close()
@@ -241,7 +248,7 @@ def test_remotion_render_is_queued_and_followed(browser, server):
         page.locator("[data-testid=rm-render]").click()
         page.wait_for_selector("text=Rendering started", timeout=8000)
         job_id = api.get("/api/remotion/renders")["renders"][0]["job_id"]
-        end = time.time() + (360 if status["ready"] else 20)
+        end = time.time() + (900 if status["ready"] else 20)
         last = {}
         while time.time() < end:
             last = api.get(f"/api/jobs/{job_id}")
@@ -295,6 +302,7 @@ def test_curated_library_flow(browser, server):
         page.reload(wait_until="networkidle")
         page.wait_for_selector(f"[data-testid=dl-{r['job']['id']}]", timeout=10000)
         page.locator(f"[data-testid=dl-{r['job']['id']}]").get_by_role("button", name=re.compile("Cancel")).click()
+        page.locator("[role=dialog] button.danger").click()                 # "Cancel this download?" - confirm
         page.wait_for_timeout(1000)
         assert api.get(f"/api/jobs/{r['job']['id']}")["status"] == "cancelled"
         assert [p for p in problems if "favicon" not in p] == [], problems

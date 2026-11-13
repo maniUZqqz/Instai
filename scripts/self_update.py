@@ -223,7 +223,10 @@ def archive_files(z: zipfile.ZipFile) -> dict:
         parts = rel.replace("\\", "/").split("/")
         if not rel or ".." in parts or rel.startswith("/") or ":" in parts[0]:
             continue
-        out[rel.replace("\\", "/")] = z.read(n)
+        data = z.read(n)
+        if rel.lower().endswith((".bat", ".cmd")) and b"\r\n" not in data:
+            data = data.replace(b"\n", b"\r\n")           # cmd.exe needs CRLF in a batch file (GitHub's ZIP already has it; this is the safety net for any other source)
+        out[rel.replace("\\", "/")] = data
     return out
 
 

@@ -30,6 +30,7 @@ export interface RmKit {
   palette: { background: string; primary: string; secondary: string; accent: string; shadow: string; highlight: string }
   typography: { title_weight: 'regular' | 'bold' | 'black'; title_case: 'normal' | 'upper' | 'lower'; title_animation: 'none' | 'fade' | 'pop' | 'slide' | 'typewriter'; subtitle_color: string }
   mood: string
+  group?: string
   builtin: boolean
 }
 
