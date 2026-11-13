@@ -94,8 +94,9 @@ def test_idea_bank_search_filters_and_start_a_project(browser, server, size, lan
         star = page.get_by_role("button", name=exact(tx("ideas.fav", lang)))
         if star.count():                       # (an earlier run of this session may have starred it already)
             star.click()
-            page.wait_for_timeout(400)
-        assert page.get_by_role("button", name=exact(tx("ideas.unfav", lang))).count() == 1
+        unstar = page.get_by_role("button", name=exact(tx("ideas.unfav", lang)))
+        unstar.wait_for(timeout=8000)          # (the mark goes to the server and back: a slow link or tunnel needs more than a fixed pause)
+        assert unstar.count() == 1
         page.locator("#idea-q").fill("")
         page.get_by_label(tx("ideas.only_fav", lang)).check()
         page.wait_for_timeout(250)
