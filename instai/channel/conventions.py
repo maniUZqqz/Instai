@@ -60,6 +60,7 @@ CLIFFHANGER_TYPES = [
     {"key": "vanish", "fa": "ناپدید شدن", "en": "A disappearance"}, {"key": "twist_reveal", "fa": "چرخش بزرگ", "en": "A big twist"},
 ]
 CAST_ROLES = ["protagonist", "rival", "ally", "comic", "villain", "mentor"]
+CAST_ROLES_FA = {"protagonist": "قهرمان", "rival": "رقیب", "ally": "هم‌پیمان", "comic": "بامزه", "villain": "شرور", "mentor": "راهنما"}      # what the Characters tab shows
 
 
 def genre(key: str) -> dict:

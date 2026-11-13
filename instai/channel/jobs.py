@@ -8,7 +8,7 @@ from instai.jobs import describe
 from instai.jobs.registry import handler
 from instai.story.models import Series
 
-from . import conventions, planner, services
+from . import conventions, planner, season_templates, services
 
 describe.KIND_TEXT.update({"channel.season": ("برنامه‌ریزی فصل مینی‌سریال", "Planning the mini-series season")})
 
@@ -35,7 +35,11 @@ def season(ctx):
     try:
         res = roles.season_planner(meta, provider=llm.resolve(series.page, "season_plan"))
         plan, info = res.data, {"provider": res.provider, "model": res.model}
-    except AgentError as e:        # a weak model never stalls the season: the deterministic skeleton is used and flagged
+    except AgentError as e:        # a weak model never stalls the season: a ready-made season of the genre (else the deterministic skeleton) is used and flagged
+        tpl = season_templates.for_genre(ch.genre) if lang == "fa" and not ch.cast else None
+        if tpl is not None:                    # only when the owner has not set up a cast of his own: the template brings its own characters
+            services.apply_template(ch, tpl["key"])
+            return {"episodes": len(ch.slate), "fallback": True, "ok": services.report(ch)["validation"]["ok"], "errors": [], "provider": "template", "template": tpl["key"], "errors_model": e.errors[:3]}
         plan = planner.skeleton_season(ch.episodes_per_season, ch.runtime_sec, fa=lang == "fa", characters=[c["name"] for c in ch.cast], title=series.title)
         info, fallback = {"provider": "skeleton", "errors": e.errors[:3]}, True
     services.apply_season_plan(ch, plan)

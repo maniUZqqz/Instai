@@ -11,7 +11,7 @@ from instai.jobs import queue
 from instai.jobs.api import job_response
 from instai.story.models import Episode, Series
 
-from . import ladder
+from . import ladder, selftest
 from .ladder_stages import public as catalogue
 
 
@@ -191,7 +191,23 @@ def episode_stage_restore(request, pk, key):
     return _restore(request, s, e, key)
 
 
+@api_view(["GET", "POST"])
+def studio_selftest(request):
+    """GET: the latest automatic self-test report (what passed, what was skipped and why, when). POST {gpu, only}: run it now."""
+    if request.method == "POST":
+        d = request.data if isinstance(request.data, dict) else {}
+        gpu = bool(d.get("gpu"))
+        return job_response(queue.enqueue("studio.selftest", {"gpu": gpu, "only": [str(k) for k in (d.get("only") or [])][:12]}, title="آزمون خودکار استودیو" + (" (با GPU)" if gpu else "")))
+    from instai.jobs.models import Job
+
+    rep = selftest.load_report()
+    busy = Job.objects.filter(kind="studio.selftest", status__in=[Job.QUEUED, Job.RUNNING]).exists()
+    return Response({"report": rep, "running": busy, "current_stamp": selftest.stamp(), "stale": bool(rep and rep.get("stamp") != selftest.stamp()),
+                     "checks": [{"key": c["key"], "group": c["group"], "fa": c["fa"], "en": c["en"]} for c in selftest.CHECKS]})
+
+
 urlpatterns = [
+    path("studio/selftest", studio_selftest),
     path("ladder/catalogue", ladder_catalogue),
     path("series/<int:pk>/ladder", series_ladder),
     path("series/<int:pk>/ladder/<str:key>", series_stage_save),

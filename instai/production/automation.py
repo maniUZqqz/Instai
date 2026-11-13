@@ -252,6 +252,12 @@ def tick(now: datetime | None = None) -> list[dict]:
                 log.exception("automation failed for episode %s", ep.pk)
                 notify("automation", f"خطا در خودکارسازی {_label(ep)}", body=str(e)[:300], level="error", link=_link(ep), page=page, episode=ep, key=f"autoerr:{ep.pk}:{type(e).__name__}")
     done += process_due_publications(now)
+    try:
+        from instai.studio import selftest
+
+        selftest.auto_queue()                   # the studio pipeline tests itself: CPU checks per new version, GPU checks as soon as the machine can do them
+    except Exception:  # noqa: BLE001 - a self-test must never disturb the automation
+        log.debug("studio self-test auto-queue failed", exc_info=True)
     return done
 
 

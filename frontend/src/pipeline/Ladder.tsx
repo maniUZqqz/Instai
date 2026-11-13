@@ -33,7 +33,7 @@ const WHERE: Record<string, (id: number, scope: string) => { to: string; fa: str
 }
 
 /** The studio ladder of a series (development stages) or of an episode (all stages): every output versioned and approved before the next one. */
-export function LadderPanel({ scope, id, characters }: { scope: 'series' | 'episode'; id: number; characters?: { id: number; name: string }[] }) {
+export function LadderPanel({ scope, id }: { scope: 'series' | 'episode'; id: number; characters?: { id: number; name: string }[] }) {
   const { L } = usePL()
   const base = scope === 'series' ? `/series/${id}/ladder` : `/episodes/${id}/ladder`
   const q = useQuery<Payload>(base)
@@ -61,8 +61,51 @@ export function LadderPanel({ scope, id, characters }: { scope: 'series' | 'epis
         )
       })}
       {scope === 'episode' && p.blockers.length > 0 && <Notice tone="info">{L('پیش از شروع تولید این مرحله‌ها باید تأیید شوند: ', 'Before production starts these stages must be approved: ')}{p.blockers.map((k) => { const st = p.stages.find((x) => x.key === k); return st ? L(st.fa, st.en) : k }).join(L('، ', ', '))}</Notice>}
-      {characters && null}
+      {scope === 'series' && <SelfTestCard />}
     </div>
+  )
+}
+
+interface STRow { key: string; group: string; fa: string; en: string; verdict: 'ok' | 'warn' | 'fail' | 'skip' | 'pending'; reason_fa: string; reason_en: string; seconds: number; at: string | null }
+interface STPayload { report: { stamp: string; version: string; finished_at: string; gpu_run_at: string | null; checks: STRow[]; summary: Record<string, number>; ok: boolean } | null; running: boolean; stale: boolean }
+const VERDICT_TONE: Record<string, 'neutral' | 'ok' | 'warn' | 'err' | 'info'> = { ok: 'ok', warn: 'warn', fail: 'err', skip: 'neutral', pending: 'neutral' }
+
+/** The automatic self-test of the studio pipeline: what was checked by itself, what passed, what was skipped and why (models not installed yet, GPU PC off). */
+function SelfTestCard() {
+  const { L, lang } = usePL()
+  const q = useQuery<STPayload>('/studio/selftest', { interval: (d) => (d?.running ? 4000 : false) })
+  const runner = useJobRunner({ onFinished: () => q.reload() })
+  const text: Record<string, string> = { ok: L('درست', 'Passed'), warn: L('هشدار', 'Warning'), fail: L('خطا', 'Failed'), skip: L('رد شد', 'Skipped'), pending: L('منتظر', 'Waiting') }
+  const run = (gpu: boolean) => runner.start(() => api.post<{ job: any }>('/studio/selftest', { gpu }))
+  const rep = q.data?.report
+  return (
+    <section className="card stack-sm" aria-label={L('آزمون خودکار', 'Automatic self-test')} data-selftest>
+      <div className="row between">
+        <h3>{L('آزمون خودکار استودیو', 'Automatic studio self-test')}</h3>
+        <span className="row">
+          {rep && <Badge tone={rep.ok ? 'ok' : 'err'}>{rep.ok ? L('همه‌چیز سالم', 'All sound') : L('خطا دارد', 'Has failures')}</Badge>}
+          {q.data?.running && <Badge tone="info">{L('در حال اجرا…', 'Running…')}</Badge>}
+        </span>
+      </div>
+      <p className="small muted">{L('برنامه خودش این بخش‌ها را آزمایش می‌کند: بخش‌های بدون GPU با هر نسخهٔ تازه، و بخش‌های مدل (متن، تصویر، بینایی) به‌محض این‌که رایانهٔ GPU روشن و آماده شود. چیزی را لازم نیست بزنید.',
+        'The app tests these by itself: the parts that need no GPU with every new version, and the model parts (text, image, vision) as soon as the GPU PC is on and ready. You do not need to press anything.')}</p>
+      {!q.data ? <Loading /> : !rep ? <Notice tone="info">{L('هنوز اجرا نشده؛ تا چند دقیقهٔ دیگر خودکار اجرا می‌شود.', 'Not run yet; it starts by itself within a few minutes.')}</Notice> : (
+        <div className="stack-sm">
+          {rep.checks.map((c) => (
+            <div key={c.key} className="row between small" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }} data-check={c.key}>
+              <span><b>{L(c.fa, c.en)}</b><div className="muted">{L(c.reason_fa, c.reason_en)}</div></span>
+              <Badge tone={VERDICT_TONE[c.verdict] ?? 'neutral'}>{text[c.verdict] ?? c.verdict}</Badge>
+            </div>
+          ))}
+          <div className="small muted">{L('نسخه', 'Version')} {rep.version} · {new Date(rep.finished_at).toLocaleString(lang === 'fa' ? 'fa-IR' : 'en-US')}{q.data.stale ? ' · ' + L('محتوا عوض شده؛ به‌زودی دوباره آزمایش می‌شود', 'content changed; it will be tested again soon') : ''}</div>
+        </div>
+      )}
+      <div className="row">
+        <Button size="sm" icon="spark" busy={runner.busy} onClick={() => run(false)}>{L('اجرای همین حالا (بدون GPU)', 'Run now (no GPU)')}</Button>
+        <Button size="sm" busy={runner.busy} onClick={() => run(true)}>{L('اجرا با GPU و مدل‌ها', 'Run with the GPU and models')}</Button>
+      </div>
+      <JobLine job={runner.job} offline={runner.offline} />
+    </section>
   )
 }
 
@@ -107,7 +150,7 @@ function StageCard({ s, base, id, scope, stages, onChanged, setPayload }: { s: S
         {s.status !== 'empty' && s.status !== 'approved' && (
           <Button size="sm" variant="primary" icon="check" busy={act.busy} disabled={s.blocked_by.length > 0} onClick={() => call('/approve')}>{L('تأیید', 'Approve')}</Button>
         )}
-        {s.status === 'approved' && <Button size="sm" busy={act.busy} onClick={async () => { if (await confirm({ title: L('تأیید این مرحله برداشته شود؟', 'Withdraw the approval of this stage?'), danger: true })) call('/revoke') }}>{L('برداشتن تأیید', 'Withdraw approval')}</Button>}
+        {s.status === 'approved' && <Button size="sm" busy={act.busy} onClick={async () => { if (await confirm({ title: L('تأیید این مرحله برداشته شود؟', 'Withdraw the approval of this stage?'), message: '', danger: true })) call('/revoke') }}>{L('برداشتن تأیید', 'Withdraw approval')}</Button>}
         {s.versions.length > 0 && <Button size="sm" variant="ghost" onClick={() => setShowVersions((v) => !v)}>{L('نسخه‌ها', 'Versions')} ({s.versions.length})</Button>}
         {where && <Link className="btn sm" to={where.to}>{L(where.fa, where.en)}</Link>}
       </div>

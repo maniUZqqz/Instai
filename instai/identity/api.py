@@ -115,7 +115,7 @@ def identity_palette(request, pk):
 @api_view(["POST"])
 def identity_anchor_job(request, pk):
     c = _char(pk)
-    return job_response(queue.enqueue("identity.anchor", {"character_id": c.pk, "language": str(request.data.get("language") or "")[:2]}, page=c.page_id, title=f"هویت «{c.name}»"))
+    return job_response(queue.enqueue("identity.anchor", {"character_id": c.pk, "language": str(request.data.get("language") or "")[:2], "series_id": request.data.get("series")}, page=c.page_id, title=f"هویت «{c.name}»"))
 
 
 @api_view(["POST"])
@@ -124,7 +124,7 @@ def identity_sheets_job(request, pk):
     lock = service.ensure_lock(c)
     if not lock.anchor.strip():
         raise DomainError("not_ready", "ابتدا توصیف هویت را بنویسید.", http_status=409, message_en="Write the identity words first.")
-    return job_response(queue.enqueue("identity.sheets", {"character_id": c.pk}, page=c.page_id, title=f"برگهٔ مدل «{c.name}»"))
+    return job_response(queue.enqueue("identity.sheets", {"character_id": c.pk, "series_id": request.data.get("series")}, page=c.page_id, title=f"برگهٔ مدل «{c.name}»"))
 
 
 @api_view(["GET"])

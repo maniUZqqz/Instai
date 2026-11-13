@@ -11,6 +11,7 @@ from instai.core.errors import DomainError
 from instai.pages.models import ContentPage
 
 from . import graph as G
+from . import story_templates
 from .models import ChoiceStory, ChoiceVersion
 
 GENRES = ["prison_escape", "zombie_survival", "haunted_house", "detective", "space_station", "custom"]
@@ -31,6 +32,38 @@ def create_story(page: ContentPage, data: dict) -> ChoiceStory:
                 "hour": str(data.get("hour") or "20:00")[:5], "per_day": max(1, min(10, int(data.get("per_day") or 1)))}
     return ChoiceStory.objects.create(page=page, series_id=data.get("series") or None, title=title[:200], premise=str(data.get("premise") or ""), genre=str(data.get("genre") or "")[:60],
                                       language=lang if lang in ("fa", "en") else "fa", aspect=aspect, renderer=renderer, settings=settings, graph={"nodes": [], "meta": {}})
+
+
+# ------------------------------------------------------------------ ready-made stories
+
+def create_from_template(page: ContentPage, key: str, data: dict | None = None) -> ChoiceStory:
+    """A new story that starts from a ready-made, hand-written one: its characters are created on the page (stick identity drawn and locked), its posts are the graph."""
+    data = data or {}
+    tpl = story_templates.get(key)
+    if tpl is None:
+        raise _bad("not_found", "این داستان آماده پیدا نشد.", "That ready-made story does not exist.", 404)
+    story = create_story(page, {"title": str(data.get("title") or tpl["title_fa"]), "premise": tpl["blurb_fa"], "genre": tpl["genre"], "language": "fa", "post_count": len(tpl["posts"]),
+                                "aspect": data.get("aspect"), "renderer": "stick", "hour": data.get("hour"), "per_day": data.get("per_day"), "allow_loops": False})
+    load_template(story, key)
+    story.refresh_from_db()
+    return story
+
+
+def load_template(story: ChoiceStory, key: str) -> ChoiceStory:
+    """Replace the story's graph with a ready-made one (the old graph is kept as a version). Creates the template's characters on the page first."""
+    from instai.identity import cast
+
+    tpl = story_templates.get(key)
+    if tpl is None:
+        raise _bad("not_found", "این داستان آماده پیدا نشد.", "That ready-made story does not exist.", 404)
+    cast.ensure_cast(story.page, tpl["cast"])
+    story.language = "fa"
+    story.genre = tpl["genre"]
+    st = dict(story.settings or {})
+    st["post_count"] = len(tpl["posts"])
+    story.settings = st
+    story.save(update_fields=["language", "genre", "settings", "updated_at"])
+    return apply_plan(story, story_templates.plan_of(tpl), author="system")
 
 
 def _snapshot(story: ChoiceStory, author: str, note: str) -> None:

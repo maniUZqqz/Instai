@@ -255,7 +255,7 @@ WORKFLOWS.update({
         required_nodes=["UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "ModelSamplingAuraFlow", "CFGNorm", "TextEncodeQwenImageEditPlus",
                         "ImageScaleToTotalPixels", "VAEEncode", "KSampler", "VAEDecode", "SaveImage", "LoadImage"],
         required_models=[("UNETLoader", "unet_name", "qwen_image_edit_2509_fp8_e4m3fn.safetensors"), ("CLIPLoader", "clip_name", "qwen_2.5_vl_7b_fp8_scaled.safetensors"),
-                         ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Lightning-4steps-V1.0.safetensors")],
+                         ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")],
         vram_gb=12, licence="Apache-2.0 (Qwen-Image-Edit)", licence_status="unverified", expected_seconds=60,
         notes="UNVERIFIED graph written from ComfyUI's template documentation; the owner's ComfyUI has the Qwen-Image-Edit nodes but the model files must be downloaded."),
     "flux_dev_fp8_t2i_lora": WorkflowSpec(
@@ -393,7 +393,7 @@ WORKFLOWS["qwen_image_edit_multiref"] = WorkflowSpec(
     required_nodes=["UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "ModelSamplingAuraFlow", "CFGNorm", "TextEncodeQwenImageEditPlus", "ImageScaleToTotalPixels",
                     "EmptySD3LatentImage", "KSampler", "VAEDecode", "SaveImage", "LoadImage"],
     required_models=[("UNETLoader", "unet_name", "qwen_image_edit_2509_fp8_e4m3fn.safetensors"), ("CLIPLoader", "clip_name", "qwen_2.5_vl_7b_fp8_scaled.safetensors"),
-                     ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Lightning-4steps-V1.0.safetensors")],
+                     ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")],
     vram_gb=12, licence="Apache-2.0 (Qwen-Image-Edit)", licence_status="unverified", expected_seconds=75, post_build=_multiref_prune,
     notes="Same models as qwen_image_edit_ref. UNVERIFIED graph (never run on a real ComfyUI): written from ComfyUI's Qwen-Image-Edit-2509 template; the text-encode node takes up to three "
           "reference images, the latent is an empty 9:16 canvas so the picture is a NEW scene with the characters of the sheets. This is the open (Apache-2.0) counterpart of IP-Adapter / PuLID-style conditioning.")

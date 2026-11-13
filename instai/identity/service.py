@@ -39,6 +39,19 @@ def ensure_lock(character: Character) -> CharacterLock:
     return lock
 
 
+def look_series(page, series_id: int | None = None):
+    """The series whose art style (chosen once on the ladder) must also dress this page's characters: the one the job names, else the page's only series that has
+    a look of its own. None = the page's own visual profile applies. A page with several different series is never guessed: the page's profile stays in force."""
+    from instai.story.models import Series
+
+    if series_id:
+        s = Series.objects.filter(pk=series_id, page=page).first()
+        if s is not None:
+            return s
+    own = [s for s in Series.objects.filter(page=page) if (s.look or {}).get("style_key")]
+    return own[0] if len(own) == 1 else None
+
+
 def _bad(code: str, fa: str, en: str, status: int = 409) -> DomainError:
     return DomainError(code, fa, http_status=status, message_en=en)
 

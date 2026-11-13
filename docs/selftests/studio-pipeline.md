@@ -38,3 +38,24 @@ What needs the GPU PC (ComfyUI / Ollama) and therefore has a real-machine check 
 
 Failure modes (all visible in the queue and the screens, none need a click): ComfyUI or the model missing -> the job waits (`comfy_down` / `ollama_down`) and is retried; an invalid model answer ->
 fallback plan + a banner on the screen; a locked identity whose workflow is not available on any PC -> the next strategy is used and named in the provenance.
+
+## Automatic self-test (0.9.0; `instai/studio/selftest.py`)
+
+Nothing has to be pressed once the GPU PC is on: the studio tests itself. The report is `data/selftest/studio.json`; the screen is the series' "Studio ladder" tab (card "Automatic studio self-test"); API `GET/POST /api/studio/selftest`; job `studio.selftest`.
+
+| Check | Needs | Pass condition |
+|---|---|---|
+| `stick_kit` | CPU | model sheet 2000 px wide + a 1080x1350 scene with Persian text, drawing twice gives byte-identical pictures |
+| `identity_colour_key` | CPU | every signature colour found in three poses; a wrongly coloured character is rejected |
+| `choice_stories` | CPU | all six ready-made stories and the skeleton planner (6-60 posts) validate |
+| `mini_series` | CPU | all three seasons validate with no warning; skeleton seasons validate |
+| `ladder` | CPU | 21 stages, prerequisites in order, a role and a fake answer for every model-written stage |
+| `text_model` | a text model (Ollama / API) | a logline and an 8-post graph; the graph must pass `graph.validate` (else a warning: planning then uses the ready-made story) |
+| `multiref_identity` | ComfyUI + the `qwen_edit` package | two stick sheets in, a 832x1472 picture out (kept as `multiref-sample.png`), both characters' colour keys visible (else a warning) |
+| `vision` | an Ollama vision model | the same character in another pose scores higher than a different character |
+
+* CPU checks run once per new version / content (the stamp hashes the version, the ready-made stories and seasons and the ladder catalogue). GPU checks run as soon as `gpu_ready()` (a text model answers or the multi-reference workflow
+  is available), at most every six hours, again after every new stamp and at least weekly. A check whose models are missing is `skip` with the reason (never `ok`); a check that raises is `fail`, never a crashed run.
+* Off with `INSTAI_STUDIO_SELFTEST_AUTO=0` or the setting `studio_selftest_auto`. The test suite never gets surprise jobs (`auto_queue` returns None under `INSTAI_TESTING` unless forced).
+
+The manual notes that follow are what the earlier round wrote for the same checks (job payloads and pass conditions by hand).

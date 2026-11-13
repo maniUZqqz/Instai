@@ -74,4 +74,4 @@ are NOT measured yet; the anime video candidates are judged in Production lab > 
 
 | Workflow | Models | Licence | State |
 |---|---|---|---|
-| `qwen_image_edit_multiref` (up to three character model sheets -> a new picture) | the same four files as `qwen_image_edit_ref` (Qwen-Image-Edit-2509 fp8, Qwen2.5-VL 7B fp8, Qwen-Image VAE, Qwen-Image-Lightning 4-step LoRA) | Apache-2.0 | graph written from ComfyUI's template documentation, **never run** on a real ComfyUI; needs the model downloads |
+| `qwen_image_edit_multiref` (up to three character model sheets -> a new picture) | the same four files as `qwen_image_edit_ref` (Qwen-Image-Edit-2509 fp8 20.4 GB, Qwen2.5-VL 7B fp8 9.4 GB, Qwen-Image VAE, Qwen-Image-Edit-2509 Lightning 4-step LoRA bf16): since 0.9.0 they are one offer in `manifests/image.json` (package `qwen_edit`, about 31 GB, pinned commits and sha256 read from the Hugging Face API on 2026-11-13; the old workflows named the text-to-image Lightning LoRA, which is not the editing one - corrected) | Apache-2.0 | graph written from ComfyUI's template documentation, **never run** on a real ComfyUI; needs the model downloads |

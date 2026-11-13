@@ -10,7 +10,7 @@ from instai.jobs import queue
 from instai.jobs.api import job_response
 from instai.story.models import Series
 
-from . import conventions, services
+from . import conventions, season_templates, services
 
 
 def _series(pk) -> Series:
@@ -39,6 +39,18 @@ def channel_plan(request, pk):
 
 
 @api_view(["POST"])
+def channel_template(request, pk):
+    """Start the channel from a ready-made season (genre, cast with drawn identities, the whole season slate)."""
+    ch = services.apply_template(services.get_channel(_series(pk)), str(request.data.get("key") or ""))
+    return Response(_payload(ch))
+
+
+@api_view(["GET"])
+def channel_templates(request):
+    return Response({"templates": season_templates.listing()})
+
+
+@api_view(["POST"])
 def channel_approve(request, pk):
     return Response(_payload(services.approve(services.get_channel(_series(pk)))))
 
@@ -61,8 +73,10 @@ def channel_conventions(request):
 urlpatterns = [
     path("series/<int:pk>/channel", series_channel),
     path("series/<int:pk>/channel/plan", channel_plan),
+    path("series/<int:pk>/channel/template", channel_template),
     path("series/<int:pk>/channel/approve", channel_approve),
     path("series/<int:pk>/channel/revoke", channel_revoke),
     path("series/<int:pk>/channel/apply", channel_apply),
     path("channel/conventions", channel_conventions),
+    path("channel/templates", channel_templates),
 ]

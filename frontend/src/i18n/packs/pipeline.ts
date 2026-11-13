@@ -12,6 +12,7 @@ export const fa: Record<string, string> = {
   'job.kind.choice.render': 'ساخت تصویر پست‌ها',
   'job.kind.choice.package': 'ساخت بستهٔ انتشار داستان انتخابی',
   'job.kind.channel.season': 'برنامه‌ریزی فصل مینی‌سریال',
+  'job.kind.studio.selftest': 'آزمون خودکار استودیو',
 }
 
 export const en: Record<string, string> = {
@@ -27,4 +28,5 @@ export const en: Record<string, string> = {
   'job.kind.choice.render': 'Rendering the post pictures',
   'job.kind.choice.package': 'Building the choice-story package',
   'job.kind.channel.season': 'Planning the mini-series season',
+  'job.kind.studio.selftest': 'Automatic studio self-test',
 }

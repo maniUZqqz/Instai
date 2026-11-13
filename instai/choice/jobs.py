@@ -14,7 +14,7 @@ from instai.assets import storage as asset_storage
 from instai.jobs import describe
 from instai.jobs.registry import handler
 
-from . import export, render, services
+from . import export, render, services, story_templates
 from . import graph as G
 from .models import ChoiceStory
 
@@ -60,6 +60,17 @@ def _graph_from(posts: list[dict]) -> dict:
     return G.renumber(G.normalize({"nodes": nodes}))[0]
 
 
+def _fallback(story: ChoiceStory, meta: dict, why: dict) -> tuple[dict, dict, bool]:
+    """No usable model answer: the hand-written story of this genre when there is one (Persian), else the deterministic skeleton."""
+    tpl = story_templates.for_genre(story.genre) if story.language == "fa" else None
+    if tpl is not None:
+        from instai.identity import cast
+
+        cast.ensure_cast(story.page, tpl["cast"])
+        return story_templates.plan_of(tpl), {"provider": "template", "template": tpl["key"], **why}, True
+    return G.skeleton_plan(meta["post_count"], fa=story.language == "fa", title=story.title), {"provider": "skeleton", **why}, True
+
+
 @handler("choice.plan", resource=_resource("choice_plan"), timeout=1800)
 def plan(ctx):
     story = _story(ctx)
@@ -69,10 +80,10 @@ def plan(ctx):
     try:
         res = roles.choice_planner(meta, provider=llm.resolve(story.page, "choice_plan"))
         data, info = res.data, {"provider": res.provider, "model": res.model}
-    except AgentError as e:        # a weak model never stalls the story: the deterministic skeleton is used and flagged
-        data, info, fallback = G.skeleton_plan(meta["post_count"], fa=story.language == "fa", title=story.title), {"provider": "skeleton", "errors": e.errors[:3]}, True
-    if not G.validate(_graph_from(data["posts"]))["ok"]:   # a plan with errors is replaced by the skeleton too; the owner can still edit everything
-        data, info, fallback = G.skeleton_plan(meta["post_count"], fa=story.language == "fa", title=story.title), {"provider": "skeleton", "note": "the model's graph was invalid"}, True
+    except AgentError as e:        # a weak model never stalls the story: a ready-made story of the genre (else the skeleton) is used and flagged
+        data, info, fallback = _fallback(story, meta, {"errors": e.errors[:3]})
+    if not G.validate(_graph_from(data["posts"]))["ok"]:   # a plan with errors is replaced too; the owner can still edit everything
+        data, info, fallback = _fallback(story, meta, {"note": "the model's graph was invalid"})
     services.apply_plan(story, data, author="system" if fallback else "ai")
     story.refresh_from_db()
     return {"posts": len(G.nodes_of(story.graph)), "fallback": fallback, **info}

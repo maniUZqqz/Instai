@@ -11,7 +11,7 @@ from instai.core.errors import DomainError
 from instai.story import services as story_services
 from instai.story.models import Series
 
-from . import conventions, planner
+from . import conventions, planner, season_templates
 from .models import Channel
 
 
@@ -95,6 +95,25 @@ def apply_season_plan(ch: Channel, plan: dict) -> Channel:
     ch.applied = False
     ch.save()
     return ch
+
+
+# ------------------------------------------------------------------ ready-made seasons
+
+def apply_template(ch: Channel, key: str) -> Channel:
+    """Fill the channel from a ready-made season: genre, runtime, the recurring cast (characters created on the page, stick identity drawn and locked), the season slate."""
+    from instai.identity import cast
+
+    tpl = season_templates.get(key)
+    if tpl is None:
+        raise _bad("not_found", "این فصل آماده پیدا نشد.", "That ready-made season does not exist.", 404)
+    chars = cast.ensure_cast(ch.series.page, [{**row, "role": conventions.CAST_ROLES_FA.get(row["role"], row["role"])} for row in tpl["cast"]])      # the Characters tab shows the role in Persian
+    ch.genre = tpl["genre"]
+    ch.runtime_sec = tpl["runtime_sec"]
+    ch.episodes_per_season = len(tpl["episodes"])
+    ch.cast = [{"character": c.pk, "name": c.name, "role": row["role"] if row["role"] in conventions.CAST_ROLES else "ally", "marker": row["marker"], "catchphrase": row["catchphrase"]}
+               for c, row in zip(chars, tpl["cast"])]
+    ch.save()
+    return apply_season_plan(ch, season_templates.plan_of(tpl))
 
 
 def report(ch: Channel) -> dict:

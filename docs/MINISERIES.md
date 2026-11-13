@@ -35,3 +35,16 @@ claim is used. **Unverified against any named channel's analytics.**
 * The script writer receives `channel` (hook within N seconds, cliffhanger in the last N, recap length, cast with markers and catchphrases, the genre's rules and this episode's row).
 * Look: set once (the art-style stage of the ladder); characters are locked once (identity lock; stick characters are drawn by code and animate through the puppet renderer, so a 30-second episode needs no
   GPU). Posting: `planner.schedule` computes the dates (local time and UTC); nothing is published automatically.
+
+## Ready-made seasons (0.9.0)
+
+`instai/channel/season_templates.py`: three complete six-episode seasons with ORIGINAL recurring characters (hook, logline, escalation, twist, cliffhanger, the answer to the previous cliffhanger, threads opened and closed). "Start with
+this season" (series > Mini-series channel) fills the genre, the length, the cast (characters created on the page, stick identity drawn and locked) and the slate; the same validator then checks it (a test requires **no error and no warning**).
+
+| Key | Genre | Length | Story |
+|---|---|---|---|
+| `silent_city` | stick survival | 30 s | Mahan wakes in a silent city; Nila, the old storekeeper and a voice on the radio that knows his name; the bridge |
+| `tower_escape` | stick escape | 35 s | Yasaman on the top floor of a closed tower with a neighbour's plan and a guard robot that is not the enemy |
+| `chagher_coaches` | stick comedy | 25 s | brand demo for Chagher: coach Sara, her colleague Arman and Mahtab, the athlete who is always "the exception" (published facts only) |
+
+The season planner job uses the template of the genre as its fallback when no model answers and the owner has not set up a cast of his own (`provider: template`).

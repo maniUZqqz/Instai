@@ -148,3 +148,11 @@ Decisions the owner must take are in the last section; everything else was decid
 - **Channel conventions are structure only** - from general public guidance (not the channels themselves, which could not be opened); every thread must be closed by the finale; "apply" is the only place a season becomes episodes.
 - **New formats `mini_series_channel` and `choice_story`** with their own development templates, so the wizard offers them without code changes elsewhere.
 - **Heavy locks** - the new tests are small (about 30 s for all five files) and were run directly at low priority while the NM test suites held the lock for long; the full suite and the UI build go through the lock.
+
+## Studio, ready-made content and self-test (0.9.0)
+- **Ready-made stories and seasons instead of placeholder text** - without a model (Metis out of credit, the GPU PC off) the planners used to fall back to "scene 3: you must decide". They now fall back to hand-written Persian stories / seasons of the same genre (`story_templates`, `season_templates`), validated by the same rules as the owner's own work; a genre without one keeps the skeleton.
+- **The brand demo is Persian only and uses published facts only** - the Chagher story and season quote nothing but what chagher.ir says (draft in under a minute, free start, coach's instruction, branded PDF, the coach decides); a test lists the forbidden words (price, percent, guarantee, "replaces the coach").
+- **A template creates its characters and locks their stick identity** (`identity/cast.py`) so the first picture already has a consistent cast; an existing character of the same name is kept, a locked identity is never touched.
+- **The Qwen-Image-Edit files are an offer, not a silent 31 GB download** - same rule as every optional model (size and licence are the owner's call); everything else the self-test needs is CPU or already on his PC. The self-test starts the real checks by itself as soon as they can run.
+- **The self-test lives in the studio app, not in the worker loop** - hooked from `automation.tick()` (one guarded call) to stay clear of `jobs/worker.py`, which the platform lane edits.
+- **Version 0.9.0** - 0.8.0 was already taken by the platform lane's entry (automatic update, curated models, Remotion); the integrator keeps both entries, mine on top.

@@ -45,7 +45,13 @@ A failed check is a **flag**, not an action: the board lists the shots and "Open
 
 ## What is UNVERIFIED (needs the GPU PC)
 
-* `qwen_image_edit_multiref@1.json` (and the older `qwen_image_edit_ref`) were written from ComfyUI's template documentation and never run on a real ComfyUI; the Qwen models must be downloaded
-  (they are `required_models`; the Models page offers them). Quality of identity transfer from a sheet is not measured.
+* `qwen_image_edit_multiref@1.json` (and the older `qwen_image_edit_ref`) were written from ComfyUI's template documentation and never run on a real ComfyUI. Since 0.9.0 the four model files are ONE offer on the
+  Models page (`manifests/image.json`, package `qwen_edit`, about 31 GB, Apache-2.0, pinned commits and sha256) and the workflows name the right file (the Edit-2509 Lightning LoRA, not the text-to-image one). The offer still needs the owner's
+  confirmation (size); once the files are there the automatic self-test (`multiref_identity`) runs the workflow by itself and reports the identity colours it finds. Quality of identity transfer from a sheet is not measured.
 * The vision check and the LoRA path were not run against real models in this round (the GPU PC was offline).
 * Thresholds of the structure score are heuristics (see `production/consistency.py`).
+
+## One art style everywhere (0.9.0)
+
+The art style is chosen ONCE (ladder stage "Art style", written to `Series.look`) and every generator reads it through `styles.library.compose_for_episode / compose_for_series / look_of`: keyframes, design sheets, choice-story pictures and,
+since 0.9.0, the character **model sheets and identity anchors** (`identity.service.look_series`: the job's series, else the page's only series that has a look of its own; a page with several different series keeps the page's profile and is never guessed).

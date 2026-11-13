@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from tests.conftest import run_jobs
+from tests.conftest import finish, run_jobs
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -211,3 +211,28 @@ def test_stick_preview_endpoint_and_options(api):
     assert "cap" in opt["stick"]["choices"]["hat"] and len(opt["stick"]["poses"]) >= 20 and len(opt["strategies"]) == 5 and {n["key"] for n in opt["not_used"]} == {"ipadapter_faceid", "pulid"}
     r = api.post("/api/stick/preview", {"spec": {"name": "a", "limb_colour": "#d94a3d"}, "pose": "wave", "expression": "happy", "background": "street"}, format="json").json()
     assert r["url"].startswith("/media/previews/stick-") and "red-limbed" in r["anchor"]
+
+
+def test_identity_sheets_use_the_art_style_chosen_once_for_the_series(api, worker, monkeypatch):
+    """The art style approved on the ladder (Series.look) dresses the character sheets too, not only the keyframes: one look everywhere."""
+    from instai.identity import service
+    from instai.styles import library
+
+    page, series, ep = make_world()
+    assert service.look_series(page) is None                                  # no look of its own yet: the page's profile applies
+    series.look = {"style_key": "modern_tv_anime", "realism": "anime", "theme_key": ""}
+    series.save(update_fields=["look"])
+    assert service.look_series(page).pk == series.pk and service.look_series(page, series.pk).pk == series.pk
+    c = page.characters.first()
+    seen = {}
+    real = library.compose_for
+
+    def spy(pg, sr=None):
+        seen["series"] = sr
+        return real(pg, sr)
+
+    monkeypatch.setattr(library, "compose_for", spy)
+    service.edit_lock(c, {"anchor": "a blue stick figure"})
+    r = api.post(f"/api/characters/{c.pk}/identity/sheets", {}, format="json")
+    finish(api, worker, r)
+    assert seen["series"].pk == series.pk

@@ -15,7 +15,7 @@ from instai.jobs.api import job_response
 from instai.pages.models import ContentPage
 from instai.render.stick import poses, scenes
 
-from . import export, render, services
+from . import export, render, services, story_templates
 from . import graph as G
 from .models import ChoiceStory
 
@@ -30,7 +30,8 @@ def _story(pk) -> ChoiceStory:
 def page_stories(request, pk):
     page = get_object_or_404(ContentPage, pk=pk)
     if request.method == "POST":
-        s = services.create_story(page, request.data if isinstance(request.data, dict) else {})
+        d = request.data if isinstance(request.data, dict) else {}
+        s = services.create_from_template(page, str(d["template"]), d) if d.get("template") else services.create_story(page, d)
         return Response(services.story_dict(s), status=201)
     return Response([services.story_dict(s, full=False) for s in page.choice_stories.all()])
 
@@ -114,6 +115,19 @@ def story_ops(request, pk):
 def story_plan(request, pk):
     s = _story(pk)
     return job_response(queue.enqueue("choice.plan", {"story_id": s.pk, "instruction": str(request.data.get("instruction") or "")[:1000]}, page=s.page_id, title=f"طراحی داستان «{s.title}»"))
+
+
+@api_view(["POST"])
+def story_template(request, pk):
+    """Replace the story's graph with a ready-made story (the old graph stays as a version)."""
+    s = _story(pk)
+    services.load_template(s, str(request.data.get("key") or ""))
+    return Response(services.story_dict(_story(pk)))
+
+
+@api_view(["GET"])
+def choice_templates(request):
+    return Response({"templates": story_templates.listing()})
 
 
 @api_view(["POST"])
@@ -219,6 +233,7 @@ urlpatterns = [
     path("choice-stories/<int:pk>/graph", story_graph),
     path("choice-stories/<int:pk>/ops", story_ops),
     path("choice-stories/<int:pk>/plan", story_plan),
+    path("choice-stories/<int:pk>/template", story_template),
     path("choice-stories/<int:pk>/captions", story_captions),
     path("choice-stories/<int:pk>/captions/reset", story_captions_reset),
     path("choice-stories/<int:pk>/captions/text", story_captions_text),
@@ -231,4 +246,5 @@ urlpatterns = [
     path("choice-stories/<int:pk>/schedule", story_schedule),
     path("choice-stories/<int:pk>/posts/<str:nid>/preview", story_post_preview),
     path("choice/options", choice_options),
+    path("choice/templates", choice_templates),
 ]

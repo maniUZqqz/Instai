@@ -194,3 +194,11 @@ specs in depth, so those four stages follow common practice and are **unverified
 * Sound design: ambience, foley, effects, music cues and deliberate silence per shot with an English prompt for the generators, level in dB and ducking; loudness target about -16 LUFS.
 * Colour grade: a preset and a mood per scene; the characters' own colours never change (the colour key of the identity lock).
 * Delivery: renditions (9:16 master, 1:1, 4:5), caption, hashtags, cover idea and a checklist (subtitles, loudness, cover, caption, posting time set by hand, AI label where required).
+
+### 9.1 Ready-made content, one art style, the self-test (0.9.0)
+
+* **Start from real content** - six hand-written choice stories and three mini-series seasons (`choice/story_templates.py`, `channel/season_templates.py`) can be started with one press; their characters come with a drawn, locked stick identity. They are also
+  what the planners fall back to when no model answers (instead of "scene 3: you must decide"). See `CHOICE_STORIES.md` and `MINISERIES.md`.
+* **The art style is applied everywhere** - the ladder stage "Art style" writes `Series.look`; keyframes, design sheets, choice pictures and (since 0.9.0) the character model sheets read it (`CONSISTENCY.md`, "One art style everywhere").
+* **The studio tests itself** - `studio/selftest.py` runs the CPU checks with every new version and the model checks (text model, multi-reference identity, vision) as soon as the GPU PC can do them; the report is on the series' "Studio ladder" tab
+  (`selftests/studio-pipeline.md`).

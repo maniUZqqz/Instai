@@ -40,7 +40,7 @@ def anchor(ctx):
     lock = service.ensure_lock(c)
     from instai.styles import library
 
-    lk = library.look_of(c.page, None)
+    lk = library.look_of(c.page, service.look_series(c.page, ctx.payload.get("series_id")))      # the art style chosen once for the series, else the page's own
     st = library.get_style(lk["style_key"]) or {}
     lang = str(ctx.payload.get("language") or "")[:2]
     meta = {"language": lang if lang in ("fa", "en") else c.page.language, "format": c.page.format,
@@ -72,7 +72,7 @@ def sheets(ctx):
 
     c = Character.objects.select_related("page").get(pk=ctx.payload["character_id"])
     lock = service.ensure_lock(c)
-    look = library.compose_for_page(c.page)
+    look = library.compose_for(c.page, service.look_series(c.page, ctx.payload.get("series_id")))   # the same art style as every other picture of the series
     engine = str(settings_store.effective("image_engine") or "auto")
     wid = str(settings_store.effective("image_workflow"))
     made = {}

@@ -7,6 +7,7 @@ import { AreaField, Badge, Button, Card, Empty, ErrorState, Link, Loading, Notic
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useWs } from '../pages/workspace/Workspace'
 import { ErrorLine, JobLine, usePL } from './kit'
+import { TemplateGallery } from './Templates'
 
 interface Choice { label: string; to: string; loop?: boolean }
 interface Node { id: string; number: number; title: string; text: string; kind: 'start' | 'story' | 'choice' | 'ending'; ending: string; choices: Choice[]; scene: Record<string, any>; caption: string; hashtags: string[]; alt: string; intended_dead_end: boolean; asset_id: number | null }
@@ -58,12 +59,23 @@ export function ChoiceListTab() {
     const s = await act.run(() => api.post<Story>(`/pages/${page.id}/choice-stories`, { ...f, language: page.languages[0] ?? 'fa' }))
     if (s) nav(`/choice/${s.id}`)
   }
+  const startFrom = async (key: string) => {
+    const s = await act.run(() => api.post<Story>(`/pages/${page.id}/choice-stories`, { template: key }))
+    if (s) nav(`/choice/${s.id}`)
+  }
   const GEN: Record<string, [string, string]> = { prison_escape: ['فرار از زندان', 'Prison escape'], zombie_survival: ['بقا در برابر زامبی', 'Zombie survival'], haunted_house: ['خانهٔ ترسناک', 'Haunted house'], detective: ['کارآگاهی', 'Detective'], space_station: ['ایستگاه فضایی', 'Space station'], custom: ['دلخواه', 'Custom'] }
   return (
     <div className="stack">
       <h2>{L('داستان‌های انتخابی', 'Choice stories')}</h2>
       <p className="muted">{L('داستان شاخه‌شاخه برای اینستاگرام: هر پست با چند انتخاب تمام می‌شود («اگر الف را بزنی برو پست ۷»). برنامه نمودار را می‌چیند، شماره‌ها را به ترتیب انتشار می‌دهد و تصویر و کپشن همهٔ پست‌ها را می‌سازد. چیزی خودکار منتشر نمی‌شود.',
         'A branching story for Instagram: each post ends with choices («if you pick A go to post 7»). The app lays out the graph, numbers the posts in posting order and makes every picture and caption. Nothing is published automatically.')}</p>
+      <Card title={L('داستان‌های آماده', 'Ready-made stories')}>
+        <div className="stack-sm">
+          <p className="small muted">{L('داستان‌هایی که کامل نوشته شده‌اند (متن، انتخاب‌ها، پایان‌ها و شخصیت‌های اورجینال). بدون هیچ مدلی کار می‌کنند: شخصیت‌ها با هویتِ قفل‌شده ساخته می‌شوند و بعداً هر کلمه را می‌توانی عوض کنی.',
+            'Complete, hand-written stories (text, choices, endings and original characters). They work with no model: the characters come with a locked identity and you can change every word afterwards.')}</p>
+          <TemplateGallery kind="story" busy={act.busy} onPick={startFrom} />
+        </div>
+      </Card>
       <Card title={L('داستان تازه', 'New story')}>
         <div className="stack-sm">
           <TextField label={L('عنوان', 'Title')} value={f.title} onChange={(v) => setF({ ...f, title: v })} />
@@ -103,6 +115,7 @@ export default function ChoiceEditor() {
   const act = useAction()
   const [sel, setSel] = useState<string>('')
   const [instruction, setInstruction] = useState('')
+  const [previews, setPreviews] = useState<Record<string, string>>({})
   const reloadAll = () => { q.reload(); rep.reload() }
   const planJob = useJobRunner({ onFinished: reloadAll })
   const capJob = useJobRunner({ onFinished: reloadAll })
@@ -137,12 +150,18 @@ export default function ChoiceEditor() {
             'The AI lays out the branches: no dead ends, everything reachable from post 1, numbers in posting order and every choice pointing forward. If the model gives an invalid answer a basic plan is made instead, and you can still edit all of it.')}</p>
           <TextField label={L('یادداشت برای طراح (اختیاری)', 'Note for the planner (optional)')} value={instruction} onChange={setInstruction} />
           <div className="row">
-            <Button icon="spark" variant="primary" busy={planJob.busy} onClick={async () => { if (nodes.length === 0 || await confirm({ title: L('نمودار فعلی جایگزین شود؟ (نسخهٔ قبلی نگه داشته می‌شود)', 'Replace the current graph? (the old one is kept as a version)'), danger: true })) planJob.start(() => api.post(`/choice-stories/${story.id}/plan`, { instruction })) }}>{nodes.length ? L('طراحی دوباره', 'Plan again') : L('طراحی نمودار', 'Plan the graph')}</Button>
+            <Button icon="spark" variant="primary" busy={planJob.busy} onClick={async () => { if (nodes.length === 0 || await confirm({ title: L('نمودار فعلی جایگزین شود؟ (نسخهٔ قبلی نگه داشته می‌شود)', 'Replace the current graph? (the old one is kept as a version)'), message: '', danger: true })) planJob.start(() => api.post(`/choice-stories/${story.id}/plan`, { instruction })) }}>{nodes.length ? L('طراحی دوباره', 'Plan again') : L('طراحی نمودار', 'Plan the graph')}</Button>
             <Button icon="edit" busy={capJob.busy} disabled={!nodes.length} onClick={() => capJob.start(() => api.post(`/choice-stories/${story.id}/captions`, {}))}>{L('نوشتن کپشن با هوش مصنوعی', 'Write the captions with AI')}</Button>
             <Button variant="ghost" disabled={!nodes.length} busy={act.busy} onClick={() => post('/captions/reset')}>{L('کپشن ساده (بدون مدل)', 'Plain captions (no model)')}</Button>
           </div>
+          <details>
+            <summary className="small">{L('یا با یک داستان آماده شروع کن (بدون مدل)', 'Or start from a ready-made story (no model)')}</summary>
+            <div style={{ marginTop: 8 }}>
+              <TemplateGallery kind="story" busy={act.busy} onPick={async (key) => { if (nodes.length === 0 || await confirm({ title: L('نمودار فعلی با داستان آماده جایگزین شود؟', 'Replace the current graph with the ready-made story?'), message: L('نسخهٔ قبلی نگه داشته می‌شود.', 'The old one is kept as a version.'), danger: true })) post('/template', { key }) }} />
+            </div>
+          </details>
           <JobLine job={planJob.job} offline={planJob.offline} /><JobLine job={capJob.job} offline={capJob.offline} />
-          {planJob.result && (planJob.result as any).fallback && <Notice tone="warn">{L('مدل جواب معتبر نداد؛ طرح پایه ساخته شد. می‌توانید آن را ویرایش کنید.', 'The model gave no valid answer; a basic plan was made. You can edit it.')}</Notice>}
+          {planJob.result && (planJob.result as any).fallback && <Notice tone="warn">{(planJob.result as any).provider === 'template' ? L('مدل در دسترس نبود یا جواب معتبر نداد؛ به‌جایش یک داستان آمادهٔ همین ژانر گذاشته شد. می‌توانید هر بخشش را ویرایش کنید.', 'No model was available (or its answer was invalid); a ready-made story of this genre was used instead. You can edit any part of it.') : L('مدل جواب معتبر نداد؛ طرح پایه ساخته شد. می‌توانید آن را ویرایش کنید.', 'The model gave no valid answer; a basic plan was made. You can edit it.')}</Notice>}
         </div>
       </Card>
       {nodes.length > 0 && (
@@ -151,7 +170,7 @@ export default function ChoiceEditor() {
             {rep.data && <GraphMap nodes={nodes} layout={rep.data.layout} sel={sel} onSel={setSel} errNodes={errNodes} />}
           </Card>
           {cur && (
-            <PostEditor key={cur.id + ':' + story.version} story={story} node={cur} nodes={nodes} opts={opts.data} issues={issuesOf(cur.id)} op={op} busy={act.busy} />
+            <PostEditor key={cur.id + ':' + story.version} story={story} node={cur} nodes={nodes} opts={opts.data} issues={issuesOf(cur.id)} op={op} busy={act.busy} img={previews[cur.id + ':' + story.id] ?? ''} setImg={(u) => setPreviews((p) => ({ ...p, [cur.id + ':' + story.id]: u }))} cast={(page.data?.characters ?? []).map((c) => c.name)} />
           )}
           <Card title={L('۳ · بازبینی قواعد', '3 · Review the rules')}>
             <div className="stack-sm">
@@ -224,11 +243,10 @@ function GraphMap({ nodes, layout, sel, onSel, errNodes }: { nodes: Node[]; layo
   )
 }
 
-function PostEditor({ story, node, nodes, opts, issues, op, busy }: { story: Story; node: Node; nodes: Node[]; opts: Opts | undefined; issues: Issue[]; op: (b: Record<string, unknown>) => Promise<Story | undefined>; busy: boolean }) {
+function PostEditor({ story, node, nodes, opts, issues, op, busy, img, setImg, cast }: { story: Story; node: Node; nodes: Node[]; opts: Opts | undefined; issues: Issue[]; op: (b: Record<string, unknown>) => Promise<Story | undefined>; busy: boolean; img: string; setImg: (u: string) => void; cast: string[] }) {
   const { L, n, lang } = usePL()
   const confirm = useConfirm()
   const [d, setD] = useState({ title: node.title, text: node.text, ending: node.ending, kind: node.kind, caption: node.caption, scene: node.scene as Record<string, any>, hashtags: node.hashtags.join(' ') })
-  const [img, setImg] = useState('')
   const [imgBusy, setImgBusy] = useState(false)
   const [imgErr, setImgErr] = useState('')
   const targets = nodes.filter((x) => x.id !== node.id).map((x) => ({ value: x.id, label: `${n(x.number)} · ${x.title || x.id}` }))
@@ -250,12 +268,28 @@ function PostEditor({ story, node, nodes, opts, issues, op, busy }: { story: Sto
             <SelectField label={L('ژست', 'Pose')} value={d.scene.pose ?? ''} onChange={(v) => sc('pose', v)} options={[{ value: '', label: L('(از متن)', '(from the text)') }, ...(opts?.poses ?? []).map((p) => ({ value: p.key, label: lang === 'fa' ? p.fa : p.en }))]} />
             <SelectField label={L('حالت چهره', 'Expression')} value={d.scene.expression ?? ''} onChange={(v) => sc('expression', v)} options={[{ value: '', label: L('(از متن)', '(from the text)') }, ...(opts?.expressions ?? []).map((x) => ({ value: x, label: x }))]} />
           </div>
+          {cast.length > 0 && (
+            <div className="stack-sm">
+              <b className="small">{L('شخصیت‌های این صحنه (تا ۲ نفر)', 'Characters in this scene (up to 2)')}</b>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 14 }}>
+                {cast.map((nm) => {
+                  const cur: string[] = d.scene.characters ?? []
+                  const on = cur.includes(nm)
+                  return (
+                    <label key={nm} className="row nw small" style={{ gap: 6 }}>
+                      <input type="checkbox" checked={on} disabled={!on && cur.length >= 2} onChange={(e) => sc('characters', e.target.checked ? [...cur, nm] : cur.filter((x) => x !== nm))} />{nm}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <AreaField label={L('کپشن (به جای شمارهٔ پست‌ها {go:شناسه} بنویسید؛ شماره خودکار پر می‌شود)', 'Caption (write {go:id} instead of post numbers; the number is filled in for you)')} value={d.caption} onChange={(v) => setD({ ...d, caption: v })} />
           <TextField label={L('هشتگ‌ها', 'Hashtags')} value={d.hashtags} onChange={(v) => setD({ ...d, hashtags: v })} />
           <div className="row">
             <Button variant="primary" icon="save" busy={busy} onClick={save}>{L('ذخیره', 'Save')}</Button>
             <Button icon="image" busy={imgBusy} onClick={async () => { await save(); preview() }}>{L('پیش‌نمایش تصویر', 'Preview the picture')}</Button>
-            <Button variant="ghost" icon="trash" onClick={async () => { if (await confirm({ title: L('این پست حذف شود؟', 'Delete this post?'), danger: true })) op({ op: 'remove_node', id: node.id }) }}>{L('حذف پست', 'Delete the post')}</Button>
+            <Button variant="ghost" icon="trash" onClick={async () => { if (await confirm({ title: L('این پست حذف شود؟', 'Delete this post?'), message: '', danger: true })) op({ op: 'remove_node', id: node.id }) }}>{L('حذف پست', 'Delete the post')}</Button>
           </div>
           {issues.map((i, k) => <Notice key={k} tone="warn">{L(...tx(i.code))}</Notice>)}
         </div>

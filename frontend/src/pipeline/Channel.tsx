@@ -5,6 +5,7 @@ import { useConfirm } from '../components/feedback'
 import { AreaField, Badge, Button, Card, ErrorState, Loading, Notice, NumberField, SelectField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery } from '../hooks'
 import { ErrorLine, JobLine, usePL } from './kit'
+import { TemplateGallery } from './Templates'
 
 interface Row { number: number; title: string; hook: string; logline: string; escalation: string; twist: string; cliffhanger: string; payoff_of_previous: string; characters: string[]; location: string; runtime_sec: number; opens: string[]; closes: string[]; episode_id?: number | null }
 interface CastRow { character: number | null; name: string; role: string; marker: string; catchphrase: string }
@@ -44,6 +45,8 @@ export function ChannelTab({ seriesId, page }: { seriesId: number; page: PageDet
   const { L, n, lang } = usePL()
   const q = useQuery<Payload>(`/series/${seriesId}/channel`)
   const conv = useQuery<Conv>('/channel/conventions')
+  const chars = useQuery<{ id: number; name: string }[]>(page ? `/pages/${page.id}/characters` : null)
+  const castOptions = chars.data ?? page?.characters ?? []
   const act = useAction()
   const confirm = useConfirm()
   const planJob = useJobRunner({ onFinished: () => q.reload() })
@@ -56,18 +59,25 @@ export function ChannelTab({ seriesId, page }: { seriesId: number; page: PageDet
   const p = q.data
   const ch = p.channel
   const put = async (body: Record<string, unknown>) => { const d = await act.run(() => api.put<Payload>(`/series/${seriesId}/channel`, body)); if (d) q.setData(d); return d }
-  const post = async (path: string) => { const d = await act.run(() => api.post<Payload>(`/series/${seriesId}/channel/${path}`, {})); if (d) q.setData(d) }
+  const post = async (path: string, body: unknown = {}) => { const d = await act.run(() => api.post<Payload>(`/series/${seriesId}/channel/${path}`, body)); if (d) { q.setData(d); if (path === 'template') chars.reload() } }
   const dirty = JSON.stringify(slate) !== JSON.stringify(ch.slate)
   const setRow = (i: number, k: keyof Row, v: unknown) => setSlate(slate.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
   const split = (s: string) => s.split(/[،,\n]/).map((x) => x.trim()).filter(Boolean)
   const row = slate[sel - 1]
-  const issuesOf = (nr: number) => [...p.validation.errors.map((i) => ({ ...i, err: true })), ...p.validation.warnings.map((i) => ({ ...i, err: false }))].filter((i) => i.episode === nr)
-  const globalIssues = [...p.validation.errors.map((i) => ({ ...i, err: true })), ...p.validation.warnings.map((i) => ({ ...i, err: false }))].filter((i) => !i.episode)
+  const issuesOf = (nr: number) => [...p.validation.errors.map((i): Issue & { err: boolean } => ({ ...i, err: true })), ...p.validation.warnings.map((i): Issue & { err: boolean } => ({ ...i, err: false }))].filter((i) => i.episode === nr)
+  const globalIssues = [...p.validation.errors.map((i): Issue & { err: boolean } => ({ ...i, err: true })), ...p.validation.warnings.map((i): Issue & { err: boolean } => ({ ...i, err: false }))].filter((i) => !i.episode)
   const total = p.beats.length ? p.beats[p.beats.length - 1].end_sec : 1
   return (
     <div className="stack">
       <p className="muted">{L('حالت کانال: قسمت‌های کوتاه با شخصیت‌های اورجینالِ تکرارشونده، قلاب در ثانیه‌های اول، پایان باز و برنامهٔ انتشار ثابت. از «قواعد این ژانر» فقط ساختار (طول، ریتم، قلاب) الهام گرفته شده؛ چیزی از سریال‌های دیگر کپی نمی‌شود.',
         'Channel mode: short episodes with recurring ORIGINAL characters, a hook in the first seconds, an open ending and a fixed posting schedule. Only the structure (length, pacing, hooks) of the genre is used; nothing is copied from other series.')}</p>
+      <Card title={L('فصل‌های آماده', 'Ready-made seasons')}>
+        <div className="stack-sm">
+          <p className="small muted">{L('یک فصل کامل با قسمت‌ها، قلاب‌ها، پایان‌های باز و شخصیت‌های اورجینال؛ بدون مدل هم کار می‌کند. شخصیت‌ها با هویتِ قفل‌شده ساخته می‌شوند و همهٔ ردیف‌ها قابل ویرایش‌اند. پیش از ادامه همان قواعد قلاب و رشته‌ها بررسی می‌شود.',
+            'A whole season with episodes, hooks, cliffhangers and original characters; it works with no model. The characters come with a locked identity and every row can be edited. The same hook and thread rules are checked before you go on.')}</p>
+          <TemplateGallery kind="season" busy={act.busy} onPick={async (key) => { if (ch.slate.length === 0 || await confirm({ title: L('برنامهٔ فعلی با فصل آماده جایگزین شود؟', 'Replace the current plan with the ready-made season?'), message: '', danger: true })) post('template', { key }) }} />
+        </div>
+      </Card>
       <Card title={L('قالب و قواعد ژانر', 'Format and genre rules')}>
         <div className="stack-sm">
           <div className="row" style={{ flexWrap: 'wrap' }}>
@@ -87,8 +97,8 @@ export function ChannelTab({ seriesId, page }: { seriesId: number; page: PageDet
         <div className="stack-sm">
           {ch.cast.map((c, i) => (
             <div key={i} className="row" style={{ flexWrap: 'wrap' }}>
-              <SelectField label={L('شخصیت', 'Character')} value={String(c.character ?? '')} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, character: Number(v) } : x)) })} options={(page?.characters ?? []).map((x) => ({ value: String(x.id), label: x.name }))} />
-              <SelectField label={L('نقش', 'Role')} value={c.role} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, role: v } : x)) })} options={conv.data.cast_roles.map((r) => ({ value: r, label: lang === 'fa' ? ROLE_FA[r] : ROLE_EN[r] }))} />
+              <SelectField label={L('شخصیت', 'Character')} value={String(c.character ?? '')} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, character: Number(v) } : x)) })} options={castOptions.map((x) => ({ value: String(x.id), label: x.name }))} />
+              <SelectField label={L('نقش', 'Role')} value={c.role} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, role: v } : x)) })} options={(conv.data?.cast_roles ?? []).map((r) => ({ value: r, label: lang === 'fa' ? ROLE_FA[r] : ROLE_EN[r] }))} />
               <TextField label={L('نشانهٔ بصری (مثلاً شال قرمز)', 'Visual marker (e.g. red scarf)')} value={c.marker} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, marker: v } : x)) })} />
               <TextField label={L('تکیه‌کلام اورجینال', 'Original catchphrase')} value={c.catchphrase} onChange={(v) => put({ cast: ch.cast.map((x, j) => (j === i ? { ...x, catchphrase: v } : x)) })} />
               <Button size="sm" variant="ghost" icon="trash" aria-label={L('حذف', 'Remove')} onClick={() => put({ cast: ch.cast.filter((_, j) => j !== i) })} />
@@ -116,7 +126,7 @@ export function ChannelTab({ seriesId, page }: { seriesId: number; page: PageDet
         <div className="stack-sm">
           <TextField label={L('یادداشت برای طراح (اختیاری)', 'Note for the planner (optional)')} value={instruction} onChange={setInstruction} />
           <div className="row">
-            <Button variant="primary" icon="spark" busy={planJob.busy} onClick={async () => { if (slate.length === 0 || await confirm({ title: L('برنامهٔ فعلی جایگزین شود؟', 'Replace the current plan?'), danger: true })) planJob.start(() => api.post(`/series/${seriesId}/channel/plan`, { instruction, language: lang })) }}>{slate.length ? L('طراحی دوبارهٔ فصل', 'Plan the season again') : L('طراحی فصل با هوش مصنوعی', 'Plan the season with AI')}</Button>
+            <Button variant="primary" icon="spark" busy={planJob.busy} onClick={async () => { if (slate.length === 0 || await confirm({ title: L('برنامهٔ فعلی جایگزین شود؟', 'Replace the current plan?'), message: '', danger: true })) planJob.start(() => api.post(`/series/${seriesId}/channel/plan`, { instruction, language: lang })) }}>{slate.length ? L('طراحی دوبارهٔ فصل', 'Plan the season again') : L('طراحی فصل با هوش مصنوعی', 'Plan the season with AI')}</Button>
             {dirty && <Button icon="save" variant="primary" busy={act.busy} onClick={() => put({ slate })}>{L('ذخیرهٔ ویرایش‌ها', 'Save the edits')}</Button>}
           </div>
           <JobLine job={planJob.job} offline={planJob.offline} />

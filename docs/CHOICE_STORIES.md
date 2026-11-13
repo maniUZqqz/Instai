@@ -31,3 +31,22 @@ Code: `instai/choice/` (`graph.py` rules, `services.py`, `render.py`, `export.py
 
 Honest limits: the planner's creative quality with a real model is not measured (GPU PC offline); the image-model renderer for posts is untested on a real ComfyUI; Instagram's own link features
 (e.g. linking a caption to another post) are not used - the numbers are plain text.
+
+## Ready-made stories (0.9.0)
+
+`instai/choice/story_templates.py`: six complete, hand-written Persian stories with ORIGINAL characters (a cast of stick specs and 12-16 posts each). They work with no text model: **"Start with this story"** (page > Choice stories,
+or inside an empty / existing story) creates the story, the characters on the page (stick identity drawn and locked) and the graph in one step; every word stays editable and renders like any other story.
+
+| Key | Genre | Posts | Endings |
+|---|---|---|---|
+| `prison_escape` | prison escape (the owner's reference idea, written from scratch) | 16 | 5 bad, 1 good, 1 secret |
+| `zombie_survival` | survival | 15 | 2 bad, 1 good, 1 neutral, 1 secret |
+| `haunted_house` | gentle horror | 14 | 2 bad, 1 good, 1 secret |
+| `detective_clock` | detective | 13 | 2 bad, 1 good, 1 secret |
+| `space_oxygen` | space station | 13 | 2 bad, 1 good, 1 secret |
+| `chagher_coach` | brand demo for the owner's product Chagher (genre `custom`) | 14 | 3 bad, 1 good, 1 neutral, 1 secret |
+
+* `tests/test_story_templates.py` runs every story through `graph.validate` with zero warnings, checks the backgrounds / poses / expressions / cast exist, the text and label limits, and that nothing is a placeholder.
+* The planner job falls back to the story of the same genre when no model answers (`provider: template`, a banner says so); a genre without one (`custom`) still gets the deterministic skeleton.
+* **Chagher story rules**: only facts published on chagher.ir (a draft of the athlete's workout and meal plan in under a minute, sign-up in under a minute with a free start and no credit card, the coach's own standing instruction,
+  a branded PDF, "the final decision is the coach's"). No price, no statistic, no invented customer, no promise of a result, never "replaces the coach" (a test enforces the forbidden words).
