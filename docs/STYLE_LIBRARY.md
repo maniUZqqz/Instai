@@ -25,7 +25,7 @@ art/animation styles.* So the library has three tabs: **art and animation styles
   scheduler, CFG, guidance, steps, default aspect) and **`motif`** (the pattern of the built-in preview picture). Old user styles and the old
   export bundle (`instai.styles@1`) load unchanged (the new fields default).
 * Preview pictures: `preview_svg.py` draws a small SVG from the palette and the motif (no image model, no download, no licence question):
-  `/api/library/style/<key>/preview.svg`. **Real samples**: job `styles.preview` renders each style's `sample_prompt` with the owner's own image
+  `/api/library/style/<key>/preview.svg`. **Real samples**: job `styles.preview` renders ONE fixed neutral subject (a person at a desk in a small room, `previews.SUBJECT`) in each look with the owner's own image
   model through `gpu.compute.run_task` (so a worker PC can take it; waits when ComfyUI is down; resumable; each picture is saved at once and
   linked by `StylePreview`; a changed prompt makes the sample "out of date"). The button is in the library; `GET /api/library/previews` says how many
   exist and how long the rest takes.
@@ -35,8 +35,14 @@ art/animation styles.* So the library has three tabs: **art and animation styles
 No studio, franchise, brand, artist or creator name may appear in a style's name, description, tags or any prompt (`tests/test_style_library.py`
 scans for a long list; `tests/test_styles.py` too). The looks are *inspired* generic descriptions ("hand-drawn pastoral anime", "interlocking plastic
 toy bricks"), so the output cannot be mistaken for a rights-holder's work. People still search by the names they know, so `aliases.py` holds
-**search-only** terms ("ghibli", "lego", "ps2", "dan koe", "zackd", "پیکسار" ...). They are never shown as labels and never sent to a model (a test
-checks the composed prompts). `library.matches()` folds Arabic/Persian letter variants, ZWNJ and digit alphabets, and ignores the word "style".
+**search-only** terms ("ghibli", "lego", "ps2", "dan koe", "zackd", "پیکسار" ...); they are never sent to a model (a test checks the composed prompts).
+`library.matches()` folds Arabic/Persian letter variants, ZWNJ and digit alphabets, and ignores the word "style".
+
+**The owner's own names are visible.** Where a generic look stands in for a studio, a creator or a brand on his list, `aliases.KNOWN_AS` gives a
+display-only caption, shown on the style card as "≈ Studio Ghibli" and in the details as «الهام‌گرفته از»: PS2 style, Comic Art, Dan Koe style,
+Lego-like bricks, ZackD Films style, Anime, Studio Ghibli, Disney, Cartoon Network, Corporate Memphis, 3D Claymation, Chrome 22K. The caption is not part
+of a style's data and never enters a prompt (`tests/test_style_library.py::test_every_name_on_the_owners_list_is_a_visible_label_of_a_style` checks that
+every one of the 53 names he wrote is readable on some card - in the style's own English name or in that caption).
 
 ## Where the chosen look goes (one pick per project)
 

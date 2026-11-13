@@ -48,6 +48,8 @@ export interface StylePreset {
   preview_url?: string
   /** search-only names (never shown as labels, never sent to a model) */
   search_terms?: string[]
+  /** the name the owner knows this look by (display-only "inspired by" caption; never sent to a model) */
+  known_as?: string
 }
 export type Suit = 'image' | 'video' | 'character'
 export interface StyleGen {

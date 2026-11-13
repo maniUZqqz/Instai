@@ -45,7 +45,8 @@ def test_style_library_groups_suitability_search_and_color_theme_tab(browser, se
         page.locator(".style-card").first.click()
         page.get_by_role("button", name=exact(tx("lib.duplicate", lang))).wait_for(timeout=5000)
         main = page.locator("main").inner_text()
-        assert "lego" not in main.lower(), "the search-only name is never shown"
+        assert "Lego-like bricks" in page.locator("[data-testid=known-as]").inner_text(), "the name the owner knows it by is shown as an 'inspired by' caption"
+        assert page.locator(".style-card .known-as").first.inner_text().startswith("≈"), "and on the card itself"
         page.screenshot(path=str(SHOTS / f"{size}-{lang}-styles-v2.png"))
         if lang == "en" and stray_persian(main):
             failures.append("styles (en): stray Persian text: " + str(stray_persian(main)))

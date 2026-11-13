@@ -9,7 +9,7 @@ from django.db import DatabaseError
 from instai.core.errors import DomainError
 
 from . import schema
-from .aliases import terms_for
+from .aliases import known_as, terms_for
 from .builtin_styles import BUILTIN_STYLES, LEGACY_ALIASES, REALISM_ORDER
 from .builtin_themes import BUILTIN_THEMES
 from .models import StylePreview, UserPreset
@@ -64,6 +64,7 @@ def _entry(kind: str, key: str, data: dict, *, builtin: bool, based_on: str = ""
         # the built-in swatch (a small SVG drawn from the palette) is always available; the GPU sample, when there is one, is `thumbnail_url`
         out["preview_url"] = f"/api/library/style/{key}/preview.svg"
         out["search_terms"] = terms_for(key) if builtin else []
+        out["known_as"] = known_as(key) if builtin else ""
     return out
 
 

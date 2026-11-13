@@ -1614,6 +1614,11 @@ a.skip-link:focus {
 .choice.as-button {
   width: 100%;
 }
+.known-as {
+  color: var(--primary);
+  font-weight: 600;
+  unicode-bidi: plaintext;
+}
 .swatch {
   position: relative;
   overflow: hidden;

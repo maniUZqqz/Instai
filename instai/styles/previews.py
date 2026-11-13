@@ -17,12 +17,15 @@ from .models import StylePreview
 
 SIZE = (768, 480)           # the gallery card is 16:10
 MIN_STEPS, MAX_STEPS = 12, 30
+# ONE fixed, neutral subject for every sample, so the owner compares the LOOKS and not the subjects (the style's own `sample_prompt` stays as a
+# showcase idea in the details panel). A person in a room works for a drawing, a render, a puppet and a photograph alike.
+SUBJECT = "a young person sitting at a desk in a small cozy room with a window, a lamp and a plant, simple friendly character, medium shot"
 
 
 def prompt_for(style: dict) -> tuple[str, str]:
-    """(positive, negative) of a style's sample: its sample subject + the composed look (style + default colour theme)."""
+    """(positive, negative) of a style's sample: the one fixed subject + the composed look (style + default colour theme)."""
     comp = library.compose(style["key"])
-    positive = ", ".join(x for x in (style.get("sample_prompt", ""), comp["positive"]) if x)
+    positive = ", ".join(x for x in (SUBJECT, comp["positive"]) if x)
     return positive, comp["negative"]
 
 
@@ -71,18 +74,21 @@ def status(workflow: str, expected_seconds: float = 60.0) -> dict:
 
 # ------------------------------------------------------------------ automatic: samples get made by themselves once the GPU side is ready
 
-AUTO_EVERY_S = 600          # look at most every ten minutes
-AUTO_RETRY_H = 6            # after a finished (or failed) run wait this long before queueing the rest again
+AUTO_EVERY_S = 300          # look at most every five minutes
+AUTO_CHUNK = 12             # styles per automatic job: about ten minutes of GPU, so the owner's own jobs never wait long behind it
+AUTO_NEXT_S = 240           # after a chunk that made pictures the next one may follow this soon
+AUTO_RETRY_H = 6            # after a failed or empty run wait this long before trying again
 _LAST_AUTO = [0.0]
 
 
 def auto_queue(force: bool = False):
     """Queue the sample-making job by itself when everything needed is there: a real image engine, ComfyUI answering with the image workflow
-    ready, samples still missing, no such job already waiting and none finished in the last hours.
+    ready, samples still missing and no such job already waiting.
 
-    The owner asked that nothing be left for him to do once the GPU PC is on. The job is queued INSIDE THE NIGHT WINDOW (the Downloads page's
-    window, default 02:00-07:00) at low priority, so it never takes the card while he works; it can be switched off with
-    `INSTAI_STYLE_SAMPLES_AUTO=0`. Returns the queued job, or None."""
+    The owner asked that nothing be left for him to do once the GPU PC is on. The work is cut into chunks of `AUTO_CHUNK` styles at low priority
+    (his own jobs go first and wait at most one chunk), each finished picture is kept, and the next chunk follows a few minutes after the
+    previous one made pictures. The download schedule he chose on the Downloads page (a night window, when he picked one) is respected.
+    It can be switched off with `INSTAI_STYLE_SAMPLES_AUTO=0` or the setting `style_samples_auto`. Returns the queued job, or None."""
     import os
     import time
 
@@ -103,14 +109,21 @@ def auto_queue(force: bool = False):
 
     wid = str(settings_store.effective("image_workflow"))
     try:
-        if not compute.workflow_available(wid) or not pending(wid):
+        if not compute.workflow_available(wid):
             return None
+        todo = pending(wid)
     except Exception:  # noqa: BLE001 - a look at ComfyUI must never disturb the worker
+        return None
+    if not todo:
         return None
     if Job.objects.filter(kind="styles.preview", status__in=[Job.QUEUED, Job.RUNNING]).exists():
         return None
-    last = Job.objects.filter(kind="styles.preview").order_by("-id").first()
-    if last is not None and (timezone.now() - (last.finished_at or last.created_at)).total_seconds() < AUTO_RETRY_H * 3600:
-        return None
-    return queue.enqueue("styles.preview", {"keys": [], "force": False, "auto": True}, title="تصویر نمونهٔ سبک‌ها (خودکار)",
-                         priority=-10, window=schedule.config()["download_window"])
+    last = Job.objects.filter(kind="styles.preview", payload__auto=True).order_by("-id").first()
+    if last is not None:
+        age = (timezone.now() - (last.finished_at or last.created_at)).total_seconds()
+        made = (last.result or {}).get("made", 0) if last.status == Job.SUCCEEDED else 0
+        if age < (AUTO_NEXT_S if made else AUTO_RETRY_H * 3600):
+            return None
+    return queue.enqueue("styles.preview", {"keys": todo[:AUTO_CHUNK], "force": False, "auto": True},
+                         title=f"تصویر نمونهٔ سبک‌ها (خودکار، {min(AUTO_CHUNK, len(todo))} از {len(todo)} مانده)",
+                         priority=-10, window=schedule.resolve(None)["window"])

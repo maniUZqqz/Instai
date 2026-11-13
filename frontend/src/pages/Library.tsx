@@ -111,6 +111,7 @@ function StylesTab() {
             <Swatch palette={s.palette} url={styleImage(s)} />
             <span className="strong">{nm(s, lang)}</span>
             <span className="small muted">{vocab(lib.data!.groups, s.group, lang)}</span>
+            {s.known_as && <span className="small ltr known-as">{'≈ ' + s.known_as}</span>}
             {!s.builtin && <Badge tone="info">{t('lib.mine')}</Badge>}
           </button>
         ))}

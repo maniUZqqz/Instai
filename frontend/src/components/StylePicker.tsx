@@ -100,6 +100,7 @@ export function StylePicker({ value, onChange, showTheme = true, name = 'look' }
               <Swatch palette={s.palette} url={styleImage(s)} />
               <span className="strong">{nm(s, lang)}</span>
               <span className="small muted">{vocab(L.groups, s.group, lang)}</span>
+              {s.known_as && <span className="small ltr known-as">{'≈ ' + s.known_as}</span>}
               {!s.builtin && <Badge tone="info">{t('lib.mine')}</Badge>}
             </label>
           ))}
@@ -160,6 +161,7 @@ export function StyleDetails({ style: s }: { style: StylePreset }) {
         <span className="small muted">{t('lib.suits')}:</span>
         {(s.suitability ?? []).map((x) => <Badge key={x} tone="ok">{t(SUIT_KEY[x])}</Badge>)}
       </div>
+      {s.known_as && <p className="small muted" data-testid="known-as" title={t('lib.known_as_note')}>{t('lib.known_as')}: <span className="ltr strong">{s.known_as}</span></p>}
       <div className="row">
         {s.palette.map((c, i) => (
           <span key={i} className="chip-color" title={c}>

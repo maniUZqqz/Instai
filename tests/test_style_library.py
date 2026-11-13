@@ -89,6 +89,36 @@ def test_the_owners_whole_list_is_searchable_by_the_names_he_uses():
     assert library.filter_styles(lib, q="zzzz-not-a-style") == []
 
 
+def _tokens(text: str) -> set[str]:
+    """Lower-case word stems: 'Cel-shading' -> {cel, shading}; 'Particles' -> {particle}; 'colour' and 'color' agree."""
+    words = re.findall(r"[a-z0-9.]+", text.lower().replace("colour", "color"))
+    return {w[:-1] if len(w) > 3 and w.endswith("s") else w for w in words}
+
+
+def test_every_name_on_the_owners_list_is_a_visible_label_of_a_style():
+    """The owner complained that styles of his list were missing. Every name he wrote must be readable on a style card: either in the style's own
+    English name or in the display-only 'inspired by' caption (`known_as`) of the generic look that stands in for a studio / creator / brand."""
+    labels = {}
+    for r in rows():
+        if r["builtin"]:
+            labels[r["key"]] = _tokens(r["name_en"]) | _tokens(r.get("known_as", ""))
+    missing = []
+    for name in OWNER_LIST:
+        want = _tokens(name) - {"style", "films"}
+        if not any(want <= got for got in labels.values()):
+            missing.append(name)
+    assert missing == [], f"not a visible label of any style: {missing}"
+    # the caption is display-only: not part of the style's data, not in any prompt
+    assert all("known_as" not in s for s in BUILTIN_STYLES.values())
+    for key, label in aliases.KNOWN_AS.items():
+        assert key in BUILTIN_STYLES
+        text = json.dumps(library.compose(key), ensure_ascii=False).lower()
+        assert not any(w in text for w in BANNED if w in label.lower()), key
+    assert library.get_style("painterly_pastoral") is not None
+    row = next(r for r in rows() if r["key"] == "painterly_pastoral")
+    assert row["known_as"] == "Studio Ghibli" and "ghibli" in " ".join(row["search_terms"])
+
+
 def test_aliases_only_name_real_styles_and_never_reach_a_prompt():
     assert [k for k in aliases.ALIASES if k not in BUILTIN_STYLES] == []
     for row in rows():
@@ -312,6 +342,7 @@ def test_sample_images_are_made_by_comfyui_once_and_replace_the_swatch(api, monk
             assert sheet.asset_id and sheet.asset.provenance["provider"] == "comfyui" and sheet.asset.provenance["style"] == "pixel_art_16bit"
             graph_text = " ".join(str(n["inputs"].get("text", "")) for g in c.prompts for n in g.values() if n.get("class_type") == "CLIPTextEncode").lower()
             assert "pixel" in graph_text and "low-poly" in graph_text and len(c.prompts) == 2
+            assert graph_text.count(previews.SUBJECT.lower()) == 2, "the same neutral subject for every style, so the looks are what differ"
             n_prompts = len(c.prompts)
             # the gallery shows the real picture now, and a second run skips what is up to date
             lib = {s["key"]: s for s in api.get("/api/library").json()["styles"]}
@@ -345,11 +376,13 @@ def test_a_changed_prompt_makes_the_sample_out_of_date():
     assert previews.seed_for("a") == previews.seed_for("a") and previews.seed_for("a") != previews.seed_for("b")
 
 
-def test_samples_are_queued_by_themselves_in_the_night_window_once_comfyui_is_ready(monkeypatch):
-    """Nothing is left for the owner: when ComfyUI answers with the image workflow, the sample job is queued by the worker's tick (night window, low priority)."""
+def test_samples_are_queued_by_themselves_in_chunks_once_comfyui_is_ready(monkeypatch):
+    """Nothing is left for the owner: when ComfyUI answers with the image workflow, the sample job is queued by the worker's tick - a chunk of styles
+    at low priority, the next chunk soon after a chunk that made pictures, a long pause after one that failed, the owner's download window respected."""
+    from django.utils import timezone
+
     from instai.core import hardware, settings_store
     from instai.gpu import compute
-    from instai.jobs import schedule
     from instai.jobs.models import Job
     from tests import fakes
     from tests.test_gpu_use import GPU, comfy_stats
@@ -368,12 +401,26 @@ def test_samples_are_queued_by_themselves_in_the_night_window_once_comfyui_is_re
             assert previews.auto_queue(force=True) is None, "switched off"
             monkeypatch.delenv("INSTAI_STYLE_SAMPLES_AUTO")
             job = previews.auto_queue(force=True)
-            assert job is not None and job.kind == "styles.preview" and job.payload["auto"] is True
-            assert job.window == schedule.config()["download_window"] and job.priority < 0
+            assert job is not None and job.kind == "styles.preview" and job.payload["auto"] is True and job.priority < 0
+            assert len(job.payload["keys"]) == previews.AUTO_CHUNK < previews.status("x")["total"], "a chunk, not the whole library"
+            assert job.window == "", "the default download schedule is 'now': no night window is forced"
             assert previews.auto_queue(force=True) is None, "one at a time"
-            Job.objects.filter(pk=job.pk).update(status=Job.SUCCEEDED)
-            assert previews.auto_queue(force=True) is None, "a run finished a moment ago: not again for hours"
+            # a chunk that made pictures: the next one follows after a short pause (not before it)
+            Job.objects.filter(pk=job.pk).update(status=Job.SUCCEEDED, result={"made": 12}, finished_at=timezone.now())
+            assert previews.auto_queue(force=True) is None, "just finished: a short pause"
+            Job.objects.filter(pk=job.pk).update(finished_at=timezone.now() - timezone.timedelta(seconds=previews.AUTO_NEXT_S + 5))
+            nxt = previews.auto_queue(force=True)
+            assert nxt is not None and nxt.pk != job.pk
+            # a run that failed or made nothing: a long pause before the next try
+            Job.objects.filter(pk=nxt.pk).update(status=Job.FAILED, finished_at=timezone.now() - timezone.timedelta(seconds=previews.AUTO_NEXT_S + 5))
+            assert previews.auto_queue(force=True) is None, "failed a moment ago: not again for hours"
+            # the owner chose a night window on the Downloads page: the automatic job obeys it
+            settings_store.set_setting("ops_config", {"download_mode": "window", "download_window": "01:00-05:00"})
+            Job.objects.filter(pk=nxt.pk).update(finished_at=timezone.now() - timezone.timedelta(hours=previews.AUTO_RETRY_H + 1))
+            win = previews.auto_queue(force=True)
+            assert win is not None and win.window == "01:00-05:00"
     finally:
         settings_store.set_setting("image_engine", "")
         settings_store.set_setting("comfyui_url", "")
+        settings_store.set_setting("ops_config", {})
         compute._CAP_CACHE.update(at=0.0, value=None)

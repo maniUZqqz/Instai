@@ -98,5 +98,28 @@ ALIASES: dict[str, list[str]] = {
 }
 
 
+# The name the OWNER uses for a look, shown as a small "inspired by" caption next to the generic look that stands in for it (so he can see at a glance that
+# every look on his list is in the library). It is display-only: never part of a style's data, never in a prompt (tests/test_style_library.py checks both).
+# Only looks whose own name does not already say it are listed here.
+KNOWN_AS: dict[str, str] = {
+    "early_console_3d": "PS2 style",
+    "comic_ink": "Comic Art",
+    "minimal_bw_essay": "Dan Koe style",
+    "toy_brick_3d": "Lego-like bricks",
+    "fast_3d_explainer": "ZackD Films style",
+    "modern_tv_anime": "Anime",
+    "painterly_pastoral": "Studio Ghibli",
+    "fairytale_feature_2d": "Disney",
+    "bold_angular_tv_toon": "Cartoon Network",
+    "corporate_flat_people": "Corporate Memphis",
+    "clay_3d_render": "3D Claymation",
+    "chrome_metal_type": "Chrome 22K",
+}
+
+
+def known_as(key: str) -> str:
+    return KNOWN_AS.get(key, "")
+
+
 def terms_for(key: str) -> list[str]:
     return ALIASES.get(key, [])

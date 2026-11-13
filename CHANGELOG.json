@@ -24,8 +24,12 @@
         "en": "\"Theme\" is now called \"Color theme\": it only gives colour, light and the look of titles and subtitles and is chosen next to a style. Eight new colour themes were added."
       },
       {
-        "fa": "تصویر نمونه‌ی واقعی: یک دکمه برای ساختنِ نمونه‌ی هر سبک با مدل تصویرِ خودتان (GPU)؛ اگر ComfyUI روشن نباشد کار منتظر می‌ماند و خودش ادامه می‌دهد.",
-        "en": "Real sample pictures: one button makes a sample of every style with your own image model (GPU); if ComfyUI is off the job waits and carries on by itself."
+        "fa": "تصویر نمونه‌ی واقعی: مدل تصویرِ خودتان (GPU) برای همهٔ سبک‌ها با یک سوژهٔ یکسان (یک نفر پشت میز در یک اتاقِ کوچک) نمونه می‌سازد تا فقط خودِ سبک‌ها را مقایسه کنید. وقتی ComfyUI روشن و آماده باشد، خودش و تکه‌تکه شروع می‌کند و کارهای خودتان جلو می‌افتند؛ دکمه‌ای هم برای شروعِ دستی هست.",
+        "en": "Real sample pictures: your own image model (GPU) makes a sample of every style with the same subject (a person at a desk in a small room) so you compare only the looks. When ComfyUI is on and ready it starts by itself, a few styles at a time, and your own jobs go first; there is also a button to start by hand."
+      },
+      {
+        "fa": "هر نامی که در فهرستِ شما بود (استودیو گیبلی، دیزنی، کارتون نتورک، لگو، PS2، دن کو، زک‌دی و ...) روی کارتِ یک سبک خوانده می‌شود: زیرِ نامِ کلیِ سبک می‌نویسد «≈ نامی که می‌شناسید» و جست‌وجو هم همان را پیدا می‌کند. این فقط برچسب است؛ نام هیچ استودیو و برندی به مدل نمی‌رود.",
+        "en": "Every name on your list (Studio Ghibli, Disney, Cartoon Network, Lego, PS2, Dan Koe, ZackD ...) can be read on the card of a style: under the generic style name it shows \"≈ the name you know\", and search finds it too. It is only a label; no studio or brand name is ever sent to the model."
       },
       {
         "fa": "بانک ایده: بیش از ۱۱۰ ایدهٔ فارسی و انگلیسی در دسته‌های روان‌شناسی، توسعه‌ی فردی، اقتصاد، موفقیت، کسب‌وکار و سناریوهای رازآلود (از جمله تلپورت و دزدیِ یک میلیون دلار)، هرکدام با خلاصه‌ی یک‌جمله‌ای و جمله‌ی آغاز؛ جست‌وجو، فیلتر، ستاره، ایده‌ی خودتان، ساختِ ایده‌های تازه با مدل متنی، و دکمه‌ی «شروعِ پروژه از این ایده».",
