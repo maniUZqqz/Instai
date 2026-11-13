@@ -22,10 +22,11 @@ export function ScheduleField({ onChange, initial }: { onChange: (w: When) => vo
     onChange(mode === 'at' ? { mode: 'at', time } : mode === 'window' ? { mode: 'window' } : { mode: 'now' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, time])
+  const pick = (m: 'now' | 'at' | 'window') => { setSeeded(true); setMode(m) }          // a choice the person made is never overwritten by the saved default arriving late
   const win = cfg.data?.download_window ?? '02:00-07:00'
   const opt = (m: 'now' | 'at' | 'window', label: string, extra?: React.ReactNode) => (
     <label className="check" key={m}>
-      <input type="radio" name={name} checked={mode === m} onChange={() => setMode(m)} />
+      <input type="radio" name={name} checked={mode === m} onChange={() => pick(m)} />
       <span className="check-text">
         {label} {extra}
       </span>
@@ -38,7 +39,7 @@ export function ScheduleField({ onChange, initial }: { onChange: (w: When) => vo
       {opt(
         'at',
         t('ops.sched.at'),
-        <input type="time" value={time} onChange={(e) => { setTime(e.target.value || '03:30'); setMode('at') }} aria-label={t('ops.sched.at')} className="ltr time-input" />,
+        <input type="time" value={time} onChange={(e) => { setTime(e.target.value || '03:30'); pick('at') }} aria-label={t('ops.sched.at')} className="ltr time-input" />,
       )}
       {opt('window', t('ops.sched.window'), <bdi dir="ltr">{win}</bdi>)}
       <span className="small muted">{mode === 'now' ? t('ops.sched.hint_now') : mode === 'at' ? t('ops.sched.hint_at') : t('ops.sched.hint_window')}</span>

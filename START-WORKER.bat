@@ -37,6 +37,14 @@ echo  [..] Creating the virtual environment (.venv) ...
 if errorlevel 1 goto fail
 :have_venv
 
+rem ---- update from GitHub (main) first; never blocks start-up; exit code 10 = this file was replaced, start again from the top ----
+if "%INSTAI_NO_UPDATE%"=="1" goto after_update
+".venv\Scripts\python.exe" scripts\self_update.py --worker & if errorlevel 10 (goto) 2>nul & set "INSTAI_NO_UPDATE=1" & call "%~dp0START-WORKER.bat" & exit /b
+:after_update
+set "IVER=?"
+if exist VERSION set /p IVER=<VERSION
+title InstAI worker (PC B) v%IVER%
+
 ".venv\Scripts\python.exe" scripts\bootstrap.py --worker
 if errorlevel 2 goto fail
 

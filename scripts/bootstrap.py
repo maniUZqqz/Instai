@@ -6,8 +6,11 @@ With --bench-needed: exit 0 when this looks like a first run on a GPU machine (n
 """
 import hashlib
 import os
+import re
+import socket
 import subprocess
 import sys
+import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -59,6 +62,54 @@ def ensure_env() -> None:
         say("OK", "Created .env from .env.example (settings and the API key are kept there; it is never committed)")
 
 
+def _env_value(path: str, key: str) -> str | None:
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            for line in f:
+                m = re.match(r"^\s*%s\s*=\s*(.*?)\s*$" % re.escape(key), line)
+                if m:
+                    return m.group(1).strip("\"'")
+    except OSError:
+        pass
+    return None
+
+
+def _port_free(port: int, host: str = "127.0.0.1") -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex((host, port)) != 0
+
+
+def _is_instai(port: int, host: str = "127.0.0.1") -> bool:
+    try:
+        with urllib.request.urlopen("http://%s:%d/api/health" % (host, port), timeout=2) as r:
+            return r.status == 200
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def ensure_port() -> int:
+    """InstAI shares this PC with other programs (NMarketing's agent, ComfyUI, Ollama ...). When the port InstAI would use (INSTAI_PORT, default
+    8765) is held by another program, the next free port is chosen and saved in .env (once), so START.bat never fails on a port clash."""
+    envfile = os.path.join(ROOT, ".env")
+    chosen = os.environ.get("INSTAI_PORT") or _env_value(envfile, "INSTAI_PORT")
+    port = int(chosen) if chosen and chosen.isdigit() else 8765
+    if _port_free(port) or _is_instai(port):
+        return port
+    if chosen:
+        say("!!", "Port %d (INSTAI_PORT) is used by another program. Change INSTAI_PORT in .env or close that program." % port)
+        return port
+    for cand in range(port + 1, port + 40):
+        if _port_free(cand):
+            with open(envfile, "a", encoding="utf-8", newline="") as f:
+                lead = "\n" if os.path.exists(envfile) and os.path.getsize(envfile) else ""
+                f.write(lead + "INSTAI_PORT=%d\n" % cand)
+            say("OK", "Port %d is used by another program; InstAI will use port %d (saved in .env)" % (port, cand))
+            return cand
+    say("!!", "No free port found near %d; set INSTAI_PORT in .env" % port)
+    return port
+
+
 def ensure_ffmpeg() -> None:
     probe = ("import sys; sys.path.insert(0, %r); import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','instai.settings'); "
              "import django; django.setup(); from instai.core import runtime; i = runtime.ffmpeg_info(); "
@@ -77,6 +128,8 @@ def main() -> int:
     if not install_requirements():
         return 2
     ensure_env()
+    if "--worker" not in sys.argv:
+        ensure_port()
     if "--worker" in sys.argv:        # PC B: no UI, no database; only ffmpeg and the capability checklist
         os.environ["INSTAI_WORKER_MODE"] = "1"
         ensure_ffmpeg()

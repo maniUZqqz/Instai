@@ -188,6 +188,12 @@ class WorkerRunner:
             from instai.ops import report
 
             report.maintain()                                   # close silent sessions, thin and delete old report rows (at most every 10 minutes)
+            try:
+                from instai.gpu import coexist
+
+                coexist.release_idle()                          # no GPU work for a while: give ComfyUI's VRAM back to the other programs on this PC
+            except Exception:  # noqa: BLE001 - a failure here must not skip the steps after it
+                log.debug("release_idle failed", exc_info=True)
             from instai.styles import previews
 
             previews.auto_queue()                               # real sample pictures of the styles, by themselves, in the night window, once ComfyUI is ready

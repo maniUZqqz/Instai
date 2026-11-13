@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { LoadedModel } from '../api/types'
 import { JobView } from '../components/domain'
 import { useConfirm, useToast } from '../components/feedback'
+import { CoexistCard } from '../components/CoexistCard'
 import { GpuPanel } from '../components/GpuPanel'
 import { ModelTestGate, TestButton, useModelTest } from '../components/ModelTestResult'
 import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ExtLink, Notice, PageHead, TextField, type Tone } from '../components/ui'
@@ -131,6 +132,7 @@ export default function Models() {
         </PageHead>
         <p className="muted">{t('mdl.intro')}</p>
         <GpuPanel />
+        <CoexistCard />
         <Async q={q} skeleton={<CardSkeletons n={4} />}>
           {(m) => (
             <>

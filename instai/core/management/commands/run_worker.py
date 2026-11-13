@@ -3,6 +3,28 @@ import os
 from django.core.management.base import BaseCommand
 
 
+def migrations_pending() -> bool:
+    """True while the database lacks a table or column a migration adds (the server applies them when it starts)."""
+    from django.db import OperationalError, connection
+    from django.db.migrations.executor import MigrationExecutor
+
+    try:
+        executor = MigrationExecutor(connection)
+        return bool(executor.migration_plan(executor.loader.graph.leaf_nodes()))
+    except OperationalError:
+        return True
+
+
+def wait_for_database(sleep, tries: int = 90) -> bool:
+    """The server may still be migrating when both are started together (after an update, new migrations): wait for ALL of them, not just for the
+    first table, otherwise the worker dies on `no such column`. Gives up after `tries` seconds (it then starts anyway and says what is wrong)."""
+    for _ in range(tries):
+        if not migrations_pending():
+            return True
+        sleep(1)
+    return False
+
+
 class Command(BaseCommand):
     help = "Run the InstAI job worker (GPU lane + CPU lanes). START.bat runs this."
 
@@ -13,17 +35,9 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         import time
 
-        from django.db import OperationalError
-
-        from instai.jobs.models import Worker
         from instai.jobs.worker import WorkerRunner
 
-        for _ in range(90):  # the server may still be migrating the database when both are started together
-            try:
-                Worker.objects.count()
-                break
-            except OperationalError:
-                time.sleep(1)
+        wait_for_database(sleep=time.sleep)
 
         runner = WorkerRunner(cpu_lanes=opts["cpu_lanes"])
         if opts["once"]:

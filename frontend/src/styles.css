@@ -2048,6 +2048,20 @@ tr.q-waiting_gpu td { background: color-mix(in srgb, var(--warn-soft) 45%, trans
   overflow-wrap: anywhere;
 }
 
+/* ---- curated model library (Downloads page) ---- */
+.cur-pkg {
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 10px);
+  padding: 0.7rem 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+  background: var(--surface);
+}
+.cur-pkg.risky { border-color: color-mix(in srgb, var(--warn) 60%, var(--border)); }
+.cur-badges { gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.cur-files td, .cur-files th { vertical-align: top; }
+.cur-files td .ltr, .cur-files td.ltr { overflow-wrap: anywhere; }
+.cur-card .table-wrap { max-inline-size: 100%; overflow-x: auto; }
 /* ================================================================ idea bank */
 .idea-grid {
   display: grid;

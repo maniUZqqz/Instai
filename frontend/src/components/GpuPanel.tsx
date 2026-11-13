@@ -189,7 +189,7 @@ function DeepCheck() {
   return (
     <div className="stack-sm">
       <div className="row">
-        <Button icon="monitor" busy={act.busy} onClick={run}>
+        <Button icon="monitor" busy={act.busy} onClick={run} wrap>
           {act.busy ? t('gpu.deep_checking') : t('gpu.deep_check')}
         </Button>
       </div>

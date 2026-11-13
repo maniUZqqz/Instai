@@ -288,3 +288,22 @@ def test_job_context_run_cmd_is_cancellable(reg):
     t.join(15)
     job.refresh_from_db()
     assert job.status == Job.CANCELLED and time.time() - t0 < 12, "the subprocess was killed, not waited for"
+
+
+def test_the_worker_waits_for_every_migration_not_just_the_first_table(monkeypatch):
+    from instai.core.management.commands import run_worker
+
+    answers = iter([True, True, True, False])
+    monkeypatch.setattr(run_worker, "migrations_pending", lambda: next(answers))
+    naps = []
+    assert run_worker.wait_for_database(sleep=naps.append) is True
+    assert len(naps) == 3, "it slept while migrations were pending and went on as soon as they were all applied"
+    monkeypatch.setattr(run_worker, "migrations_pending", lambda: True)
+    naps.clear()
+    assert run_worker.wait_for_database(sleep=naps.append, tries=4) is False and len(naps) == 4, "it gives up after the limit (and the worker then starts anyway)"
+
+
+def test_a_fully_migrated_database_has_nothing_pending():
+    from instai.core.management.commands import run_worker
+
+    assert run_worker.migrations_pending() is False

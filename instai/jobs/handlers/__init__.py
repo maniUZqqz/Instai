@@ -1,2 +1,2 @@
 """Importing this package registers every job handler."""
-from . import bench, downloads, models_test, phase3, prod, publish, ideas, story, studio, styles  # noqa: F401
+from . import bench, downloads, ideas, models_test, phase3, prod, publish, remotion, story, studio, styles  # noqa: F401

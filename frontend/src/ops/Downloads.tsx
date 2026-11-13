@@ -5,6 +5,7 @@ import { Async, Badge, Button, Card, CardSkeletons, Empty, Link, Notice, PageHea
 import { useAction, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 import { StateBadge } from './Queue'
+import { CuratedLibrary } from './Curated'
 import { ScheduleField } from './ScheduleField'
 import type { Catalog, OpsConfig, QueueRow, When } from './types'
 
@@ -46,7 +47,7 @@ function SettingsCard({ cfg, onSaved }: { cfg: OpsConfig; onSaved: () => void })
 function AddCard({ cat, onAdded }: { cat: Catalog; onAdded: () => void }) {
   const { t, lang, f } = useI18n()
   const act = useAction()
-  const todo = cat.packages.filter((p) => !p.offer && !p.complete)
+  const todo = cat.packages.filter((p) => !p.offer && !p.curated && !p.complete)
   const [pkg, setPkg] = useState(todo[0]?.id ?? '')
   const [target, setTarget] = useState('local')
   const [model, setModel] = useState('')
@@ -180,6 +181,7 @@ export default function DownloadsPage() {
             <Async q={cat} skeleton={<CardSkeletons n={2} />}>
               {(c) => (
                 <>
+                  <CuratedLibrary cat={c} onAdded={reload} />
                   <AddCard cat={c} onAdded={reload} />
                   <SettingsCard key={JSON.stringify(c.config)} cfg={c.config} onSaved={reload} />
                 </>

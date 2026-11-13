@@ -109,11 +109,12 @@ class OllamaProvider(TextProvider):
     name = "ollama"
     resource = "gpu"
 
-    def __init__(self, base_url: str = "http://127.0.0.1:11434", model: str = "", keep_alive: str = "10m", num_ctx: int | None = None,
+    def __init__(self, base_url: str = "http://127.0.0.1:11434", model: str = "", keep_alive: str | None = None, num_ctx: int | None = None,
                  num_gpu: int | None = None, first_token_timeout: float | None = None, idle_timeout: float | None = None):
         self.base_url = base_url.rstrip("/")
         self._model = model
-        self.keep_alive = keep_alive
+        # a model stays in VRAM this long after our last request; short on purpose: the NMarketing agent and ComfyUI share this graphics card
+        self.keep_alive = keep_alive or os.environ.get("INSTAI_OLLAMA_KEEP_ALIVE") or "3m"
         # Ollama's default context is small; prompts carry story memory and the full script
         self.num_ctx = int(num_ctx or os.environ.get("INSTAI_OLLAMA_NUM_CTX") or 8192)
         env_gpu = str(os.environ.get("INSTAI_OLLAMA_NUM_GPU", "")).strip()
@@ -127,11 +128,21 @@ class OllamaProvider(TextProvider):
     def model(self) -> str:
         return self._model
 
-    def options(self, temperature: float, max_tokens: int) -> dict:
-        o = {"temperature": temperature, "num_predict": max_tokens, "num_ctx": self.num_ctx}
-        if self.num_gpu is not None:
-            o["num_gpu"] = self.num_gpu
+    def options(self, temperature: float, max_tokens: int, tune: dict | None = None) -> dict:
+        o = {"temperature": temperature, "num_predict": max_tokens, "num_ctx": int((tune or {}).get("num_ctx") or self.num_ctx)}
+        gpu = self.num_gpu if self.num_gpu is not None else (tune or {}).get("num_gpu")
+        if gpu is not None:
+            o["num_gpu"] = gpu
         return o
+
+    def tuned(self, mdl: str) -> dict | None:
+        """The GPU plan for this model (context that keeps it completely on the graphics card, all layers); None when switched off
+        (INSTAI_OLLAMA_AUTOTUNE=0) or when there is nothing to base it on."""
+        if str(os.environ.get("INSTAI_OLLAMA_AUTOTUNE", "1")).strip().lower() in ("0", "false", "no", "off"):
+            return None
+        from instai.gpu import ollama_tune
+
+        return ollama_tune.plan_for(self.base_url, mdl, self.num_ctx, forced_gpu=self.num_gpu)
 
     def health(self) -> dict:
         try:
@@ -183,7 +194,13 @@ class OllamaProvider(TextProvider):
         timeout and the cancel button still apply)."""
         ctx = _job_context()
         mdl = self._pick_model(model)
-        body: dict = {"model": mdl, "messages": messages, "stream": True, "keep_alive": self.keep_alive, "options": self.options(temperature, max_tokens)}
+        tune = self.tuned(mdl)
+        body: dict = {"model": mdl, "messages": messages, "stream": True, "keep_alive": self.keep_alive, "options": self.options(temperature, max_tokens, tune)}
+        if tune and ctx:
+            ctx.live(num_ctx=body["options"]["num_ctx"], forced_gpu=bool(body["options"].get("num_gpu")))
+            if tune.get("note_fa") and not ctx.live_value("tune_noted"):
+                ctx.live(tune_noted=True)
+                ctx.log(tune["note_fa"], "info")
         if schema:
             body["format"] = schema
         if mdl.lower().startswith("qwen3"):

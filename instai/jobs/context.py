@@ -140,11 +140,11 @@ class JobContext:
 
     # ---- helpers
     def run_cmd(self, cmd: list[str], *, cwd: str | None = None, on_line: Callable[[str], None] | None = None,
-                timeout: float | None = None) -> tuple[int, str]:
+                timeout: float | None = None, env: dict | None = None) -> tuple[int, str]:
         """Run a subprocess that stays cancellable: killed on cancel/timeout. Returns (returncode, combined output tail)."""
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
-                             creationflags=flags)
+                             creationflags=flags, env=env)
         tail: list[str] = []
 
         def reader():

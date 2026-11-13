@@ -20,4 +20,5 @@ urlpatterns = [
     path("", include("instai.publishing.api")),
     path("", include("instai.production.api")),
     path("", include("instai.ops.api")),
+    path("", include("instai.remotion.api")),
 ]

@@ -24,6 +24,10 @@ def source_hash() -> str:
         for n in names:
             if n.endswith((".ts", ".tsx", ".css", ".html", ".json", ".svg")) and n != "package-lock.json":
                 files.append(os.path.join(base, n))
+    # the Remotion compositions (../remotion/src) are part of the page's bundle (the live preview), so they belong to the hash as well
+    for base, dirs, names in os.walk(os.path.join(ROOT, "remotion", "src")):
+        dirs[:] = [d for d in dirs if d != "node_modules"]
+        files += [os.path.join(base, n) for n in names if n.endswith((".ts", ".tsx"))]
     for p in sorted(files):
         h.update(os.path.relpath(p, FRONT).replace("\\", "/").encode())
         with open(p, "rb") as f:

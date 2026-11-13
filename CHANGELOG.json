@@ -1,5 +1,35 @@
 [
   {
+    "version": "0.10.0",
+    "date": "2026-11-13",
+    "title": {
+      "fa": "ویدئو با کد (Remotion)، کتابخانهٔ مدل‌های برگزیده، GPU اول، به‌روزرسانی خودکار",
+      "en": "Video with code (Remotion), the curated model library, GPU first, automatic update"
+    },
+    "items": [
+      {
+        "fa": "به‌روزرسانی خودکار: START.bat و START-WORKER.bat پیش از هر کار آخرین نسخهٔ InstAI را از GitHub (شاخهٔ main) می‌گیرند؛ هم برای پوشه‌ای که از «Download ZIP» ساخته شده و هم برای کلون گیت. داده، فایل .env، مدل‌ها و ابزارهای شما هرگز دست نمی‌خورند، فایل‌های جایگزین‌شده اول در data\\update پشتیبان می‌شوند، نسخهٔ پایین‌تر نصب نمی‌شود و اگر اینترنت نبود برنامه بدون مشکل با نسخهٔ فعلی شروع می‌شود. گزارشش در data\\logs\\update.log است. فقط یک بار باید پوشه را با ZIP تازه جایگزین کنید (در README نوشته شده).",
+        "en": "Automatic update: START.bat and START-WORKER.bat fetch the latest InstAI from GitHub (branch main) before anything else, for a folder made from Download ZIP as well as for a git clone. Your data, .env, models and tools are never touched, replaced files are first backed up in data\\update, a lower version is never installed and, when there is no internet, the program simply starts with the current version. Its log is data\\logs\\update.log. Only once do you have to replace the folder with a fresh ZIP (written in the README)."
+      },
+      {
+        "fa": "صفحهٔ «ویدئو با کد (Remotion)»: تیتر، متن متحرک، ویدئوی توضیحی مرحله‌به‌مرحله و نوار معرفی که رنگ، فونت (وزیرمتن)، سرعت حرکت و نوع ورود متنشان را از کتابخانهٔ سبک‌های InstAI می‌گیرند؛ هر ده شیوهٔ حرکت (استاپ‌موشن روی چهارها، لاستیکی، موشن‌گرافیک، سه‌بعدی ...) حرکت مخصوص خودش را دارد. پیش‌نمایش زنده همان‌جا و بدون نصب کار می‌کند، کد قالب‌ها دیده و کپی می‌شود و ساخت mp4 یا تصویر یک فریم روی همین رایانه انجام می‌شود. Node.js قابل‌حمل، بسته‌های Remotion و مرورگر با هر START.bat خودکار و در پس‌زمینه آماده می‌شوند.",
+        "en": "The Video with code (Remotion) page: titles, kinetic text, step-by-step explainers and a speaker bar that take their colours, font (Vazirmatn), speed of motion and way of entering from the InstAI style library; each of the ten ways of moving (stop-motion on fours, rubber hose, motion graphics, 3D ...) has its own motion. A live preview works there with nothing installed, the code of the templates is shown and can be copied, and the mp4 or a one-frame picture is rendered on this PC. Portable Node.js, the Remotion packages and a browser are prepared by themselves in the background with every START.bat."
+      },
+      {
+        "fa": "کتابخانهٔ مدل‌های برگزیده در «دانلودها و زمان‌بندی»: FLUX.1 schnell و dev، رمزگذارهای T5 و CLIP و VAE، SDXL و RealVisXL، ControlNet Union، IP-Adapter و PuLID برای شخصیت ثابت، بزرگ‌نماها (Real-ESRGAN و 4x-UltraSharp)، Wan 2.2 TI2V-5B، LTX-Video، RIFE و صداهای فارسی Piper. برای هر فایل مخزن و نسخهٔ دقیق، حجم، sha256، مجوز، پوشهٔ مقصد در ComfyUI و لینک آینهٔ hf-mirror.com نوشته شده؛ مدل‌های غیرتجاری یا با مجوز نامشخص همیشه خاموش‌اند و تأیید جداگانه می‌خواهند؛ فایلی که ComfyUI یا NMarketing از قبل دارد (با هر نام یا در هر پوشه) دوباره دانلود نمی‌شود.",
+        "en": "The curated model library in Downloads and schedule: FLUX.1 schnell and dev, the T5 and CLIP encoders and the VAE, SDXL and RealVisXL, ControlNet Union, IP-Adapter and PuLID for consistent characters, upscalers (Real-ESRGAN and 4x-UltraSharp), Wan 2.2 TI2V-5B, LTX-Video, RIFE and Persian Piper voices. Every file lists its repository and exact commit, size, sha256, licence, ComfyUI target folder and the hf-mirror.com link; non-commercial or unclear licences are always off and need a separate confirmation; a file ComfyUI or NMarketing already has (under any name or in any folder) is not downloaded again."
+      },
+      {
+        "fa": "GPU اول و همزیستی با NMarketing: مدل Ollama با زمینه و تعداد لایهٔ مناسب کامل روی کارت گرافیک می‌ماند (مدل‌های خودتان تغییر نمی‌کنند)، مدت ماندن مدل در حافظه کوتاه شد، دکمهٔ «اعمال تنظیمات Ollama» Flash Attention و کش فشردهٔ KV را روشن می‌کند، بعد از مدتی بی‌کاری حافظهٔ ComfyUI برای برنامهٔ دیگر آزاد می‌شود، ComfyUI دو بار روشن نمی‌شود و اگر درگاه ۸۷۶۵ را برنامهٔ دیگری گرفته باشد InstAI خودش درگاه آزاد بعدی را برمی‌دارد. کارت «همزیستی» در صفحهٔ «مدل‌ها» درگاه‌ها و مصرف حافظهٔ کارت گرافیک هر برنامه را نشان می‌دهد.",
+        "en": "GPU first and living next to NMarketing: Ollama keeps a model completely on the graphics card with a fitting context and layer count (your own models are not changed), a model now stays in memory only for a short time, the Apply Ollama settings button switches on Flash Attention and the compressed KV cache, after a quiet period ComfyUI's memory is released for the other program, ComfyUI is never started twice, and when another program holds port 8765 InstAI picks the next free port by itself. The Coexistence card on the Models page shows the ports and which program holds how much graphics memory."
+      },
+      {
+        "fa": "بازبینی کامل برنامه: همهٔ صفحه‌ها، هر دو زبان و اندازهٔ رایانه و گوشی با مرورگر واقعی و سرویس‌های ساختگی دکمه‌به‌دکمه امتحان شد و هر مسیر API بی‌خطای سرور جواب می‌دهد (آزمونی که مسیرهای تازه را هم خودش پیدا می‌کند). خطاهای پیدا‌شده درست شد: خط‌های .bat ِ ComfyUI با بک‌اسلش (مسیر با فاصله و حرف فارسی) در رایانهٔ غیر ویندوزی هم خوانده می‌شود، انتخاب «در بازهٔ شبانه» در صفحهٔ دانلودها دیگر با رسیدن دیرهنگام تنظیم ذخیره‌شده برنمی‌گردد، و فایل‌های .bat بعد از به‌روزرسانی همیشه پایان‌خط ویندوزی دارند.",
+        "en": "A full look over the program: every screen, both languages and both desktop and phone sizes were tried button by button in a real browser against fake services, and every API route now answers without a server error (a test that finds new routes by itself). Bugs found and fixed: the .bat lines of ComfyUI with backslashes (a path with spaces or Persian letters) are also read on a non-Windows machine, the Night window choice on the Downloads page no longer jumps back when the saved setting arrives late, and .bat files always get Windows line endings after an update."
+      }
+    ]
+  },
+  {
     "version": "0.9.0",
     "date": "2026-11-13",
     "title": {

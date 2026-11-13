@@ -910,7 +910,7 @@ def test_consistency_page_honest_lora_note_and_failed_training_without_reference
         panel = page.locator("[data-testid=lora-panel]")
         panel.wait_for(timeout=20000)
         assert T2[lang]["honest"] in panel.inner_text() and "12" in digits(panel.inner_text())        # the unverified / 12 GB warning
-        assert page.locator("[data-testid=lora-empty]").is_visible()
+        page.locator("[data-testid=lora-empty]").wait_for(timeout=15000)                      # the list loads after the panel (slow over a tunnel)
         phone_ok(page, f"consistency {lang} {size}")
         if size == "desktop":
             page.locator("[data-testid=lora-train]").click()

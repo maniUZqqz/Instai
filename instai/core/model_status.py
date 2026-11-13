@@ -173,10 +173,11 @@ def workflows_ready_on_disk() -> dict[str, dict]:
 
 # ------------------------------------------------------------------ the downloader's view (subprocess: the script is stdlib-only)
 
-def package_status() -> dict:
+def package_status(detail: bool = False) -> dict:
+    """Installed / missing per package from the downloader (`--status`); `detail` adds every item (installed, where, reused)."""
     try:
-        p = subprocess.run([sys.executable, str(ROOT / "scripts" / "download_models.py"), "--status"], capture_output=True, text=True, timeout=60,
-                           cwd=str(ROOT), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        p = subprocess.run([sys.executable, str(ROOT / "scripts" / "download_models.py"), "--status"] + (["--detail"] if detail else []),
+                           capture_output=True, text=True, timeout=120, cwd=str(ROOT), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return json.loads(p.stdout or "{}")
     except Exception:  # noqa: BLE001
         return {}

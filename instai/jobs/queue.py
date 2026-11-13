@@ -27,7 +27,7 @@ BACKOFF_BASE = 20  # seconds; retry n waits BACKOFF_BASE * 2**(n-1), capped
 BACKOFF_MAX = 900
 
 # ProviderError codes that mean "the computer or service is not there (yet)" and NOT "the work is wrong": the job waits.
-WAIT_CODES = frozenset({"worker_offline", "worker_lost", "ollama_down", "comfy_down", "gpu_busy"})
+WAIT_CODES = frozenset({"worker_offline", "worker_lost", "ollama_down", "comfy_down", "gpu_busy", "remotion_setup"})
 MAX_LOST_FREE = 5              # worker-process deaths that do not cost an attempt, per job
 WAIT_DELAY_FIRST = 15          # seconds before a waiting job looks again; grows to WAIT_DELAY_MAX
 WAIT_DELAY_MAX = 60
@@ -37,6 +37,7 @@ WAIT_TEXT_FA = {
     "ollama_down": "Ollama روشن نیست؛ کار منتظر می‌ماند. Ollama را روشن کنید تا خودش ادامه دهد.",
     "comfy_down": "ComfyUI روشن نیست و InstAI نتوانست روشنش کند؛ کار منتظر می‌ماند. ComfyUI را روشن کنید یا پوشهٔ آن را در صفحهٔ «مدل‌ها» بدهید.",
     "gpu_busy": "برنامهٔ دیگری از حافظهٔ کارت گرافیک استفاده می‌کند؛ کار منتظر آزاد شدن آن می‌ماند.",
+    "remotion_setup": "Remotion (ساخت ویدئو با کد) هنوز آماده نشده؛ نصب خودکارش در پس‌زمینه انجام می‌شود و کار بعد از آن خودش شروع می‌شود.",
 }
 WAIT_TEXT_EN = {
     "worker_offline": "The second PC (B) is off or unreachable; the job waits and runs by itself when it is back.",
@@ -44,6 +45,7 @@ WAIT_TEXT_EN = {
     "ollama_down": "Ollama is not running; the job waits. Start Ollama and it continues by itself.",
     "comfy_down": "ComfyUI is not running and InstAI could not start it; the job waits.",
     "gpu_busy": "Another program is using the graphics card; the job waits for it to be released.",
+    "remotion_setup": "Remotion (video with code) is not ready yet; its automatic setup runs in the background and the job starts by itself afterwards.",
 }
 
 

@@ -261,6 +261,8 @@ def _bat_python(head: str, bat_dir: str) -> str | None:
     word = word.replace("%~dp0", bat_dir + os.sep).replace("%~dp0\\", bat_dir + os.sep)
     if "%" in word or word.lower() in ("python", "python.exe", "py", "py.exe"):
         return None
+    if os.sep == "/":
+        word = word.replace("\\", "/")                         # a .bat line is written with backslashes; on a non-Windows machine (tests, a developer PC) they are separators too
     full = word if os.path.isabs(word) else os.path.join(bat_dir, word)
     full = os.path.normpath(full)
     return full if _isfile(full) else None
