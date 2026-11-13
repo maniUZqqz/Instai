@@ -39,6 +39,31 @@
      "en": "The usual rule stays: no studio, artist or copyrighted character names in prompts."
     }
    }
+  },
+  "qwen_edit": {
+   "title": "Qwen-Image-Edit 2509 (FP8) + Lightning 4-step: a new picture from the character model sheets (~31 GB)",
+   "default": false,
+   "licence": "Apache-2.0 (Qwen-Image-Edit-2509, Qwen2.5-VL text encoder, Qwen-Image VAE, Lightning LoRA)",
+   "licence_verified": true,
+   "offer": {
+    "name": "Qwen-Image-Edit (consistent characters from the model sheets)",
+    "group": "identity",
+    "workflow": "qwen_image_edit_multiref",
+    "commercial": "yes",
+    "licence_url": "https://www.apache.org/licenses/LICENSE-2.0",
+    "vram": "12 GB card: the 20 GB FP8 file is partly kept in RAM by ComfyUI; speed not measured on the RTX 3060",
+    "needs": [],
+    "needs_items": [],
+    "restart_comfyui": false,
+    "why": {
+     "fa": "برای شخصیت‌هایی که با کد کشیده نمی‌شوند (واقع‌گرا، انیمه، کارتونی): مدل برگهٔ مدل تأییدشدهٔ حداکثر سه شخصیت را می‌بیند و صحنهٔ تازه‌ای با همان‌ها می‌کشد؛ جایگزین بازِ IP-Adapter و PuLID که فقط چهرهٔ واقعی را می‌فهمند و مجوز وزن‌هایشان غیرتجاری است. حجم زیاد است (حدود ۳۱ گیگابایت)؛ آدمک‌های چوبی به این مدل نیاز ندارند. هنوز روی رایانهٔ شما سنجیده نشده است.",
+     "en": "For characters that are not drawn by code (realistic, anime, cartoon): the model SEES the approved model sheets of up to three characters and draws a new scene with them; the open counterpart of IP-Adapter and PuLID, which only understand real faces and whose weights are non-commercial. It is large (about 31 GB); stick figures do not need it. Not measured on your PC yet."
+    },
+    "note": {
+     "fa": "قاعدهٔ همیشگی برقرار است: نام استودیو، هنرمند یا شخصیتِ دارای حق نشر در پرامپت نمی‌آید.",
+     "en": "The usual rule stays: no studio, artist or copyrighted character names in prompts."
+    }
+   }
   }
  },
  "items": [
@@ -51,7 +76,9 @@
     "{HF}/Comfy-Org/flux1-dev/resolve/main/flux1-dev-fp8.safetensors"
    ],
    "dest": "{COMFYUI}\\models\\checkpoints\\flux1-dev-fp8.safetensors",
-   "aliases": ["FLUX.1 [dev] FP8.safetensors"],
+   "aliases": [
+    "FLUX.1 [dev] FP8.safetensors"
+   ],
    "size": 17246524772,
    "sha256": null
   },
@@ -80,6 +107,58 @@
    "size": 6938350040,
    "sha256": "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac",
    "source": "Hugging Face API read 2026-10-29 (pinned commit; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "qwen_edit:unet-fp8",
+   "package": "qwen_edit",
+   "kind": "file",
+   "title": "Qwen-Image-Edit-2509 FP8 diffusion model (Comfy-Org)",
+   "urls": [
+    "{HF}/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/f68ace85e60b4a02a323e394253731947657b7d2/split_files/diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\diffusion_models\\qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+   "size": 20430698424,
+   "sha256": "318568f61951ab9da21100c7b896e3c1da67f0d2efad6421545e022cfaa2b2b4",
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "qwen_edit:text-encoder",
+   "package": "qwen_edit",
+   "kind": "file",
+   "title": "Qwen2.5-VL 7B FP8 text encoder (Comfy-Org)",
+   "urls": [
+    "{HF}/Comfy-Org/Qwen-Image_ComfyUI/resolve/1f12b17be14c89b026c51a91d67c32f84bb047bc/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\text_encoders\\qwen_2.5_vl_7b_fp8_scaled.safetensors",
+   "size": 9384670680,
+   "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "qwen_edit:vae",
+   "package": "qwen_edit",
+   "kind": "file",
+   "title": "Qwen-Image VAE (Comfy-Org)",
+   "urls": [
+    "{HF}/Comfy-Org/Qwen-Image_ComfyUI/resolve/1f12b17be14c89b026c51a91d67c32f84bb047bc/split_files/vae/qwen_image_vae.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\u000bae\\qwen_image_vae.safetensors",
+   "size": 253806246,
+   "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"
+  },
+  {
+   "id": "qwen_edit:lightning-4step",
+   "package": "qwen_edit",
+   "kind": "file",
+   "title": "Qwen-Image-Edit-2509 Lightning 4-step LoRA bf16 (lightx2v)",
+   "urls": [
+    "{HF}/lightx2v/Qwen-Image-Lightning/resolve/d468c534b360e0754c6bf9e38ed49e1e09cd2e2a/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors"
+   ],
+   "dest": "{COMFYUI}\\models\\loras\\Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+   "size": 849608296,
+   "sha256": "2a32ce938ec71db2b49a817b4844ae86995569518dea56ee0ddc209cbe8e1377",
+   "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"
   }
  ]
 }

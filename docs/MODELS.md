@@ -69,3 +69,9 @@ are NOT measured yet; the anime video candidates are judged in Production lab > 
 | Animagine XL 4.0 Opt (anime images) (`animagine`, workflow `sdxl_anime_t2i`) | anime image | 6.9 GB | - | CreativeML Open RAIL++-M (model card read 2026-10-29: commercial use allowed, use-based restrictions) | yes |
 | Index-AniSora V3.2 (GGUF Q4_0) (`anisora`, workflow `anisora_v32_i2v_gguf`) | anime video | 18.1 GB | comfy-gguf, umt5_xxl_fp8, wan21_vae, lightx2v_rank64 | Apache-2.0 + extra restrictions for retraining/derivatives (bilibili Index-anisora LICENSE) | unknown |
 | AnimeGen I2V by AIdeaLab (GGUF Q4_K_M) (`animegen`, workflow `animegen_i2v_gguf`) | anime video | 19.3 GB | comfy-gguf, umt5_xxl_fp8, wan21_vae, lightx2v_rank64 | Apache-2.0 (card tag commercial-use) | yes |
+
+## Added in 0.8.0 (identity)
+
+| Workflow | Models | Licence | State |
+|---|---|---|---|
+| `qwen_image_edit_multiref` (up to three character model sheets -> a new picture) | the same four files as `qwen_image_edit_ref` (Qwen-Image-Edit-2509 fp8 20.4 GB, Qwen2.5-VL 7B fp8 9.4 GB, Qwen-Image VAE, Qwen-Image-Edit-2509 Lightning 4-step LoRA bf16): since 0.9.0 they are one offer in `manifests/image.json` (package `qwen_edit`, about 31 GB, pinned commits and sha256 read from the Hugging Face API on 2026-11-13; the old workflows named the text-to-image Lightning LoRA, which is not the editing one - corrected) | Apache-2.0 | graph written from ComfyUI's template documentation, **never run** on a real ComfyUI; needs the model downloads |

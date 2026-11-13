@@ -134,3 +134,71 @@ W18 chroniclebooks.com/products/disney-pixar-the-color-of-toy-story; W19 foxnews
 APIs and licences: B1-B5 anilist.gitbook.io/anilist-apiv2-docs (rate-limiting, terms-of-use, graphql, considerations, reference); JK1 raw.githubusercontent.com/jikan-me/jikan-rest/master/storage/api-docs/api-docs.json;
 JK2 github.com/jikan-me/jikan-rest; JK3 myanimelist.net/about/terms_of_use; JK4 myanimelist.net/static/apiagreement.html; WP1 mediawiki.org/wiki/Extension:TextExtracts; WP2 mediawiki.org/wiki/API:Etiquette;
 WP3 foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy; WP4 foundation.wikimedia.org/wiki/Policy:Terms_of_Use; WP5 mediawiki.org/wiki/Wikimedia_REST_API; WP6 en.wikipedia.org/wiki/Wikipedia:Reusing_Wikipedia_content.
+
+
+## 9. The ladder (0.8.0): every stage versioned and approved before the next
+
+The studio view of an episode is now one ordered **ladder** (`instai/studio/ladder*.py`, screen: episode tab "Studio ladder" and series tab "Studio ladder"). It follows the way a studio
+really works - logline -> treatment -> beat sheet -> script -> dialogue -> shot list -> storyboard / animatic -> model sheets -> layout -> key art -> animation -> compositing ->
+sound design -> narration -> edit -> grade -> delivery - and is the single place where every output is **versioned** and **approved**.
+
+| # | Stage | Phase | Made by | Needs |
+|---|---|---|---|---|
+| 1 | Logline | development | model (`logline`) | - |
+| 2 | Treatment | development | model (`treatment`) | logline |
+| 3 | Art style (chosen once; writes `Series.look`) | development | the owner (style library) | treatment |
+| 4 | Series bible | development | bridge to the development room | treatment |
+| 5 | Character model sheets (identity lock) | development | bridge to `instai.identity` | bible, art style |
+| 6 | Beat sheet | pre-production | model (`beat_sheet`) or the channel season slate | bible |
+| 7 | Script | pre-production | bridge to the script editor | beat sheet |
+| 8 | Dialogue | pre-production | model (`dialogue`) | script |
+| 9 | Shot list (size, angle, move, action) | pre-production | model (`shot_list`) | dialogue |
+| 10 | Storyboard | pre-production | bridge to the storyboard editor | shot list |
+| 11 | Animatic | pre-production | bridge to the animatic | storyboard |
+| 12 | Design (backgrounds, props, colour script) | pre-production | bridge to design sheets | storyboard, model sheets |
+| 13 | Layout (staging, camera, light) | pre-production | model (`layout`) | animatic, design |
+| 14 | Key art | production | bridge to keyframes (with the consistency board) | layout |
+| 15 | Animation | production | bridge to clips / puppet renders | key art |
+| 16 | Compositing | production | bridge to the assembled video | animation |
+| 17 | Sound design (cue sheet) | post | model (`sound_design`) | animatic |
+| 18 | Narration / voice plan | post | derived from the dialogue and the casting | dialogue |
+| 19 | Edit (cut rhythm) | post | derived from the shots | compositing, sound, narration |
+| 20 | Colour grade | post | model (`grade`) | edit |
+| 21 | Delivery (renditions, caption, checklist) | post | derived | grade |
+
+Rules (all tested in `tests/test_ladder.py`):
+
+* A stage is `empty`, `draft`, `approved` or `stale`. **Staleness is computed, never stored**: a stage is stale when a stage it was approved on top of has a newer approved version, or when
+  (bridged stages, the art style) the live content changed after the approval.
+* **Drafting ahead is allowed, approving out of order is not** (409 with the list of stages to approve first).
+* Saving a new version of an approved stage withdraws its approval. Versions are never edited or deleted: an edit, a model run and a restore each add one; any two can be compared.
+* Bridged stages are snapshotted (a version each time the live work changes) so their history and approval live in the same place; stage approvals made elsewhere (development
+  room, pre-production) are taken over when everything before them is approved.
+* The page's automation level decides who clicks: `manual` all stages, `assisted` the milestones (treatment, art style, bible, character models, script, storyboard, key art,
+  edit, delivery), `automatic` only the bible, the character models and delivery. A stage that may pass by itself does so once it exists and everything before it is approved; it is
+  marked `auto` and an edit re-opens it. The owner's own choice (the art style) never passes by itself. **Nothing is ever published automatically.**
+* With `production.studio_mode` and `production.ladder_gate` both on, an episode goes to production only when every pre-production ladder stage (1-13) is approved. Default off, so the
+  old flow and its tests are unchanged.
+* Every model-written stage is one validated role call (`instai/agents/pipeline_roles.py`) that never writes to the database; the job `studio.ladder` saves the version. The fake provider
+  has a deterministic answer for each, so the whole ladder runs without a model.
+
+What each added stage means in practice (general industry practice; the earlier sections' sources J/W cover the rest; searched again 2026-11-13 - pixune.com, blog.cg-wire.com,
+lottiefiles.com, studioliddell.com describe logline / treatment / storyboard / animatic / model sheets / layout the same way; none of them described foley, ADR, grading or delivery
+specs in depth, so those four stages follow common practice and are **unverified against a named source**):
+
+* Logline / treatment / beat sheet: one sentence that sells the story, the whole story in prose, then the story events with seconds. The beat sheet of an episode starts from the channel
+  season slate when there is one.
+* Dialogue pass: each line with speaker, emotion, subtext and pause (the script says what happens; the dialogue pass says how it is said).
+* Shot list: size (ECU..EWS), angle, move, action, seconds, transition - written before the storyboard so the board draws decisions already made.
+* Layout: where characters stand, camera and light per shot, checked against the model sheets.
+* Sound design: ambience, foley, effects, music cues and deliberate silence per shot with an English prompt for the generators, level in dB and ducking; loudness target about -16 LUFS.
+* Colour grade: a preset and a mood per scene; the characters' own colours never change (the colour key of the identity lock).
+* Delivery: renditions (9:16 master, 1:1, 4:5), caption, hashtags, cover idea and a checklist (subtitles, loudness, cover, caption, posting time set by hand, AI label where required).
+
+### 9.1 Ready-made content, one art style, the self-test (0.9.0)
+
+* **Start from real content** - six hand-written choice stories and three mini-series seasons (`choice/story_templates.py`, `channel/season_templates.py`) can be started with one press; their characters come with a drawn, locked stick identity. They are also
+  what the planners fall back to when no model answers (instead of "scene 3: you must decide"). See `CHOICE_STORIES.md` and `MINISERIES.md`.
+* **The art style is applied everywhere** - the ladder stage "Art style" writes `Series.look`; keyframes, design sheets, choice pictures and (since 0.9.0) the character model sheets read it (`CONSISTENCY.md`, "One art style everywhere").
+* **The studio tests itself** - `studio/selftest.py` runs the CPU checks with every new version and the model checks (text model, multi-reference identity, vision) as soon as the GPU PC can do them; the report is on the series' "Studio ladder" tab
+  (`selftests/studio-pipeline.md`).

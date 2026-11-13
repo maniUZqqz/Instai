@@ -314,6 +314,13 @@ def assert_gate(ep: Episode) -> None:
         return
     if not stage_report(ep)["gate_approved"]:
         raise DomainError("not_ready", "پیش‌تولید هنوز تأیید نشده است (انیماتیک، طراحی، انتخاب صدا و تأیید نهایی).", message_en="Pre-production is not approved yet (animatic, design, casting and the final approval).")
+    if ep.series.page.profile("production").get("ladder_gate"):
+        from . import ladder
+
+        blockers = ladder.preproduction_blockers(ep.series, ep)
+        if blockers:
+            raise DomainError("not_ready", "مرحله‌های استودیو هنوز تأیید نشده‌اند: " + "، ".join(ladder.stage(k)["fa"] for k in blockers),
+                              message_en="Studio ladder stages are not approved yet: " + ", ".join(ladder.stage(k)["en"] for k in blockers), details={"blockers": blockers})
 
 
 def studio_payload(ep: Episode) -> dict:

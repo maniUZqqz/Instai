@@ -9,7 +9,7 @@ class CharacterRig(models.Model):
     """A 2D puppet rig of one character: layered parts (body, head, eyes, mouths, arms ...) with pivots and a z-order.
     `spec` is the JSON understood by `instai.render.puppet.rig.Rig` (image paths are relative to the media folder)."""
 
-    SOURCES = [("demo", "demo"), ("flux_cutout", "flux_cutout"), ("upload", "upload"), ("psd", "psd")]
+    SOURCES = [("demo", "demo"), ("flux_cutout", "flux_cutout"), ("upload", "upload"), ("psd", "psd"), ("stick", "stick")]
     character = models.ForeignKey("pages.Character", related_name="rigs", on_delete=models.CASCADE)
     version = models.IntegerField(default=1)
     name = models.CharField(max_length=120, blank=True, default="")

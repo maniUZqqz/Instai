@@ -1,5 +1,43 @@
 [
   {
+    "version": "0.9.0",
+    "date": "2026-11-13",
+    "title": {
+      "fa": "استودیوی انیمیشن: پلهٔ مرحله‌ها، ثبات شخصیت، داستان‌های انتخابی و کانال مینی‌سریال",
+      "en": "The animation studio: the stage ladder, character consistency, choice stories and mini-series channels"
+    },
+    "items": [
+      {
+        "fa": "پلهٔ استودیو: ۲۱ مرحله از لاگ‌لاین و تریتمنت تا بیت‌شیت، دیالوگ، فهرست نما، لی‌اوت، طراحی صدا، اصلاح رنگ و تحویل. خروجی هر مرحله نسخه‌دار است و پیش از مرحلهٔ بعد تأیید می‌شود؛ اگر مرحلهٔ قبل عوض شود، تأییدِ بعدی‌ها «کهنه» می‌شود. سبک هنری یک بار انتخاب می‌شود و همه‌جا می‌آید.",
+        "en": "The studio ladder: 21 stages from logline and treatment through beat sheet, dialogue, shot list, layout, sound design, grade and delivery. Every output is versioned and approved before the next stage; if an earlier stage changes the later approvals turn stale. The art style is chosen once and applied everywhere."
+      },
+      {
+        "fa": "ثبات شخصیت: برگهٔ مدل، کلید رنگ، کلمات هویت و دانهٔ ثابت یک بار قفل می‌شود و در هر تصویر و ویدئو می‌آید؛ تصویرِ چندمرجعی (تا سه شخصیت)، LoRA و بررسی ثبات با رنگ‌ها و مدل بینایی. آدمک‌های چوبیِ اورجینال با کد کشیده می‌شوند و در هر ژست و صحنه دقیقاً همانند.",
+        "en": "Character consistency: the model sheet, colour key, identity words and a fixed seed are locked once and used in every picture and clip; multi-reference pictures (up to three characters), LoRA and a consistency check with colours and a vision model. Original stick figures are drawn by code and stay exactly the same in every pose and scene."
+      },
+      {
+        "fa": "داستان‌های انتخابی برای اینستاگرام: نمودار شاخه‌ها بدون بن‌بست، شماره‌گذاری به ترتیب انتشار با انتخاب‌های رو به جلو، تصویر و کپشن همهٔ پست‌ها با شمارهٔ درست و بستهٔ انتشار.",
+        "en": "Choice stories for Instagram: a branch graph without dead ends, numbered in posting order with forward-pointing choices, the picture and caption of every post with the right numbers, and a posting package."
+      },
+      {
+        "fa": "کانال مینی‌سریال: قالب، طول و ریتم ژانر، گروه شخصیت‌های اورجینال، طرح فصل با قلاب و پایان باز و رشته‌های داستانی بسته‌شونده، برنامهٔ انتشار و ساخت قسمت‌ها.",
+        "en": "Mini-series channels: the genre's format, length and pacing, a recurring original cast, a season plan with hooks, cliffhangers and threads that must close, a posting schedule and episode creation."
+      },
+      {
+        "fa": "داستان‌ها و فصل‌های آماده: شش داستان انتخابیِ کامل (فرار از زندان، زامبی، خانهٔ ترسناک، کارآگاه، ایستگاه فضایی و نمونهٔ برند چغر) و سه فصل مینی‌سریال با شخصیت‌های اورجینال. بدون هیچ مدلی کار می‌کنند، شخصیت‌ها با هویتِ قفل‌شده ساخته می‌شوند و اگر مدل جواب معتبر ندهد، برنامه‌ریز به‌جای متنِ خالی همین‌ها را می‌گذارد. در نمونهٔ چغر فقط واقعیت‌های منتشرشدهٔ خودِ چغر آمده؛ بدون قیمت، آمار یا نظرِ ساختگی.",
+        "en": "Ready-made stories and seasons: six complete choice stories (prison escape, zombie, haunted house, detective, space station and the Chagher brand demo) and three mini-series seasons with original characters. They work with no model, the characters come with a locked identity, and when no model answers the planner uses them instead of empty text. The Chagher demo uses only facts Chagher itself published; no price, statistic or invented testimonial."
+      },
+      {
+        "fa": "آزمون خودکار استودیو: بخش‌های بدون GPU با هر نسخهٔ تازه و بخش‌های مدل (متن، تصویر چندمرجعی، بینایی) به‌محض روشن و آماده شدن رایانهٔ GPU خودشان آزمایش می‌شوند. نتیجه (درست، هشدار یا رد شد، با دلیل) در تب «نردبان استودیو»ی سریال دیده می‌شود و چیزی لازم نیست زده شود.",
+        "en": "Automatic studio self-test: the parts that need no GPU run with every new version and the model parts (text, multi-reference image, vision) run by themselves as soon as the GPU PC is on and ready. The result (passed, warning or skipped, with the reason) is on the series' Studio ladder tab and nothing has to be pressed."
+      },
+      {
+        "fa": "پیشنهاد دانلود Qwen-Image-Edit (حدود ۳۱ گیگابایت، مجوز Apache-2.0) در صفحهٔ «مدل‌ها»، با نشانی و sha256 سنجاق‌شده؛ فایل LoRA گردش‌کار به فایل مخصوص ویرایش (۲۵۰۹) اصلاح شد؛ برگه‌های مدلِ شخصیت‌ها هم از سبک هنریِ انتخاب‌شدهٔ سریال استفاده می‌کنند.",
+        "en": "A Qwen-Image-Edit download offer (about 31 GB, Apache-2.0) on the Models page with a pinned address and sha256; the workflow's LoRA is corrected to the editing-specific file (2509); the character model sheets now use the art style chosen for the series too."
+      }
+    ]
+  },
+  {
     "version": "0.7.0",
     "date": "2026-11-12",
     "title": {

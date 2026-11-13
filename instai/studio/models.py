@@ -133,3 +133,44 @@ class RetakeRequest(models.Model):
 
     class Meta:
         ordering = ["-id"]
+
+
+class StageDoc(models.Model):
+    """One stage of the studio ladder for a series (episode = None) or one episode: which version is current, which one the owner approved, and what the
+    approval was based on (the approved versions of the stages it needs). A new version of an upstream stage makes this one `stale` until it is looked at again."""
+
+    series = models.ForeignKey("story.Series", related_name="stage_docs", on_delete=models.CASCADE)
+    episode = models.ForeignKey("story.Episode", null=True, blank=True, related_name="stage_docs", on_delete=models.CASCADE)
+    key = models.CharField(max_length=32)
+    current_version = models.IntegerField(default=0)
+    approved_version = models.IntegerField(default=0)           # 0 = not approved
+    approved_inputs = models.JSONField(default=dict, blank=True)  # {need key: approved version number it was approved on top of}
+    approved_hash = models.CharField(max_length=40, blank=True, default="")   # live content hash at approval (bridge stages, art style)
+    auto_approved = models.BooleanField(default=False)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["series_id", "episode_id", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["series", "key"], condition=models.Q(episode__isnull=True), name="stagedoc_unique_series_key"),
+            models.UniqueConstraint(fields=["episode", "key"], condition=models.Q(episode__isnull=False), name="stagedoc_unique_episode_key"),
+        ]
+
+
+class StageVersion(models.Model):
+    """One saved output of a stage. Versions are never edited or deleted: an edit, a model run and a restore each add a new one."""
+
+    doc = models.ForeignKey(StageDoc, related_name="versions", on_delete=models.CASCADE)
+    number = models.IntegerField()
+    data = models.JSONField(default=dict)
+    author = models.CharField(max_length=8, default="human")   # ai | human | system
+    note = models.CharField(max_length=300, blank=True, default="")
+    inputs = models.JSONField(default=dict, blank=True)        # approved versions of the needed stages when this was made
+    content_hash = models.CharField(max_length=40, blank=True, default="")
+    provenance = models.JSONField(default=dict, blank=True)    # {provider, model, job_id, instruction}
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-number"]
+        unique_together = [("doc", "number")]

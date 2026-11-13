@@ -25,6 +25,7 @@ const TABS = [
   { to: 'characters', key: 'ws.tab_characters' },
   { to: 'series', key: 'ws.tab_series' },
   { to: 'episodes', key: 'ws.tab_episodes' },
+  { to: 'choice', key: 'ws.tab_choice' },
   { to: 'publishing', key: 'ws.tab_publishing' },
   { to: 'history', key: 'ws.tab_history' },
 ] as const

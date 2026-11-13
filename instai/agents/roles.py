@@ -25,6 +25,9 @@ FORMAT_GUIDE = {
                           "sourced: separate established facts from contested views and speculation, label contested claims, no propaganda, "
                           "no invented sources or statistics."),
     "custom": "Format: custom content page. Follow the owner's idea closely.",
+    "mini_series_channel": ("Format: mini-series channel of short vertical episodes with recurring ORIGINAL characters (stick-figure genre). Hook in the first 2 seconds, one location and one goal "
+                            "per episode, escalation, one twist, and an open cliffhanger in the last 3 seconds that the next episode answers. Never copy a real series, character or catchphrase."),
+    "choice_story": "Format: interactive choice story posts. Each post is one short scene that ends on a decision.",
 }
 
 
@@ -118,7 +121,7 @@ def scriptwriter(meta: dict, provider=None) -> AgentResult:
         "and the content rules. For explainers use only the given research claims; label contested ones; do not invent facts or sources.")
     user = "Episode context:\n" + _j({k: meta.get(k) for k in ("series_title", "premise", "branch_point", "alternative_timeline", "episode",
                                                                "characters", "content_rules", "memory", "claims", "duration_sec",
-                                                               "previous_summaries", "bible") if meta.get(k) not in (None, "", [])})
+                                                               "previous_summaries", "bible", "channel", "beats") if meta.get(k) not in (None, "", [])})
 
     def semantic(d: dict) -> list[str]:
         st = reading_stats(d, lang, target)

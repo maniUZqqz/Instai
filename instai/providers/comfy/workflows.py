@@ -73,6 +73,7 @@ class WorkflowSpec:
     defaults: dict[str, Any] = field(default_factory=dict)
     prompt_suffix: str = ""         # appended to every prompt (quality tags a model was trained with)
     negative_base: str = ""         # always part of the negative prompt (a caller's negative is added to it, never replaces it)
+    post_build: Any = None          # optional function(graph, data) -> graph: prune/adjust the built graph (e.g. unused reference images)
 
     @property
     def template_file(self) -> Path:
@@ -105,6 +106,8 @@ class WorkflowSpec:
             if name in data and data[name] is not None:
                 for node_id, key in targets:
                     graph[node_id]["inputs"][key] = data[name]
+        if self.post_build is not None:
+            graph = self.post_build(graph, data)
         self._check_graph(graph)
         return graph
 
@@ -252,7 +255,7 @@ WORKFLOWS.update({
         required_nodes=["UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "ModelSamplingAuraFlow", "CFGNorm", "TextEncodeQwenImageEditPlus",
                         "ImageScaleToTotalPixels", "VAEEncode", "KSampler", "VAEDecode", "SaveImage", "LoadImage"],
         required_models=[("UNETLoader", "unet_name", "qwen_image_edit_2509_fp8_e4m3fn.safetensors"), ("CLIPLoader", "clip_name", "qwen_2.5_vl_7b_fp8_scaled.safetensors"),
-                         ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Lightning-4steps-V1.0.safetensors")],
+                         ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")],
         vram_gb=12, licence="Apache-2.0 (Qwen-Image-Edit)", licence_status="unverified", expected_seconds=60,
         notes="UNVERIFIED graph written from ComfyUI's template documentation; the owner's ComfyUI has the Qwen-Image-Edit nodes but the model files must be downloaded."),
     "flux_dev_fp8_t2i_lora": WorkflowSpec(
@@ -362,3 +365,35 @@ def adapt_graph(graph: dict, info: dict | None) -> dict:
                     if hit and hit != value:
                         node["inputs"][key] = hit
     return graph
+
+
+# ------------------------------------------------------------------ character identity: up to three reference sheets in one picture (instai/identity)
+
+def _multiref_prune(graph: dict, data: dict) -> dict:
+    """Drop the reference-image nodes (and their links) that this call does not use: image2 / image3 are optional."""
+    for n, (load, scale) in {"2": ("7b", "8b"), "3": ("7c", "8c")}.items():
+        if data.get(f"image{n}"):
+            continue
+        for nid in (load, scale):
+            graph.pop(nid, None)
+        for node in graph.values():
+            node.get("inputs", {}).pop(f"image{n}", None)
+    return graph
+
+
+WORKFLOWS["qwen_image_edit_multiref"] = WorkflowSpec(
+    id="qwen_image_edit_multiref", version=1, kind="image", title="Qwen-Image-Edit 2509 (4-step Lightning) - a new picture from up to three character model sheets",
+    input_schema={"type": "object", "required": ["prompt", "image"], "properties": {
+        "prompt": {"type": "string", "minLength": 1}, "negative_prompt": {"type": "string"}, "image": {"type": "string", "minLength": 1}, "image2": {"type": "string"},
+        "image3": {"type": "string"}, "width": {"type": "integer", "minimum": 256, "maximum": 2048}, "height": {"type": "integer", "minimum": 256, "maximum": 2048},
+        "seed": {"type": ["integer", "null"]}, "steps": {"type": "integer", "minimum": 1, "maximum": 60}, "filename_prefix": {"type": "string"}}},
+    defaults={"seed": None, "steps": 4, "width": 832, "height": 1472},
+    bindings={"prompt": [("9", "prompt")], "image": [("7", "image")], "image2": [("7b", "image")], "image3": [("7c", "image")], "seed": [("12", "seed")], "steps": [("12", "steps")],
+              "width": [("11", "width")], "height": [("11", "height")], "filename_prefix": [("14", "filename_prefix")]},
+    required_nodes=["UNETLoader", "CLIPLoader", "VAELoader", "LoraLoaderModelOnly", "ModelSamplingAuraFlow", "CFGNorm", "TextEncodeQwenImageEditPlus", "ImageScaleToTotalPixels",
+                    "EmptySD3LatentImage", "KSampler", "VAEDecode", "SaveImage", "LoadImage"],
+    required_models=[("UNETLoader", "unet_name", "qwen_image_edit_2509_fp8_e4m3fn.safetensors"), ("CLIPLoader", "clip_name", "qwen_2.5_vl_7b_fp8_scaled.safetensors"),
+                     ("VAELoader", "vae_name", "qwen_image_vae.safetensors"), ("LoraLoaderModelOnly", "lora_name", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")],
+    vram_gb=12, licence="Apache-2.0 (Qwen-Image-Edit)", licence_status="unverified", expected_seconds=75, post_build=_multiref_prune,
+    notes="Same models as qwen_image_edit_ref. UNVERIFIED graph (never run on a real ComfyUI): written from ComfyUI's Qwen-Image-Edit-2509 template; the text-encode node takes up to three "
+          "reference images, the latent is an empty 9:16 canvas so the picture is a NEW scene with the characters of the sheets. This is the open (Apache-2.0) counterpart of IP-Adapter / PuLID-style conditioning.")
