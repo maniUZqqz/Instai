@@ -104,9 +104,9 @@ def template_duplicate(request, key):
 # ================================================================== development room
 
 def _look(series: Series) -> dict:
-    vis = series.page.profile("visual")
-    look = {"style_key": vis.get("style_key", ""), "realism": vis.get("realism", ""), "theme_key": vis.get("theme_key", ""), **(series.look or {})}
-    st = library.get_style(look["style_key"]) or {}
+    lk = library.look_of(series.page, series)
+    st = library.get_style(lk["style_key"]) or {}
+    look = {"style_key": lk["style_key"], "realism": lk["realism"] or st.get("realism", ""), "theme_key": lk["theme_key"]}
     return {**look, "style_name_fa": st.get("name_fa", ""), "style_name_en": st.get("name_en", ""), "inherited": not series.look}
 
 

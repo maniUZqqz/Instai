@@ -18,3 +18,21 @@ class UserPreset(models.Model):
     class Meta:
         ordering = ["kind", "id"]
         unique_together = [("kind", "key")]
+
+
+class StylePreview(models.Model):
+    """A real sample image of a style, made by the GPU (job `styles.preview`). It replaces the built-in swatch in the gallery.
+
+    Built-in styles live in code and cannot carry an asset themselves, so the picture is linked here by the style key.
+    `prompt_hash` says what it was made from: when the style's prompt changes the sample is out of date and is made again.
+    """
+
+    style_key = models.CharField(max_length=64, unique=True)
+    asset = models.ForeignKey("assets.Asset", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    prompt_hash = models.CharField(max_length=40, blank=True, default="")
+    device = models.CharField(max_length=80, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["style_key"]

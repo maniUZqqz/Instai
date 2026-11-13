@@ -21,7 +21,7 @@ log = logging.getLogger("instai.llm")
 # task (the `task` name passed to call_json / the fake provider) -> group shown in the UI
 TASK_GROUP = {
     "strategy": "strategy",
-    "ideas": "brainstorm", "idea_refine": "brainstorm", "idea_merge": "brainstorm", "consequence_map": "brainstorm", "timeline": "brainstorm",
+    "ideas": "brainstorm", "bank_ideas": "brainstorm", "idea_refine": "brainstorm", "idea_merge": "brainstorm", "consequence_map": "brainstorm", "timeline": "brainstorm",
     "character_bible": "brainstorm",
     "canon": "research", "research_queries": "research", "research_claims": "research",
     "bible": "bible", "series_plan": "bible",

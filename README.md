@@ -157,3 +157,8 @@ API: everything under `/api/` (see `instai/*/api.py`); errors are `{"error": {"c
 Local checks of the render path on a PC without START.bat's ffmpeg: install `imageio-ffmpeg` in the venv and set `INSTAI_FFMPEG_EXE` to its binary (absolute path); UI tests find an already installed chromium (or `INSTAI_UI_CHROMIUM`).
 
 Python 3.10-3.13. No secrets, models or user data in git (`.env`, `data/`, `models/`, `tools/` are ignored). Font: Vazirmatn (SIL OFL, `instai/render/fonts/OFL.txt`).
+
+## سبک‌های هنری و انیمیشن، تمِ رنگی و بانک ایده (نسخهٔ ۰٫۷٫۰)
+
+- **کتابخانه** حالا بیش از ۱۱۰ سبک هنری و انیمیشن دارد (در هشت گروه، با جست‌وجو، «مناسب تصویر/ویدیو/شخصیت»، پیشنهاد مدل و پیش‌نمایش). «تم» اسمش شد «تمِ رنگی». سبک را یک بار برای کل پروژه انتخاب می‌کنید و در تصویر، ویدیو و شخصیت به کار می‌رود. شرح: [`docs/STYLE_LIBRARY.md`](docs/STYLE_LIBRARY.md).
+- **بانک ایده** (`/ideas`): بیش از ۱۱۰ ایده در شش دسته (روان‌شناسی، توسعهٔ فردی، اقتصاد، موفقیت، کسب‌وکار، سناریوهای رازآلود) با دکمهٔ «شروعِ پروژه از این ایده». شرح: [`docs/IDEA_BANK.md`](docs/IDEA_BANK.md).

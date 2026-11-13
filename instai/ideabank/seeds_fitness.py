@@ -1,0 +1,41 @@
+"""Built-in ideas: fitness and coaching content (a niche the owner's own product lives in). General, well-known concepts only: no invented figures, studies,
+prices or medical promises, no real brand or person. Stories use made-up people. Everything is a draft for a human to review before posting."""
+from __future__ import annotations
+
+from .seed_base import bundle, idea
+
+FITNESS = bundle("personal_development", [
+    idea("motivation_is_a_feeling", "explainer", ["fitness", "habits", "motivation"], ("انگیزه یک حس است، نه یک برنامه", "Motivation is a feeling, not a plan"),
+         ("چرا «حوصله‌اش را ندارم» پایانِ راه نیست: انگیزه بالا و پایین می‌شود، ولی ساعتِ ثابت، لباسِ آماده و برنامهٔ از پیش نوشته‌شده جایش را می‌گیرد.",
+          "Why 'I don't feel like it' is not the end: motivation rises and falls, but a fixed time, kit laid out and a plan written in advance take its place."),
+         ("اگر فقط وقتی حوصله داری تمرین کنی، چند بار در ماه تمرین می‌کنی؟", "If you only train when you feel like it, how often is that in a month?")),
+    idea("plateau_is_adaptation", "explainer", ["fitness", "plateau", "progress"], ("وقتی پیشرفت می‌ایستد: بدن عادت کرده", "When progress stalls: the body got used to it"),
+         ("ایستایی همیشه شکست نیست؛ بدن با بارِ تکراری سازگار می‌شود و برای ادامهٔ پیشرفت باید بار، تنوع یا ریکاوری را کم‌کم و حساب‌شده تغییر داد.",
+          "A plateau is not always failure; the body adapts to a repeated load, and to keep progressing you change load, variety or recovery gradually and on purpose."),
+         ("سه ماه است همان وزنه را بلند می‌کنی. بدنت چه فکر می‌کند؟", "You have lifted the same weight for months. What is your body thinking?")),
+    idea("consistency_beats_intensity", "explainer", ["fitness", "consistency", "habits"], ("منظم بودن از شدید بودن مهم‌تر است", "Consistency beats intensity"),
+         ("یک تمرینِ سنگین و بعد دو هفته غیبت، یا تمرین‌های سبک‌تر ولی ثابت؟ مقایسه‌ای ساده با دو آدمِ خیالی.",
+          "One brutal workout and two weeks off, or lighter sessions that actually happen? A simple comparison with two imagined people."),
+         ("کدام را ترجیح می‌دهی: یک روزِ عالی یا سی روزِ معمولی؟", "Which would you rather have: one great day or thirty ordinary ones?")),
+    idea("rest_is_part_of_training", "explainer", ["fitness", "recovery", "sleep"], ("استراحت هم بخشی از تمرین است", "Rest is part of training"),
+         ("بدن در زمان ریکاوری تمرین را جذب می‌کند؛ چرا روزِ استراحت و خواب جزءِ برنامه‌اند، نه تنبلی. (توصیهٔ پزشکی نیست؛ برای شرایطِ خاص با متخصص مشورت کن.)",
+          "The body absorbs training while it recovers; why rest days and sleep belong in the plan rather than being laziness. (Not medical advice; for special conditions ask a professional.)"),
+         ("عضله در باشگاه ساخته می‌شود یا بعد از باشگاه؟", "Is muscle built in the gym or after it?")),
+    idea("form_before_weight", "explainer", ["fitness", "technique", "gym"], ("اول فرم، بعد وزنه", "Form first, weight second"),
+         ("چرا حرکتِ درست با بارِ سبک از حرکتِ شلخته با بارِ سنگین بهتر است و چگونه با آینه، فیلمِ کوتاه و کمکِ مربی فرمت را می‌سنجی.",
+          "Why a correct rep with a light load beats a sloppy rep with a heavy one, and how a mirror, a short video and a coach's eye check your form."),
+         ("وزنه را بالا بردی؛ ولی بدنت کدام قسمت کار کرد؟", "You lifted it; but which part of your body actually did the work?")),
+    idea("plan_that_fits_your_life", "explainer", ["fitness", "planning", "personalization"], ("بهترین برنامه، برنامه‌ای است که اجرا می‌کنی", "The best plan is the one you will do"),
+         ("برنامهٔ عالی روی کاغذ اگر با زمان، تجهیزات و علاقهٔ تو نخواند اجرا نمی‌شود؛ سه سؤالی که پیش از نوشتنِ هر برنامه باید پرسید.",
+          "A perfect plan on paper fails if it does not fit your time, equipment and interests; three questions to ask before writing any plan."),
+         ("چند روز در هفته واقعاً وقت داری؟ نه آرزو؛ واقعاً.", "How many days a week do you truly have? Not hope; truly.")),
+    idea("coach_decides", "explainer", ["coaching", "ai", "trust"], ("پیش‌نویس با ماشین، تصمیم با مربی", "A draft from the machine, the decision from the coach"),
+         ("یک ابزار می‌تواند در دقایقی پیش‌نویسِ برنامه بنویسد، اما شناختنِ آدم، ملاحظه‌های بدنی و تصمیمِ نهایی کارِ مربی می‌ماند؛ این تقسیمِ کار چگونه به هر دو کمک می‌کند.",
+          "A tool can draft a plan in minutes, but knowing the person, their physical limits and the final call stay with the coach; how that split helps both."),
+         ("برنامه آماده است. ولی آیا مربی نگاهش کرده؟", "The plan is ready. But has the coach looked at it?")),
+    idea("first_day_at_the_gym", "character", ["fitness", "story", "beginner"], ("اولین روزِ سارا در باشگاه", "Sara's first day at the gym"),
+         ("سارا، شخصیتی خیالی، برای اولین بار در باشگاه ایستاده و از همه‌چیز می‌ترسد؛ هر قسمت یک ترسِ کوچک (دستگاه‌ها، نگاه‌ها، پرسیدن) و یک قدمِ کوچک.",
+          "Sara, an imagined character, stands in a gym for the first time, afraid of everything; each episode is one small fear (machines, looks, asking) and one small step."),
+         ("هیچ‌کس تو را نگاه نمی‌کند. همه مشغولِ تمرینِ خودشان‌اند؛ پس چرا قلبم این‌قدر تند می‌زند؟", "Nobody is looking at you; everyone is busy with their own set. So why is my heart racing?"),
+         episodes=8),
+])

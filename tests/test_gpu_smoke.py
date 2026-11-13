@@ -104,3 +104,47 @@ def test_arbiter_unloads_the_llm_before_comfyui_runs():
         pytest.skip("Ollama not running")
     ARBITER.unload_others("comfy")
     assert p.loaded_models() == [], "Ollama models must be unloaded before ComfyUI takes the GPU"
+
+
+def test_real_comfyui_makes_a_sample_image_of_a_style(api, worker):
+    """The style gallery's real sample (styles.preview) on the owner's own machine."""
+    from instai.core import hardware, settings_store
+    from instai.providers.comfy.workflows import workflow_availability
+    from instai.styles.models import StylePreview
+    from tests.conftest import finish
+
+    info = hardware.comfy_object_info(force=True)
+    if info is None:
+        pytest.skip("ComfyUI not running")
+    av = {w["id"]: w for w in workflow_availability(info)}["flux_dev_fp8_t2i"]
+    if not av["available"]:
+        pytest.skip("FLUX workflow not ready")
+    settings_store.set_setting("image_engine", "comfyui")
+    try:
+        t0 = time.time()
+        j = finish(api, worker, api.post("/api/library/previews", {"keys": ["pixel_art_16bit"]}, format="json"))
+    finally:
+        settings_store.set_setting("image_engine", "")
+    row = StylePreview.objects.get(style_key="pixel_art_16bit")
+    print(f"style sample in {time.time() - t0:.1f}s on {row.device}")
+    assert j["result"]["made"] == 1 and row.asset.size_bytes > 10_000
+
+
+def test_real_ollama_writes_new_bank_ideas_in_both_languages():
+    import re
+
+    from instai.core import runtime
+    from instai.ideabank import agent
+    from instai.providers.ollama import OllamaProvider
+
+    p = OllamaProvider(runtime.ollama_url())
+    h = p.health()
+    if not h["ok"] or not h["models"]:
+        pytest.skip("Ollama not running or has no models")
+    t0 = time.time()
+    res = agent.idea_generator({"category": "psychology", "count": 2}, provider=p)
+    print(f"model={res.model} attempts={res.attempts} seconds={time.time() - t0:.1f}")
+    assert len(res.data["ideas"]) >= 1
+    first = res.data["ideas"][0]
+    assert re.search(r"[؀-ۿ]", first["title_fa"]) and first["title_en"] and first["hook_fa"] and first["hook_en"]
+    p.unload()

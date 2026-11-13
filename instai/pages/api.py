@@ -146,23 +146,8 @@ def apply_look(request, pk):
     from instai.styles import library, schema
 
     page = get_object_or_404(ContentPage, pk=pk)
-    style_key = str(request.data.get("style_key") or "")
-    st = library.get_style(style_key)
-    if style_key and not st:
-        raise DomainError("validation_error", "استایل نامعتبر است.", http_status=400, details={"style_key": ["invalid"]})
-    theme_key = str(request.data.get("theme_key") if "theme_key" in request.data else (st or {}).get("theme_key", "") or "")
-    th = library.get_theme(theme_key) if theme_key else None
-    if theme_key and not th:
-        raise DomainError("validation_error", "تم نامعتبر است.", http_status=400, details={"theme_key": ["invalid"]})
-    patch: dict = {"theme_key": theme_key}
-    if st:
-        comp = library.compose(st["key"], theme_key)
-        patch.update(style_key=st["key"], realism=request.data.get("realism") or st["realism"], negative_prompt=comp["negative"],
-                     palette=(th or st)["palette"])
-    if th:
-        patch["subtitle"] = schema.subtitle_profile(th)
-    if "style_notes" in request.data:
-        patch["style_notes"] = str(request.data["style_notes"] or "")
+    patch = library.visual_patch(str(request.data.get("style_key") or ""), str(request.data.get("theme_key") or "") if "theme_key" in request.data else None,
+                                 realism=str(request.data.get("realism") or ""), style_notes=request.data.get("style_notes") if "style_notes" in request.data else None)
     page.set_profile("visual", patch)
     return Response(page_dict(page))
 

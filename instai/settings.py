@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "instai.core",
     "instai.pages",
     "instai.styles",
+    "instai.ideabank",
     "instai.story",
     "instai.studio",
     "instai.assets",

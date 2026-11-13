@@ -125,7 +125,8 @@ def concat_segments(parts: list[Path], out: Path, fps: int = FPS) -> Path:
 
 # ------------------------------------------------------------------ generation
 
-def generate_chain(ctx, *, page, start_path: Path, end_path: Path | None, duration: float, prompt: str, negative: str, seed: int, work: Path) -> dict:
+def generate_chain(ctx, *, page, start_path: Path, end_path: Path | None, duration: float, prompt: str, negative: str, seed: int, work: Path,
+                   negative_extra: str = "") -> dict:
     """Chained Wan passes covering `duration` seconds from `start_path`; the last pass runs first/last-frame to `end_path` when given.
     Returns {video (joined mp4 in `work`), devices, seconds, segments, workflow, notes}."""
     wid, note = i2v_workflow(page)
@@ -140,7 +141,8 @@ def generate_chain(ctx, *, page, start_path: Path, end_path: Path | None, durati
         use_flf = bool(end_path and i == len(plan) - 1)
         workflow = FLF_WORKFLOW if use_flf else wid
         spec = get_workflow(workflow)
-        inputs = {"prompt": prompt, "negative_prompt": negative or NEG, "image": "@input:start.png", "width": 480, "height": 832, "length": frames, "seed": seed + i}
+        neg = ", ".join(x for x in (negative or NEG, negative_extra) if x)        # the look's motion negatives (e.g. "too smooth interpolation") come on top
+        inputs = {"prompt": prompt, "negative_prompt": neg, "image": "@input:start.png", "width": 480, "height": 832, "length": frames, "seed": seed + i}
         files = {"start.png": start}
         if use_flf:
             inputs["image_end"] = "@input:end.png"
@@ -165,7 +167,7 @@ def generate_chain(ctx, *, page, start_path: Path, end_path: Path | None, durati
 
 # ------------------------------------------------------------------ one hero shot
 
-def make_clip(ctx, shot, ep, keyframe, end_keyframe, *, prompt: str, seed: int, flf: bool, on_note=None) -> dict:
+def make_clip(ctx, shot, ep, keyframe, end_keyframe, *, prompt: str, seed: int, flf: bool, on_note=None, negative_extra: str = "") -> dict:
     """Generate the clip of one shot. Returns {path (a temp mp4 the caller registers), device, seconds, segments, colour, qc, workflow, notes}."""
     page = ep.series.page
     kf_path = asset_storage.storage.path_for(keyframe.path)
@@ -173,7 +175,8 @@ def make_clip(ctx, shot, ep, keyframe, end_keyframe, *, prompt: str, seed: int, 
     extra = ["first/last-frame shot without a following keyframe: image-to-video used"] if (flf and end_path is None) else []
     work = Path(tempfile.mkdtemp(prefix="hero-", dir=settings.MEDIA_ROOT))
     try:
-        g = generate_chain(ctx, page=page, start_path=kf_path, end_path=end_path, duration=shot.duration_sec, prompt=prompt, negative=shot.negative_prompt, seed=seed, work=work)
+        g = generate_chain(ctx, page=page, start_path=kf_path, end_path=end_path, duration=shot.duration_sec, prompt=prompt, negative=shot.negative_prompt, seed=seed, work=work,
+                           negative_extra=negative_extra)
         matched = work / "matched.mp4"
         colour = colormatch.match_clip(g["video"], kf_path, matched, ctx=ctx)
         sheet, _ = reference_sheet(shot, ep)
