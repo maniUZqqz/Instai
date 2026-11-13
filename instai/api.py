@@ -8,6 +8,7 @@ urlpatterns = [
     path("", include("instai.core.api_gpu")),
     path("", include("instai.pages.api")),
     path("", include("instai.styles.api")),
+    path("", include("instai.ideabank.api")),
     path("", include("instai.story.api")),
     path("", include("instai.studio.api")),
     path("", include("instai.jobs.api")),

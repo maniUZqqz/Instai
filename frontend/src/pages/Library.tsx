@@ -1,13 +1,14 @@
 import { useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
-import type { DevTemplate, StepKind, StylePreset, TemplateStep, ThemePreset } from '../api/types'
+import type { DevTemplate, StepKind, StylePreset, Suit, TemplateStep, ThemePreset, Job } from '../api/types'
+import type { PreviewStatus } from '../api/ideaTypes'
 import { useConfirm, useToast } from '../components/feedback'
 import { PaletteEditor } from '../components/PaletteEditor'
-import { StyleDetails, Swatch } from '../components/StylePicker'
+import { StyleDetails, StyleFilters, Swatch, useStyleFilter } from '../components/StylePicker'
 import { AreaField, Badge, Button, Card, CheckField, ErrorState, ExtLink, Loading, Notice, NumberField, PageHead, SelectField, Tabs, TextField } from '../components/ui'
-import { useAction, useHashTab, useTitle } from '../hooks'
+import { useAction, useHashTab, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
-import { desc, invalidateLibrary, nm, useLibrary, useTemplates, vocab } from '../library'
+import { desc, invalidateLibrary, nm, styleImage, useLibrary, useTemplates, vocab } from '../library'
 
 const TABS = ['styles', 'themes', 'templates'] as const
 type Tab = (typeof TABS)[number]
@@ -61,11 +62,13 @@ function Toolbar({ kind, onNew, extraExport }: { kind: 'style' | 'theme'; onNew:
 }
 
 // ---------------------------------------------------------------- styles
-type StyleDraft = Omit<StylePreset, 'key' | 'kind' | 'builtin' | 'based_on' | 'origin' | 'thumbnail_url'> & { key?: string }
+type StyleDraft = Omit<StylePreset, 'key' | 'kind' | 'builtin' | 'based_on' | 'origin' | 'thumbnail_url' | 'preview_url' | 'search_terms'> & { key?: string }
 const blankStyle = (): StyleDraft => ({
   name_fa: '', name_en: '', description_fa: '', description_en: '', realism: 'anime', family: 'anime', animation: 'limited_2d', fps_feel: 12, image_positive: '', image_negative: '',
   video_positive: '', video_negative: '', palette: ['#EAF2FF', '#3E7BFA', '#FF6F91', '#FFC857', '#243B6B'], lighting: '', mood: '', techniques: ['still_kenburns', 'parallax_25d'],
   sample_prompt: '', theme_key: '', tags: [], thumbnail_asset: null, notes: '',
+  group: 'hand_drawn', suitability: ['image', 'video', 'character'], motif: 'flat',
+  gen: { model: 'flux_dev', alt_model: '', lora: [], sampler: 'euler', scheduler: 'simple', cfg: 1, guidance: 3.5, steps: 24, aspect: '9:16' },
 })
 
 function StylesTab() {
@@ -73,14 +76,9 @@ function StylesTab() {
   const lib = useLibrary()
   const confirm = useConfirm()
   const act = useAction()
-  const [realism, setRealism] = useState('')
-  const [q, setQ] = useState('')
   const [sel, setSel] = useState('')
   const [edit, setEdit] = useState<StyleDraft | null>(null)
-  const list = useMemo(() => {
-    const n = q.trim().toLowerCase()
-    return (lib.data?.styles ?? []).filter((s) => (!realism || s.realism === realism) && (!n || [s.name_fa, s.name_en, s.description_en, ...s.tags].join(' ').toLowerCase().includes(n)))
-  }, [lib.data, realism, q])
+  const f = useStyleFilter(lib.data?.styles ?? [])
   if (lib.error) return <ErrorState error={lib.error} onRetry={lib.reload} />
   if (!lib.data) return <Loading />
   const cur = lib.data.styles.find((s) => s.key === sel)
@@ -105,28 +103,18 @@ function StylesTab() {
           onSaved={(k) => { setEdit(null); setSel(k); invalidateLibrary() }}
         />
       )}
-      <div className="filter-chips" role="group" aria-label={t('lib.realism')}>
-        <button type="button" className={'filter-chip' + (realism === '' ? ' on' : '')} aria-pressed={realism === ''} onClick={() => setRealism('')}>{t('lib.all')} ({lib.data.styles.length})</button>
-        {lib.data.realism.map((r) => (
-          <button key={r.key} type="button" className={'filter-chip' + (realism === r.key ? ' on' : '')} aria-pressed={realism === r.key} onClick={() => setRealism(r.key)}>
-            {lang === 'fa' ? r.fa : r.en} ({lib.data!.styles.filter((s) => s.realism === r.key).length})
-          </button>
-        ))}
-      </div>
-      <div className="field">
-        <label htmlFor="lib-q" className="sr-only">{t('lib.search')}</label>
-        <input id="lib-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('lib.search')} />
-      </div>
+      <SamplesBar />
+      <StyleFilters styles={lib.data.styles} f={f} name="lib" />
       <div className="choice-grid style-grid">
-        {list.map((s) => (
+        {f.list.map((s) => (
           <button key={s.key} type="button" className={'choice style-card as-button' + (sel === s.key ? ' selected' : '')} aria-pressed={sel === s.key} onClick={() => setSel(sel === s.key ? '' : s.key)}>
-            <Swatch palette={s.palette} url={s.thumbnail_url} />
+            <Swatch palette={s.palette} url={styleImage(s)} />
             <span className="strong">{nm(s, lang)}</span>
-            <span className="small muted">{vocab(lib.data!.animations, s.animation, lang)}</span>
+            <span className="small muted">{vocab(lib.data!.groups, s.group, lang)}</span>
             {!s.builtin && <Badge tone="info">{t('lib.mine')}</Badge>}
           </button>
         ))}
-        {list.length === 0 && <p className="muted">{t('lib.none_found')}</p>}
+        {f.list.length === 0 && <p className="muted">{t('lib.none_found')}</p>}
       </div>
       {cur && (
         <div className="stack">
@@ -139,6 +127,49 @@ function StylesTab() {
           </div>
           {cur.builtin && <p className="small muted">{t('lib.builtin_note')}</p>}
           {!cur.builtin && <ThumbnailUpload style={cur} />}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Real sample pictures of the built-in styles, made by the image model (ComfyUI) on the GPU: how many exist, the time the rest needs, one button.
+ *  The job waits by itself when ComfyUI is off and goes on with the next style after each finished picture. */
+function SamplesBar() {
+  const { t } = useI18n()
+  const toast = useToast()
+  const st = useQuery<PreviewStatus>('/library/previews', { interval: (d) => (d && d.pending > 0 ? 8000 : false) })
+  const run = useJobRunner({
+    onFinished: () => {
+      st.reload()
+      invalidateLibrary()
+    },
+  })
+  const d = st.data
+  if (!d) return null
+  const mins = Math.max(1, Math.round(d.expected_seconds / 60))
+  const start = async () => {
+    let queued = true
+    await run.start(async () => {
+      const r = await api.post<{ queued: boolean; job?: Job; status: PreviewStatus }>('/library/previews', {})
+      queued = r.queued
+      return r
+    })
+    if (!queued) toast.ok(t('lib.samples_done'))
+  }
+  return (
+    <div className="card soft flat stack-sm">
+      <div className="row between">
+        <strong>{t('lib.samples_title')}</strong>
+        <Badge tone={d.pending === 0 ? 'ok' : 'neutral'}>{t('lib.samples_count', { done: d.done, total: d.total })}</Badge>
+      </div>
+      <p className="small muted">{t('lib.samples_text')}</p>
+      {d.pending > 0 && (
+        <div className="row">
+          <Button icon="image" variant="primary" busy={run.busy} onClick={start}>{t('lib.samples_make', { n: d.pending })}</Button>
+          <span className="small muted">{t('lib.samples_time', { min: mins })}</span>
+          {run.job && !run.succeeded && <span className="small">{run.job.waiting_reason || run.job.progress_text || run.job.status}</span>}
+          {run.failed && run.job && <Notice tone="warn">{(run.job.error || '').split('\n')[0]}</Notice>}
         </div>
       )}
     </div>
@@ -175,6 +206,7 @@ function StyleEditor({ draft, onClose, onSaved }: { draft: StyleDraft; onClose: 
   const act = useAction()
   const [d, setD] = useState<StyleDraft>(draft)
   const set = (p: Partial<StyleDraft>) => setD((x) => ({ ...x, ...p }))
+  const setGen = (p: Partial<StyleDraft['gen']>) => setD((x) => ({ ...x, gen: { ...x.gen, ...p } }))
   const isNew = !draft.key
   const valid = (d.name_fa.trim() || d.name_en.trim()) && d.image_positive.trim()
   const save = async () => {
@@ -211,6 +243,22 @@ function StyleEditor({ draft, onClose, onSaved }: { draft: StyleDraft; onClose: 
           <TextField label={t('lib.lighting')} ltr value={d.lighting} onChange={(v) => set({ lighting: v })} />
           <TextField label={t('lib.mood')} value={d.mood} onChange={(v) => set({ mood: v })} />
         </div>
+        <div className="grid-3">
+          <SelectField label={t('lib.group')} value={d.group} onChange={(v) => set({ group: v })} options={(L?.groups ?? []).map((r) => ({ value: r.key, label: lang === 'fa' ? r.fa : r.en }))} />
+          <SelectField label={t('lib.gen_model')} value={d.gen.model} onChange={(v) => setGen({ model: v })} options={(L?.base_models ?? []).map((m) => ({ value: m, label: t(('lib.model_' + m) as 'lib.model_flux_dev') }))} />
+          <SelectField label={t('lib.gen_aspect')} value={d.gen.aspect} onChange={(v) => setGen({ aspect: v })} options={(L?.aspects ?? []).map((m) => ({ value: m, label: m }))} />
+          <NumberField label={t('lib.gen_steps')} min={4} max={60} value={d.gen.steps} onChange={(v) => setGen({ steps: v ?? 24 })} />
+          <TextField label={t('lib.gen_sampler')} ltr value={d.gen.sampler} onChange={(v) => setGen({ sampler: v })} />
+          <TextField label={t('lib.gen_lora')} ltr value={d.gen.lora.join('; ')} onChange={(v) => setGen({ lora: v.split(';').map((x) => x.trim()).filter(Boolean) })} />
+        </div>
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="field-label">{t('lib.suits')}</legend>
+          <div className="row">
+            {(['image', 'video', 'character'] as Suit[]).map((x) => (
+              <CheckField key={x} label={t(('lib.suits_' + x) as 'lib.suits_image')} checked={d.suitability.includes(x)} onChange={(on) => set({ suitability: on ? [...d.suitability, x] : d.suitability.filter((y) => y !== x) })} />
+            ))}
+          </div>
+        </fieldset>
         <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="field-label">{t('lib.techniques')}</legend>
           <div className="row">

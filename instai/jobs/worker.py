@@ -188,6 +188,9 @@ class WorkerRunner:
             from instai.ops import report
 
             report.maintain()                                   # close silent sessions, thin and delete old report rows (at most every 10 minutes)
+            from instai.styles import previews
+
+            previews.auto_queue()                               # real sample pictures of the styles, by themselves, in the night window, once ComfyUI is ready
         except Exception:  # noqa: BLE001 - automation must never take the worker down
             log.exception("automation tick failed")
 

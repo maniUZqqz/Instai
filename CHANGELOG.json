@@ -1,5 +1,39 @@
 [
   {
+    "version": "0.7.0",
+    "date": "2026-11-12",
+    "title": {
+      "fa": "کتابخانهٔ سبک‌های هنری و انیمیشن، «تمِ رنگی» و بانک ایده",
+      "en": "The art and animation style library, the Color theme and the idea bank"
+    },
+    "items": [
+      {
+        "fa": "کتابخانهٔ اصلی حالا «سبک‌های هنری و انیمیشن» است: بیش از ۱۱۰ سبک (پیکسل‌آرت، تخته‌گچی، گلو اسکچ، سه‌بعدیِ کنسول‌های قدیمی، فلت وکتور، استیک‌من، آجرهای اسباب‌بازی، انیمه، سلی‌شیدینگ، استاپ‌موشن، کاغذ و اوریگامی، پاپ‌آرت، باهاوس، تایپوگرافی متحرک، ویپورموج و بسیاری دیگر) در هشت گروه، با نام فارسی و انگلیسی، توضیح، رنگ‌ها و پیش‌نمایش.",
+        "en": "The main library is now the art and animation styles: over 110 looks (pixel art, chalkboard, glow sketch, early-console 3D, flat vector, stickman, toy bricks, anime, cel shading, stop-motion, paper and origami, pop art, Bauhaus, kinetic typography, vaporwave and many more) in eight groups, with Persian and English names, descriptions, colours and a preview."
+      },
+      {
+        "fa": "برای هر سبک: مناسبِ تصویر، ویدیو یا شخصیت، پیشنهاد مدل پایه و نمونه‌بردار و گام‌ها و نسبت تصویر، و متنِ منفی. جست‌وجو با همان نام‌هایی که می‌شناسید کار می‌کند (فارسی و انگلیسی)؛ نام استودیوها و برندها هرگز به مدل فرستاده نمی‌شود.",
+        "en": "Each style says whether it suits images, video or characters and carries hints for the base model, sampler, steps and aspect, plus its negative prompt. Search works with the names you know (Persian and English); studio and brand names are never sent to a model."
+      },
+      {
+        "fa": "سبک را یک بار برای کلِ پروژه انتخاب کنید: همین سبک و تمِ رنگی در ساختِ تصویرهای کلیدی، کلیپ‌های ویدیویی، برگه‌های طراحیِ شخصیت و استوری‌بورد به کار می‌رود، و انتخابِ مجموعه بر انتخابِ صفحه می‌چربد. با تغییرِ سبک، تصویرها و کلیپ‌های آن قسمت کهنه حساب می‌شوند و دوباره ساخته می‌شوند.",
+        "en": "Pick the style once for the whole project: the same style and colour theme go into keyframe images, video clips, character design sheets and the storyboard, and the series' pick wins over the page's. After a style change the images and clips of that episode count as out of date and are made again."
+      },
+      {
+        "fa": "«تم» به «تمِ رنگی» تغییر نام داد: فقط رنگ، نور و ظاهر تیتر و زیرنویس را می‌دهد و کنار سبک انتخاب می‌شود. هشت تمِ رنگیِ تازه هم اضافه شد.",
+        "en": "\"Theme\" is now called \"Color theme\": it only gives colour, light and the look of titles and subtitles and is chosen next to a style. Eight new colour themes were added."
+      },
+      {
+        "fa": "تصویر نمونه‌ی واقعی: یک دکمه برای ساختنِ نمونه‌ی هر سبک با مدل تصویرِ خودتان (GPU)؛ اگر ComfyUI روشن نباشد کار منتظر می‌ماند و خودش ادامه می‌دهد.",
+        "en": "Real sample pictures: one button makes a sample of every style with your own image model (GPU); if ComfyUI is off the job waits and carries on by itself."
+      },
+      {
+        "fa": "بانک ایده: بیش از ۱۱۰ ایدهٔ فارسی و انگلیسی در دسته‌های روان‌شناسی، توسعه‌ی فردی، اقتصاد، موفقیت، کسب‌وکار و سناریوهای رازآلود (از جمله تلپورت و دزدیِ یک میلیون دلار)، هرکدام با خلاصه‌ی یک‌جمله‌ای و جمله‌ی آغاز؛ جست‌وجو، فیلتر، ستاره، ایده‌ی خودتان، ساختِ ایده‌های تازه با مدل متنی، و دکمه‌ی «شروعِ پروژه از این ایده».",
+        "en": "Idea bank: over 110 Persian and English ideas in psychology, personal development, economy, success, business and mystery scenarios (including teleportation and the million-dollar escape), each with a one-sentence summary and an opening line; search, filters, stars, your own ideas, new ideas from the text model, and a Start a project from this idea button."
+      }
+    ]
+  },
+  {
     "version": "0.6.0",
     "date": "2026-11-07",
     "title": {

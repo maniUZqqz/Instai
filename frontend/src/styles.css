@@ -2042,3 +2042,43 @@ tr.q-waiting_gpu td { background: color-mix(in srgb, var(--warn-soft) 45%, trans
 .q-table td .ltr {
   overflow-wrap: anywhere;
 }
+
+/* ================================================================ idea bank */
+.idea-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.idea-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.idea-card h3 {
+  margin: 0;
+}
+.idea-card p {
+  margin: 0;
+}
+.idea-hook {
+  margin: 0;
+  padding-inline-start: 0.8rem;
+  border-inline-start: 3px solid var(--primary);
+  font-style: italic;
+}
+.idea-premise {
+  white-space: pre-line;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.idea-card .btn.fav-on {
+  color: var(--warn);
+}
+.idea-card .btn.fav-on svg {
+  fill: currentColor;
+}
+.idea-card.open {
+  grid-column: 1 / -1;
+}

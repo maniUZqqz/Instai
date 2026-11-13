@@ -109,6 +109,7 @@ const NAV: { to: string; key: Parameters<ReturnType<typeof useI18n>['t']>[0]; ic
   { to: '/', key: 'nav.dashboard', icon: 'home', end: true },
   { to: '/pages', key: 'nav.pages', icon: 'pages' },
   { to: '/library', key: 'nav.library', icon: 'palette' },
+  { to: '/ideas', key: 'ideas.nav', icon: 'spark' },
   { to: '/monitor', key: 'nav.monitor', icon: 'monitor' },
   { to: '/queue', key: 'ops.nav.queue', icon: 'list' },
   { to: '/report', key: 'ops.nav.report', icon: 'system' },

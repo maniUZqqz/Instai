@@ -145,7 +145,7 @@ def storyboard(ctx):
         raise DomainError("not_ready", "ابتدا فیلم‌نامه را بسازید.")
     page = ep.series.page
     meta = episode_meta(ep)
-    meta.update(script=ep.script, visual_style=_style(page), allowed_techniques=page.profile("production")["allowed_techniques"])
+    meta.update(script=ep.script, visual_style=_style(page, ep.series), allowed_techniques=page.profile("production")["allowed_techniques"])
     ctx.progress(0.1, "storyboard")
     with _Llm(ctx, page, "storyboard") as prov:
         res, info = roles.storyboarder(meta, provider=prov)
@@ -155,12 +155,12 @@ def storyboard(ctx):
     return {"episode_id": ep.pk, "fallback": info["fallback"], "estimate": ep.estimate, "meta": res.meta()}
 
 
-def _style(page) -> str:
-    """The page's visual style as one text: the style preset + theme + the owner's notes (the library composes them)."""
+def _style(page, series=None) -> str:
+    """The visual style in force as one text: the style preset + colour theme + the owner's notes (the library composes them); the series' own pick wins."""
     from instai.styles import library
 
     vis = page.profile("visual")
-    comp = library.compose(vis.get("style_key", ""), vis.get("theme_key", ""), vis.get("style_notes", ""))
+    comp = library.compose_for(page, series)
     if comp["positive"]:
         return comp["positive"]
     base = next((s["prompt"] for s in formats.STYLES if s["key"] == vis["style_key"]), "")

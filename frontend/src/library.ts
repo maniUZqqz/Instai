@@ -76,6 +76,31 @@ export function vocab(list: { key: string; fa: string; en: string }[] | undefine
   return v ? (lang === 'fa' ? v.fa : v.en) : key
 }
 
+/** The picture of a style card: the GPU-made sample when there is one, else the built-in swatch drawing. */
+export function styleImage(s: Pick<StylePreset, 'thumbnail_url' | 'preview_url'>): string | null {
+  return s.thumbnail_url || s.preview_url || null
+}
+
+// Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server.
+const FILLER = new Set(['style', 'styles', 'look', 'looks', 'سبک', 'استایل'])
+export function fold(text: string): string {
+  return (text || '')
+    .toLowerCase()
+    .replace(/\u064a/g, '\u06cc')
+    .replace(/\u0643/g, '\u06a9')
+    .replace(/\u200c/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - (c.charCodeAt(0) >= 0x06f0 ? 0x06f0 : 0x0660)))
+}
+/** Does a style answer this search? Every word must be in its names, descriptions, tags or search-only names. */
+export function styleMatches(s: StylePreset, q: string): boolean {
+  let words = fold(q).split(/\s+/).filter(Boolean)
+  words = words.filter((w) => !FILLER.has(w)).length ? words.filter((w) => !FILLER.has(w)) : words
+  if (!words.length) return true
+  const hay = fold([s.name_fa, s.name_en, s.description_fa, s.description_en, ...(s.tags ?? []), ...(s.search_terms ?? []), s.key.replace(/_/g, ' ')].join(' '))
+  return words.every((w) => hay.includes(w))
+}
+
 /** A CSS gradient made from a palette (swatch of a style / theme card). */
 export function paletteGradient(p: string[] | undefined): string {
   const c = (p ?? []).slice(0, 5)

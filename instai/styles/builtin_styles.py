@@ -3,22 +3,7 @@ from __future__ import annotations
 
 from .schema import normalize_style
 
-_NEG_BASE = "blurry, low quality, jpeg artifacts, watermark, logo, text, signature, deformed hands, extra fingers, bad anatomy, cropped"
-NEG = {
-    "live_like": _NEG_BASE + ", cartoon, anime, illustration, painting, oversaturated, plastic skin, cgi look",
-    "illustration": _NEG_BASE + ", photograph, 3d render, flat vector",
-    "anime": _NEG_BASE + ", photorealistic, 3d render, western cartoon, realistic skin pores, sketch",
-    "western_2d": _NEG_BASE + ", photorealistic, 3d render, anime eyes, painterly shading",
-    "cg_3d": _NEG_BASE + ", 2d drawing, flat shading, anime, sketch, uncanny valley, dead eyes",
-    "stop_motion": _NEG_BASE + ", smooth cg, digital gloss, anime, line art",
-    "graphic": _NEG_BASE + ", photorealistic, gradients, 3d render, clutter, tiny text",
-    "handmade": _NEG_BASE + ", photorealistic, 3d render, glossy cg, plastic",
-}
-VNEG = {
-    "default": "morphing faces, melting shapes, flicker, warping, identity change, sudden style change, camera shake, extra limbs",
-    "stop": "smooth fluid motion, motion blur, morphing, melting, flicker, warping",
-    "limited": "too smooth interpolation, morphing, melting, flicker, warping, identity change, 3d camera orbit",
-}
+from .style_base import NEG, NEG_BASE as _NEG_BASE, VNEG  # noqa: E402,F401 - shared with styles_more.py
 
 
 def _st(key, realism, family, anim, fps, names, descs, pos, vid, pal, light, mood, tech, sample, theme, tags, neg=None, vneg=None) -> tuple[str, dict]:
@@ -315,3 +300,10 @@ LEGACY_ALIASES = {
     "anime_soft": "modern_tv_anime", "anime_dark": "anime_dark_fantasy", "cartoon_flat": "western_2d_tv",
     "storybook": "watercolour_storybook", "infographic": "flat_vector_motion",
 }
+
+# The art/animation library grows in styles_more.py; style_meta.py gives every style its browse group, suitability, generation hints and preview motif.
+from .style_meta import apply_meta  # noqa: E402
+from .styles_more import MORE_STYLES  # noqa: E402
+
+BUILTIN_STYLES.update(MORE_STYLES)
+apply_meta(BUILTIN_STYLES)
