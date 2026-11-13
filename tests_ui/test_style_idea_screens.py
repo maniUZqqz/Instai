@@ -107,7 +107,9 @@ def test_idea_bank_search_filters_and_start_a_project(browser, server, size, lan
         page.get_by_role("button", name=exact(tx("ideas.start", lang))).click()
         page.get_by_role("button", name=exact(tx("ideas.start_go", lang))).wait_for(timeout=5000)
         page.screenshot(path=str(SHOTS / f"{size}-{lang}-idea-start.png"))
-        assert page.locator(".idea-card .style-card.selected").count() == 1, "the idea's own best-fitting style is already selected"
+        page.locator(".style-card.selected").first.wait_for(timeout=8000)       # (the gallery fills in a moment after the panel opens)
+        assert page.locator(".style-card.selected").count() == 1, "the idea's own best-fitting style is already selected"
+        assert page.locator(".scroll-box").count() == 1, "the long gallery scrolls inside its own box"
         page.get_by_role("button", name=exact(tx("ideas.start_go", lang))).click()
         page.wait_for_url(re.compile(r".*/series/\d+"), timeout=20000)
         sid = int(page.url.rsplit("/", 1)[1])

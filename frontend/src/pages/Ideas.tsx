@@ -9,6 +9,7 @@ import { AreaField, Async, Badge, Button, Card, CardSkeletons, CheckField, Empty
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n, type Lang } from '../i18n'
 import { fold, useLibrary } from '../library'
+import { TAG_FA, tagLabel } from '../ideaTags'
 
 type Text = 'title' | 'logline' | 'hook' | 'premise'
 /** The text of an idea in the interface language (falls back to the other language when one is empty). */
@@ -21,7 +22,7 @@ export function ideaText(i: BankIdea, f: Text, lang: Lang): string {
 function ideaMatches(i: BankIdea, q: string): boolean {
   const words = fold(q).split(/\s+/).filter(Boolean)
   if (!words.length) return true
-  const hay = fold([i.title_fa, i.title_en, i.logline_fa, i.logline_en, i.hook_fa, i.hook_en, i.premise_fa, i.premise_en, ...i.tags, i.key.replace(/_/g, ' ')].join(' '))
+  const hay = fold([i.title_fa, i.title_en, i.logline_fa, i.logline_en, i.hook_fa, i.hook_en, i.premise_fa, i.premise_en, ...i.tags, ...i.tags.map((x) => TAG_FA[x] ?? ''), i.key.replace(/_/g, ' ')].join(' '))
   return words.every((w) => hay.includes(w))
 }
 
@@ -122,7 +123,7 @@ export default function IdeasPage() {
               <div className="filter-chips" role="group" aria-label={t('ideas.tags')}>
                 {d.tags.slice(0, 18).map((x) => (
                   <button key={x.tag} type="button" className={'filter-chip' + (tag === x.tag ? ' on' : '')} aria-pressed={tag === x.tag} onClick={() => setTag(tag === x.tag ? '' : x.tag)}>
-                    <span className="ltr">{x.tag}</span> <span className="muted">({x.count})</span>
+                    <span className={lang === 'fa' && TAG_FA[x.tag] ? undefined : 'ltr'}>{tagLabel(x.tag, lang)}</span> <span className="muted">({x.count})</span>
                   </button>
                 ))}
               </div>
@@ -191,7 +192,7 @@ function IdeaCard({ idea: i, cats, open, onToggle, onFav, onHide, onStart, onEdi
     await act.run(async () => { await api.del(`/ideas/${i.key}`); onChanged() }, { success: t('common.deleted') })
   }
   return (
-    <article id={'idea-' + i.key} className={'card idea-card' + (open ? ' open' : '')}>
+    <article id={'idea-' + i.key} className={'card idea-card' + (open || starting ? ' open' : '')}>
       <div className="row between">
         <div className="row">
           {cat && <Badge tone="info">{lang === 'fa' ? cat.fa : cat.en}</Badge>}
@@ -204,7 +205,7 @@ function IdeaCard({ idea: i, cats, open, onToggle, onFav, onHide, onStart, onEdi
       <p>{ideaText(i, 'logline', lang)}</p>
       <blockquote className="idea-hook"><span className="small muted">{t('ideas.hook')}</span><br />{ideaText(i, 'hook', lang)}</blockquote>
       <div className="row">
-        {i.tags.slice(0, 5).map((x) => <Badge key={x}><span className="ltr">{x}</span></Badge>)}
+        {i.tags.slice(0, 5).map((x) => <Badge key={x}><span className={lang === 'fa' && TAG_FA[x] ? undefined : 'ltr'}>{tagLabel(x, lang)}</span></Badge>)}
       </div>
       {open && premise && <p className="idea-premise">{premise}</p>}
       <div className="row">
@@ -283,7 +284,7 @@ function StartPanel({ idea, onClose, onStarted }: { idea: BankIdea; onClose: () 
           <div className="stack-sm">
             <strong>{t('ideas.pick_look')}</strong>
             <p className="small muted">{t('ideas.pick_look_hint')}</p>
-            <StylePicker value={look} onChange={setLook} name={'start-' + idea.key} />
+            <StylePicker value={look} onChange={setLook} name={'start-' + idea.key} scroll />
           </div>
         )}
         <div className="row">

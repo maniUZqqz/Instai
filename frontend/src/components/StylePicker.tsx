@@ -75,7 +75,7 @@ export function StyleFilters({ styles, f, name }: { styles: StylePreset[]; f: Re
 
 /** Choose a style from the art/animation library and a colour theme (the project's / page's look). Used by the wizard, the page settings, the series
  *  look and "start a project from an idea". */
-export function StylePicker({ value, onChange, showTheme = true, name = 'look' }: { value: Look; onChange: (v: Look) => void; showTheme?: boolean; name?: string }) {
+export function StylePicker({ value, onChange, showTheme = true, name = 'look', scroll = false }: { value: Look; onChange: (v: Look) => void; showTheme?: boolean; name?: string; scroll?: boolean }) {
   const { t, lang } = useI18n()
   const lib = useLibrary()
   const themeTouched = useRef(false)
@@ -93,7 +93,7 @@ export function StylePicker({ value, onChange, showTheme = true, name = 'look' }
 
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="sr-only">{t('lib.styles')}</legend>
-        <div className="choice-grid style-grid">
+        <div className={'choice-grid style-grid' + (scroll ? ' scroll-box' : '')}>
           {f.list.map((s) => (
             <label key={s.key} className={'choice style-card' + (value.style_key === s.key ? ' selected' : '')}>
               <input type="radio" name={`${name}-style`} checked={value.style_key === s.key} onChange={() => pick(s)} />

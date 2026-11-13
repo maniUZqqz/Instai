@@ -225,3 +225,14 @@ def test_fitness_and_coaching_ideas_are_in_the_personal_development_category():
     assert len(rows) >= 8 and {i["category"] for i in rows} == {"personal_development"}
     text = " ".join(i["logline_fa"] + i["logline_en"] + i["hook_fa"] + i["hook_en"] for i in rows)
     assert not re.search(r"\d+\s*(%|٪|درصد|percent)", text), "no invented statistics"
+
+
+def test_every_builtin_tag_has_a_persian_name_in_the_interface():
+    """The tag chips of the idea page are Persian in the Persian interface (frontend/src/ideaTags.ts); a tag without a name would show as an English word."""
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "ideaTags.ts").read_text(encoding="utf-8")
+    named = dict(re.findall(r"^\s*'([a-z0-9\-]+)':\s*'([^']+)'", src, flags=re.M))
+    tags = {t for i in BUILTIN_IDEAS.values() for t in i["tags"]}
+    assert sorted(tags - set(named)) == [], "tags without a Persian name"
+    assert all(PERSIAN.search(v) for v in named.values()), "every name is Persian"
