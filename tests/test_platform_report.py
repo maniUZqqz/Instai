@@ -219,7 +219,12 @@ def test_queue_page_states_waiting_for_a_computer_scheduled_and_in_line(api):
     first = queue.enqueue("prod.keyframes", {}, resource="gpu")
     second = queue.enqueue("prod.keyframes", {}, resource="gpu")
     sched = queue.enqueue("downloads.run", {"packages": ["ffmpeg"]}, run_after=now + timedelta(hours=3))
-    night = queue.enqueue("downloads.run", {"packages": ["ffmpeg"]}, window="02:00-07:00")
+    from instai.jobs import schedule
+
+    t = schedule.local_now(now) + timedelta(hours=3)                            # a one-hour window that is CLOSED now, whatever the time of day is
+    # (the fixed "02:00-07:00" made this test fail on any machine between 02:00 and 07:00 local time)
+    closed = f"{t.hour:02d}:00-{(t.hour + 1) % 24:02d}:00"
+    night = queue.enqueue("downloads.run", {"packages": ["ffmpeg"]}, window=closed)
     Job.objects.filter(pk=night.pk).update(run_after=now + timedelta(hours=1))
     s = api.get("/api/queue/summary").json()
     assert s["waiting_node"] == 1 and s["waiting"] == 1 and s["waiting_turn"] == 2 and s["scheduled"] == 2 and s["offline_nodes"] == ["pcb"]
