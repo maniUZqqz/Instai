@@ -1,5 +1,31 @@
 [
   {
+    "version": "0.14.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "آزمون خودکارِ خودِ رایانه: برنامه با کارهای واقعیِ کوچک می‌سنجد که روی همین رایانه (با GPU و ابزارها) کار می‌کند",
+      "en": "The PC tests itself: the program checks, with small real jobs, that it works on this computer (GPU and tools included)"
+    },
+    "items": [
+      {
+        "fa": "صفحهٔ «سیستم» (و یک خط روی صفحهٔ اول) کارت «آزمون خودکار این رایانه» دارد. برنامه خودش می‌سنجد: رمزگذاری ویدئو با ffmpeg، کشیدن متن فارسی با فونت خودش، پایگاه‌داده و فضای دیسک، به‌روزرسانی خودکار، شروع با ویندوز، ابزار «ویدئو با کد» و ساختن یک قاب با آن و ـ وقتی رایانهٔ GPUدار روشن شود ـ کارت گرافیک، رمزگذاری با کارت (NVENC)، مدل Ollama شما (روی GPU است یا CPU؟) و ComfyUI روی GPU.",
+        "en": "The System screen (and one line on the home screen) has an «Automatic self-test of this PC» card. The program tests itself: video encoding with ffmpeg, Persian text drawn with its own font, the database and the free disk, the automatic update, starting with Windows, the code-to-video tools and one frame rendered with them and - once the GPU PC is on - the graphics card, encoding on the card (NVENC), your Ollama model (on the GPU or the CPU?) and ComfyUI on the GPU."
+      },
+      {
+        "fa": "هر بررسی نتیجهٔ خودش را دارد: درست، هشدار، خطا (با علت و راه رفع)، اجرا نمی‌شود، یا «منتظر». «منتظر» یعنی چیزی که لازم دارد هنوز نیست (رایانهٔ GPUدار خاموش است، Ollama روشن نیست، Remotion هنوز نصب می‌شود)؛ همین که آماده شد خودش اجرا می‌شود. «همه‌چیز سالم» تا وقتی چیزی منتظر است نوشته نمی‌شود. با هر نسخهٔ تازه، هر روز و هر وقت چیزی که منتظرش بودند آماده شود خودکار اجرا می‌شود (INSTAI_PC_SELFTEST_AUTO=0 خاموشش می‌کند).",
+        "en": "Every check has its own result: passed, warning, failed (with the reason and the fix), not applicable, or «waiting». Waiting means what it needs is not there yet (the GPU PC is off, Ollama is not running, Remotion is still installing); it runs by itself as soon as it can. «All sound» is never shown while something waits. It runs by itself with every new version, every day and whenever something it waited for is ready (INSTAI_PC_SELFTEST_AUTO=0 switches it off)."
+      },
+      {
+        "fa": "بررسی «به‌روزرسانی خودکار» می‌گوید این پوشه می‌تواند خودش را به‌روز کند یا نه: اگر START.bat قدیمی باشد (پوشه از یک «Download ZIP» قدیمی مانده)، همین را با یک جملهٔ روشن و کار لازم می‌نویسد؛ و نسخهٔ این پوشه را با نسخهٔ GitHub می‌سنجد (تازه‌تر هست، یکی است، یا این پوشه جلوتر است و هنوز روی GitHub نرفته).",
+        "en": "The «Automatic update» check says whether this folder can update itself: when START.bat is old (the folder is from an old Download-ZIP) it says so with one plain sentence and the one thing to do; and it compares this folder's version with GitHub's (newer there, the same, or this folder is ahead and not pushed yet)."
+      },
+      {
+        "fa": "برای توسعه: آزمون پایداری پایگاه‌داده (۴۰ میلی‌ثانیه) دیگر بی‌دلیل قرمز نمی‌شود (شبیه‌سازِ «فرایند دیگر» خودش زیر بار از کار می‌افتاد)، و بازبینی صفحه‌ها دکمه‌های داخل بخشِ بستهٔ <details> را «بدون نام» حساب نمی‌کند.",
+        "en": "For development: the 40 ms database stress test no longer fails by itself (its «other process» stand-in gave up under load), and the page sweep no longer counts buttons inside a closed <details> as nameless."
+      }
+    ]
+  },
+  {
     "version": "0.13.0",
     "date": "2026-11-14",
     "title": {
