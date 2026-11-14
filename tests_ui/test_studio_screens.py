@@ -102,7 +102,7 @@ def test_library_gallery_filters_duplicate_and_tabs(browser, server, size, lang)
             failures.append("library (fa): no Persian text")
         check_shell(page, lang, f"library {size} {lang}", failures)
         page.get_by_role("tab", name=exact(tx("lib.tab_themes", lang))).click()
-        page.wait_for_timeout(200)
+        page.wait_for_function("() => document.querySelectorAll('.theme-card').length >= 16", timeout=15000)      # not a fixed 200 ms: a cold app needs longer
         assert page.locator(".theme-card").count() >= 16
         page.get_by_role("tab", name=exact(tx("lib.tab_templates", lang))).click()
         page.wait_for_timeout(300)
@@ -152,6 +152,7 @@ def test_wizard_template_and_look_steps(browser, server, size, lang):
         assert both.count() >= 0
         nxt.click()  # -> look
         page.locator(".style-card").first.wait_for(timeout=15000)
+        page.wait_for_function("() => document.querySelectorAll('.theme-card').length >= 16", timeout=15000)
         assert page.locator(".style-card").count() >= 40 and page.locator(".theme-card").count() >= 16
         page.locator(".style-card").nth(5).click()
         page.screenshot(path=str(SHOTS / f"{size}-{lang}-wizard-look.png"))

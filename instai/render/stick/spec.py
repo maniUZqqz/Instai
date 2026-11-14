@@ -69,6 +69,21 @@ def normalize(data: dict | None, *, name: str = "") -> dict:
     return out
 
 
+# The Persian names of the words the model sheet PRINTS (colour-key roles, colour names, expressions). The same words, character for character, as `WORDS_FA` in
+# frontend/src/pipeline/kit.tsx (tests/test_ui_words.py compares them), so the picture and the screen agree.
+FA_WORDS = {
+    "limbs": "دست و پا", "head": "سر", "outline": "خط دور", "hat": "کلاه", "hair": "مو", "neck": "شال یا کراوات", "extra": "وسیلهٔ اضافه",
+    "ink": "مشکی", "red": "قرمز", "blue": "آبی", "green": "سبز", "amber": "کهربایی", "violet": "بنفش", "pink": "صورتی", "teal": "فیروزه‌ای", "orange": "نارنجی",
+    "grey": "خاکستری", "white": "سفید", "paper": "کاغذی", "brown": "قهوه‌ای",
+    "neutral": "خنثی", "happy": "شاد", "laugh": "خنده", "sad": "غمگین", "angry": "عصبانی", "scared": "ترسیده", "surprised": "متعجب", "smirk": "پوزخند",
+}
+
+
+def fa_word(key: str) -> str:
+    """The Persian name of a key the sheet prints; an unknown key is printed as it is."""
+    return FA_WORDS.get(key, key)
+
+
 def hex_rgba(h: str, a: int = 255) -> tuple[int, int, int, int]:
     h = h.lstrip("#")
     return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a

@@ -132,21 +132,7 @@ def base():
             p.kill()
 
 
-@pytest.fixture(scope="module")
-def browser():
-    pw = pytest.importorskip("playwright.sync_api")
-    with pw.sync_playwright() as p:
-        b = None
-        for attempt in (lambda: p.chromium.launch(), lambda: p.chromium.launch(channel="chrome"), lambda: p.chromium.launch(channel="msedge")):
-            try:
-                b = attempt()
-                break
-            except Exception:  # noqa: BLE001
-                continue
-        if b is None:
-            pytest.skip("no browser available for Playwright")
-        yield b
-        b.close()
+# `browser` is the session fixture of conftest.py: a second sync_playwright() in the same process fails with "Playwright Sync API inside the asyncio loop"
 
 
 def open_page(browser, base, size, path, lang="fa", wait="main"):

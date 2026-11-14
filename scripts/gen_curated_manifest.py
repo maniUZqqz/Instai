@@ -106,6 +106,23 @@ INS = "{COMFYUI}\\models\\insightface\\models\\antelopev2\\"
 NODES = "{COMFYUI}\\custom_nodes\\"
 
 
+# the Persian reading of each card's memory note (the page shows this one in Persian, the English text in English)
+VRAM_FA = {
+    "12 GB (fp8; ComfyUI offloads what does not fit)": "۱۲ گیگابایت (fp8؛ آنچه جا نشود ComfyUI به حافظهٔ رایانه می‌برد)",
+    "T5 fp8 about 5 GB in RAM / VRAM while encoding": "T5 با fp8 هنگام رمزگذاری حدود ۵ گیگابایت از حافظهٔ رایانه یا کارت می‌گیرد",
+    "SDXL size (about 7 to 9 GB with the VAE)": "هم‌اندازهٔ SDXL (حدود ۷ تا ۹ گیگابایت با VAE)",
+    "SDXL size (about 7 GB)": "هم‌اندازهٔ SDXL (حدود ۷ گیگابایت)",
+    "about 2.5 GB": "حدود ۲٫۵ گیگابایت",
+    "about 4.3 GB in total": "روی‌هم حدود ۴٫۳ گیگابایت",
+    "FLUX fp8 plus about 3 GB of face models": "FLUX با fp8 به‌علاوهٔ حدود ۳ گیگابایت مدل‌های چهره",
+    "under 2 GB": "کمتر از ۲ گیگابایت",
+    "about 10 GB (fp16) plus encoder and VAE; comfortable on 12 GB": "حدود ۱۰ گیگابایت (fp16) به‌علاوهٔ رمزگذار و VAE؛ روی ۱۲ گیگابایت راحت است",
+    "about 4.5 GB + T5 encoder": "حدود ۴٫۵ گیگابایت به‌علاوهٔ رمزگذار T5",
+    "under 1 GB": "کمتر از ۱ گیگابایت",
+    "CPU, about 64 MB each": "روی CPU؛ هرکدام حدود ۶۴ مگابایت",
+}
+
+
 def fa_en(fa: str, en: str) -> dict:
     return {"fa": fa, "en": en}
 
@@ -117,7 +134,7 @@ def build() -> dict:
     def pkg(pid: str, title: str, group: str, licence: str, commercial: str, why: dict, vram: str, note: dict | None = None, licence_url: str = "",
             order: int = 50, needs: list[str] | None = None) -> None:
         packages[pid] = {"title": title, "default": False, "licence": licence, "licence_verified": True,
-                         "curated": {"group": group, "commercial": commercial, "vram": vram, "why": why, "note": note or {},
+                         "curated": {"group": group, "commercial": commercial, "vram": vram, "vram_fa": VRAM_FA.get(vram, ""), "why": why, "note": note or {},
                                      "licence_url": licence_url, "checked": TODAY, "order": order, "needs": needs or []}}
 
     # ---------------------------------------------------------------- images: FLUX

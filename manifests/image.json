@@ -9,7 +9,7 @@
    "licence": "FLUX.1 [dev] Non-Commercial License",
    "licence_verified": false,
    "curated": {
-    "group": "image", "commercial": "no", "vram": "12 GB (fp8)", "checked": "2026-11-13", "order": 12, "needs": [],
+    "group": "image", "commercial": "no", "vram": "12 GB (fp8)", "vram_fa": "۱۲ گیگابایت (fp8)", "checked": "2026-11-13", "order": 12, "needs": [],
     "licence_url": "https://huggingface.co/black-forest-labs/FLUX.1-dev/blob/main/LICENSE.md",
     "why": {
      "fa": "FLUX.1 [dev]: بهترین کیفیت FLUX، ولی وزن‌هایش غیرتجاری است. پیش‌فرض خاموش است و دانلودش تأیید جداگانه می‌خواهد. اگر مجوز تجاری لازم دارید FLUX.1 [schnell] را بردارید.",

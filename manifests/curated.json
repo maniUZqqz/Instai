@@ -14,6 +14,7 @@
     "group": "image",
     "commercial": "yes",
     "vram": "12 GB (fp8; ComfyUI offloads what does not fit)",
+    "vram_fa": "۱۲ گیگابایت (fp8؛ آنچه جا نشود ComfyUI به حافظهٔ رایانه می‌برد)",
     "why": {
      "fa": "نسخهٔ سریع و آزاد FLUX: با ۴ گام تصویر با کیفیت می‌سازد و مجوزش (Apache-2.0) استفادهٔ تجاری را آزاد می‌گذارد. یک فایل همه‌چیز را دارد (مدل + رمزگذار متن + VAE) و روی ۱۲ گیگابایت با بارگذاری خودکار ComfyUI کار می‌کند.",
      "en": "The fast, freely licensed FLUX: good images in 4 steps, Apache-2.0 so commercial use is allowed. One file holds everything (model + text encoders + VAE); runs on 12 GB with ComfyUI's automatic offloading."
@@ -34,6 +35,7 @@
     "group": "image",
     "commercial": "yes",
     "vram": "T5 fp8 about 5 GB in RAM / VRAM while encoding",
+    "vram_fa": "T5 با fp8 هنگام رمزگذاری حدود ۵ گیگابایت از حافظهٔ رایانه یا کارت می‌گیرد",
     "why": {
      "fa": "برای وقتی که FLUX را با بارگذارهای جدا (UNET + رمزگذار متن + VAE) یا با مدل‌های GGUF اجرا می‌کنید: رمزگذار T5 (fp8)، CLIP-L و VAE. اگر معادلش از قبل روی ComfyUI هست دوباره دانلود نمی‌شود.",
      "en": "For running FLUX with the split loaders (UNET + text encoders + VAE) or with GGUF models: T5 (fp8), CLIP-L and the VAE. An equivalent file ComfyUI already has is not downloaded again."
@@ -54,6 +56,7 @@
     "group": "image",
     "commercial": "yes",
     "vram": "SDXL size (about 7 to 9 GB with the VAE)",
+    "vram_fa": "هم‌اندازهٔ SDXL (حدود ۷ تا ۹ گیگابایت با VAE)",
     "why": {
      "fa": "پایهٔ استاندارد SDXL؛ برای ControlNet، IP-Adapter و لورا‌های SDXL لازم است. مجوز Open RAIL++-M استفادهٔ تجاری را با محدودیت‌های رفتاری مجاز می‌داند.",
      "en": "The standard SDXL base; the foundation for SDXL ControlNet, IP-Adapter and LoRAs. Open RAIL++-M allows commercial use with use-based restrictions."
@@ -74,6 +77,7 @@
     "group": "image",
     "commercial": "yes",
     "vram": "SDXL size (about 7 GB)",
+    "vram_fa": "هم‌اندازهٔ SDXL (حدود ۷ گیگابایت)",
     "why": {
      "fa": "چک‌پوینت SDXL فوتورئال با مجوز آزاد (Open RAIL++-M)؛ برای آدم و محصول واقع‌نما، سریع‌تر و سبک‌تر از FLUX روی ۱۲ گیگابایت.",
      "en": "A photoreal SDXL checkpoint under a permissive licence (Open RAIL++-M); realistic people and products, lighter and faster than FLUX on 12 GB."
@@ -94,6 +98,7 @@
     "group": "control",
     "commercial": "yes",
     "vram": "about 2.5 GB",
+    "vram_fa": "حدود ۲٫۵ گیگابایت",
     "why": {
      "fa": "یک مدل ControlNet برای SDXL که همه‌کاره است: ژست، عمق، لبه، خط و ... . برای نگه داشتن ژست و ترکیب‌بندی شخصیت‌ها بین شات‌ها.",
      "en": "One ControlNet for SDXL that does everything: pose, depth, edges, lines ... Keeps a character's pose and composition across shots."
@@ -114,6 +119,7 @@
     "group": "control",
     "commercial": "yes",
     "vram": "about 4.3 GB in total",
+    "vram_fa": "روی‌هم حدود ۴٫۳ گیگابایت",
     "why": {
      "fa": "برای «همان شخصیت در همهٔ شات‌ها»: چهره و سبک از یک تصویر مرجع گرفته می‌شود. چهار فایل: دو مدل IP-Adapter، رمزگذار تصویر CLIP-ViT-H و گرهٔ ComfyUI_IPAdapter_plus. بعد از نصب، ComfyUI را یک بار ببندید و باز کنید.",
      "en": "For \"the same character in every shot\": face and style are taken from one reference picture. Four parts: two IP-Adapter models, the CLIP-ViT-H image encoder and the ComfyUI_IPAdapter_plus node. Restart ComfyUI once afterwards."
@@ -137,6 +143,7 @@
     "group": "control",
     "commercial": "no",
     "vram": "FLUX fp8 plus about 3 GB of face models",
+    "vram_fa": "FLUX با fp8 به‌علاوهٔ حدود ۳ گیگابایت مدل‌های چهره",
     "why": {
      "fa": "حفظ هویت چهره با FLUX (شبیه IP-Adapter ولی دقیق‌تر). ⚠ وزن‌های InsightFace (تشخیص چهره) فقط برای پژوهش و غیرتجاری‌اند، پس این بسته پیش‌فرض خاموش است و دانلودش تأیید جداگانه می‌خواهد. همچنین بستهٔ پایتونِ insightface باید داخل ComfyUI نصب شود (خودکار نصب نمی‌شود).",
      "en": "Identity-preserving faces with FLUX (like IP-Adapter, but sharper). WARNING: the InsightFace face-detection weights are research / non-commercial only, so this package is off by default and needs its own confirmation. The insightface Python package must also be installed inside ComfyUI (not done automatically)."
@@ -160,6 +167,7 @@
     "group": "upscale",
     "commercial": "yes",
     "vram": "under 2 GB",
+    "vram_fa": "کمتر از ۲ گیگابایت",
     "why": {
      "fa": "بزرگ‌نمایی ۴ برابری عکس و فریم با حفظ جزئیات؛ سبک و سریع روی GPU. مجوز BSD-3.",
      "en": "4x upscaling of pictures and frames with detail; light and fast on the GPU. BSD-3 licence."
@@ -180,6 +188,7 @@
     "group": "upscale",
     "commercial": "no",
     "vram": "under 2 GB",
+    "vram_fa": "کمتر از ۲ گیگابایت",
     "why": {
      "fa": "یکی از محبوب‌ترین بزرگ‌نماها برای جزئیات تیز. ⚠ مجوزش CC-BY-NC-SA 4.0 است (غیرتجاری)، پس پیش‌فرض خاموش است و دانلودش تأیید جداگانه می‌خواهد.",
      "en": "A very popular sharp upscaler. WARNING: its licence is CC-BY-NC-SA 4.0 (non-commercial), so it is off by default and needs its own confirmation."
@@ -200,6 +209,7 @@
     "group": "video",
     "commercial": "yes",
     "vram": "about 10 GB (fp16) plus encoder and VAE; comfortable on 12 GB",
+    "vram_fa": "حدود ۱۰ گیگابایت (fp16) به‌علاوهٔ رمزگذار و VAE؛ روی ۱۲ گیگابایت راحت است",
     "why": {
      "fa": "نسخهٔ سبک Wan 2.2 (۵ میلیارد پارامتر): متن‌به‌ویدئو و تصویر‌به‌ویدئو در یک مدل، با VAE تازهٔ Wan 2.2؛ برای ۱۲ گیگابایت بسیار راحت‌تر از مدل ۱۴ میلیاردی است. رمزگذار متن umt5 با بستهٔ Wan 2.2 مشترک است و اگر دارید دوباره دانلود نمی‌شود.",
      "en": "The light Wan 2.2 (5B parameters): text-to-video and image-to-video in one model with the new Wan 2.2 VAE; far easier on 12 GB than the 14B pair. The umt5 text encoder is shared with the Wan 2.2 package and not downloaded twice."
@@ -220,6 +230,7 @@
     "group": "video",
     "commercial": "unknown",
     "vram": "about 4.5 GB + T5 encoder",
+    "vram_fa": "حدود ۴٫۵ گیگابایت به‌علاوهٔ رمزگذار T5",
     "why": {
      "fa": "مدل ویدئوی بسیار سریع (چند گام)، مناسب پیش‌نمایش و شات‌های کوتاه. مجوز در کارت مدل «other» است و در این‌جا بررسی نشده؛ پیش از انتشار تجاری متن مجوز را بخوانید، پس پیش‌فرض خاموش است.",
      "en": "A very fast few-step video model, good for previews and short shots. Its licence is 'other' on the model card and was not audited here; read it before commercial use, so it is off by default."
@@ -240,6 +251,7 @@
     "group": "video",
     "commercial": "yes",
     "vram": "under 1 GB",
+    "vram_fa": "کمتر از ۱ گیگابایت",
     "why": {
      "fa": "فریم‌های میانی می‌سازد تا ویدئوی ۲۴ فریمی نرم‌تر شود (دو برابر). فایل کوچک است. به نسخه‌ای از ComfyUI نیاز دارد که گره‌های «درون‌یابی فریم» را دارد.",
      "en": "Creates in-between frames so 24 fps video becomes smoother (2x). A small file. Needs a ComfyUI version that has the frame-interpolation nodes."
@@ -260,6 +272,7 @@
     "group": "voice",
     "commercial": "yes",
     "vram": "CPU, about 64 MB each",
+    "vram_fa": "روی CPU؛ هرکدام حدود ۶۴ مگابایت",
     "why": {
      "fa": "چهار صدای فارسی دیگر برای Piper (روی CPU و بدون اینترنت): «امیر»، «گنجی»، «گنجی ادبی» و «رضا ابراهیم». دادهٔ آموزش هر چهار CC0 است. بعد از دانلود در انتخاب صدا دیده می‌شوند.",
      "en": "Four more Persian voices for Piper (CPU, offline): amir, ganji, ganji_adabi and reza_ibrahim. The training data of all four is CC0. They appear in the voice picker after the download."

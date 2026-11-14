@@ -204,7 +204,7 @@ function VisualForm({ draft, set, formats }: FormProps & { formats: Formats }) {
   }
   return (
     <>
-      <StylePicker value={{ style_key: draft.style_key ?? '', realism: draft.realism ?? '', theme_key: draft.theme_key ?? '' }} onChange={pick} name="page-look" />
+      <StylePicker value={{ style_key: draft.style_key ?? '', realism: draft.realism ?? '', theme_key: draft.theme_key ?? '' }} onChange={pick} name="page-look" scroll />
       <AreaField label={t('wiz.style_notes')} value={draft.style_notes ?? ''} onChange={(v) => set({ style_notes: v })} compact />
       <div className="grid-2">
         <SelectField label={t('pf.aspect')} value={draft.aspect_ratio ?? '9:16'} onChange={(v) => set({ aspect_ratio: v })} options={['9:16', '1:1', '16:9', '4:5'].map((x) => ({ value: x, label: x }))} />

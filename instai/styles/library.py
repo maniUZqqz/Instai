@@ -97,6 +97,26 @@ def get_style(key: str) -> dict | None:
     return get_preset("style", key)
 
 
+def check_look(look: dict) -> dict:
+    """A look = {style_key, realism, theme_key} that a project / series is made with. Every key that is given must be one the library really has: an unknown style used to be
+    stored and then every generator got an EMPTY style prompt without any error (review of 0.11.0). Empty values stay empty (= inherit); a legacy style name is stored under
+    its current key. Raises a 400 `DomainError` naming the first bad key."""
+    out = dict(look or {})
+    sk = str(out.get("style_key") or "").strip()
+    if sk:
+        st = get_style(sk)
+        if st is None:
+            raise DomainError("validation_error", f"سبکی با نام «{sk}» در کتابخانه نیست.", http_status=400, message_en=f"There is no style «{sk}» in the library.", details={"style_key": ["unknown"]})
+        out["style_key"] = st["key"]
+    th = str(out.get("theme_key") or "").strip()
+    if th and get_theme(th) is None:
+        raise DomainError("validation_error", f"تم رنگی «{th}» در کتابخانه نیست.", http_status=400, message_en=f"There is no colour theme «{th}» in the library.", details={"theme_key": ["unknown"]})
+    rl = str(out.get("realism") or "").strip()
+    if rl and rl not in REALISM_ORDER:
+        raise DomainError("validation_error", f"درجهٔ واقع‌نمایی «{rl}» شناخته نیست.", http_status=400, message_en=f"Unknown realism level «{rl}».", details={"realism": ["unknown"]})
+    return out
+
+
 def get_theme(key: str) -> dict | None:
     return get_preset("theme", key)
 
@@ -276,8 +296,13 @@ def compose_for_episode(ep) -> dict:
 
 # ------------------------------------------------------------------ search
 
+# A full name pasted from the owner's list keeps its brackets and quotes ("Chrome 22K (chrome metallic type)", «پیکسل‌آرت»): they are not part of any word.
+_PUNCTUATION = str.maketrans({c: " " for c in "()[]{}<>«»\"“”‘’,;:!?،؛؟/\\|"})
+
+
 def _fold(text: str) -> str:
     """Lower-case and unify the Arabic/Persian letter variants and the digit alphabets, so a search finds the word however it was typed."""
+    text = (text or "").translate(_PUNCTUATION)
     t = (text or "").lower().replace("\u064a", "\u06cc").replace("\u0643", "\u06a9").replace("\u200c", " ").replace("-", " ")
     return t.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
 

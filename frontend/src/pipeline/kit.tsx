@@ -50,6 +50,7 @@ const WORDS_FA: Record<string, string> = {
   limbs: 'دست و پا', head: 'سر', outline: 'خط دور', hat: 'کلاه', hair: 'مو', neck: 'شال یا کراوات', extra: 'وسیلهٔ اضافه', prop: 'وسیلهٔ دست',
   ink: 'مشکی', red: 'قرمز', blue: 'آبی', green: 'سبز', amber: 'کهربایی', violet: 'بنفش', pink: 'صورتی', teal: 'فیروزه‌ای', orange: 'نارنجی', grey: 'خاکستری', white: 'سفید', paper: 'کاغذی', brown: 'قهوه‌ای',
   good: 'خوب', bad: 'بد', secret: 'مخفی',
+  hero: 'قهرمان', protagonist: 'قهرمان', rival: 'رقیب', ally: 'هم‌پیمان', comic: 'بامزه', villain: 'شرور', mentor: 'راهنما',          // a character's role (the channel cast and the page's characters)
   ambience: 'فضا', foley: 'فولی', sfx: 'افکت', music: 'موسیقی', silence: 'سکوت',
   warm_dusk: 'غروب گرم', cold_night: 'شب سرد', high_contrast: 'کنتراست بالا', faded: 'رنگ‌رفته', vivid: 'زنده و پررنگ', desaturated: 'کم‌اشباع', tension: 'تنش',
 }

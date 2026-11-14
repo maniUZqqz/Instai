@@ -59,6 +59,19 @@ def test_cpu_checks_pass_and_gpu_checks_wait_with_a_reason():
     assert rows["identity_colour_key"]["metrics"]["wrong"].count(True) < 3                   # a wrongly coloured character is told apart
 
 
+def test_the_persian_reasons_write_their_numbers_in_persian_digits():
+    """Review of 0.11.0: the self-test box read «نردبان استودیو: 21 مرحله» and «6 داستان آماده» with Latin digits inside the Persian sentence."""
+    import re
+
+    rows = by_key(selftest.run(ctx(), gpu=True))
+    for key in CPU_KEYS + ("text_model",):
+        fa = rows[key]["reason_fa"]
+        bare = re.sub(r"«[^»]*»", "", fa)                                   # model names stay as they are
+        assert not re.search(r"[0-9]", bare), f"{key}: Latin digits in a Persian reason: {fa}"
+    assert "۲۱ مرحله" in rows["ladder"]["reason_fa"] and "21 stages" in rows["ladder"]["reason_en"]
+    assert selftest._fd(12.5) == "۱۲٫۵" and selftest._fd([0.1, 3]) == "[۰٫۱, ۳]"
+
+
 def test_gpu_checks_skip_cleanly_when_nothing_is_installed_and_pass_with_the_fake_model():
     rep = selftest.run(ctx(), gpu=True)
     rows = by_key(rep)

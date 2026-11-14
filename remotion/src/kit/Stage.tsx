@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { AbsoluteFill, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig } from 'remotion'
 import { motionFor, pose, push, rand } from './motion'
+import { lookFor } from './Look'
 import { mix, type StyleKit } from './theme'
 
 /** Vazirmatn (SIL OFL) is the font of every composition. In a render it is loaded from the bundle's public/fonts folder and the frame
@@ -42,7 +43,9 @@ export const Stage: React.FC<Props> = ({ kit, children, backdrop = true, zoom = 
 
   const layers: React.ReactNode[] = []
   const key = (n: string) => n
-  if (backdrop) {
+  // the style's own drawn surface (pixel skyline, chalkboard, stained glass ...); a look that is a whole surface replaces the family backdrop
+  const look = backdrop ? lookFor(kit, { kit, p, u, w: width, h: height, frame, f }) : null
+  if (backdrop && !look?.replace) {
     if (kit.family === 'live_like') {
       layers.push(
         <AbsoluteFill key={key('vig')} style={{ background: `radial-gradient(ellipse at 50% 45%, transparent 35%, ${p.shadow}CC 100%)` }} />,
@@ -95,11 +98,13 @@ export const Stage: React.FC<Props> = ({ kit, children, backdrop = true, zoom = 
       layers.push(<AbsoluteFill key={key('paper')} style={{ boxShadow: `inset 0 0 ${u * 0.08}px ${p.shadow}99` }} />)
     }
   }
+  if (look) layers.push(...look.layers.map((l, i) => <React.Fragment key={'look' + i}>{l}</React.Fragment>))
   return (
     <AbsoluteFill style={{ background: backdrop ? `linear-gradient(160deg, ${p.background} 0%, ${mix(p.background, p.shadow, 0.65)} 100%)` : 'transparent', fontFamily: FONT_STACK, overflow: 'hidden' }}>
       <AbsoluteFill style={{ transform: `scale(${s})`, transformOrigin: '50% 50%' }}>
+        {look?.defs ? <svg width={0} height={0} style={{ position: 'absolute' }}><defs>{look.defs}</defs></svg> : null}
         {layers}
-        {children}
+        {look?.filter ? <AbsoluteFill style={{ filter: look.filter }}>{children}</AbsoluteFill> : children}
       </AbsoluteFill>
     </AbsoluteFill>
   )

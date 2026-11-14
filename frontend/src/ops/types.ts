@@ -260,6 +260,7 @@ export interface CuratedPackage {
   licence: string
   licence_url: string
   vram: string
+  vram_fa?: string
   why: { fa?: string; en?: string }
   note: { fa?: string; en?: string }
   checked: string

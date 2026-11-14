@@ -18,7 +18,7 @@ def _palette(style: dict, theme: dict | None) -> dict:
 
 
 def style_kit(style_key: str | None = None, theme_key: str | None = None) -> dict:
-    """{key, theme_key, name, name_fa, name_en, animation, animation_fa, animation_en, family, realism, fps_feel, palette, typography, mood}.
+    """{key, theme_key, name, name_fa, name_en, animation, animation_fa, animation_en, family, motif, realism, fps_feel, palette, typography, mood}.
     An unknown style falls back to the first built-in one; `theme_key` (else the style's own `theme_key`) picks the typography."""
     style = library.get_style(style_key or "") or library.get_style(DEFAULT_KEY) or next(iter(library.list_presets("style")))
     theme = library.get_theme(theme_key or style.get("theme_key") or "")
@@ -28,7 +28,7 @@ def style_kit(style_key: str | None = None, theme_key: str | None = None) -> dic
         "key": style["key"], "theme_key": (theme or {}).get("key", ""),
         "name": style.get("name_en") or style.get("name_fa") or style["key"], "name_fa": style.get("name_fa", ""), "name_en": style.get("name_en", ""),
         "animation": style.get("animation", "motion_graphics"), "animation_fa": anim.get("fa", ""), "animation_en": anim.get("en", ""),
-        "family": style.get("family", "graphic"), "realism": style.get("realism", "graphic"), "fps_feel": int(style.get("fps_feel") or 12),
+        "family": style.get("family", "graphic"), "motif": style.get("motif", ""), "realism": style.get("realism", "graphic"), "fps_feel": int(style.get("fps_feel") or 12),
         "palette": _palette(style, theme),
         "typography": {"title_weight": typo.get("title_weight", "bold"), "title_case": typo.get("title_case", "normal"),
                        "title_animation": typo.get("title_animation", "fade"), "subtitle_color": typo.get("subtitle_color", "#FFFFFF")},

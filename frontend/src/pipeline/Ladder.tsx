@@ -35,7 +35,7 @@ const WHERE: Record<string, (id: number, scope: string) => { to: string; fa: str
 
 /** The studio ladder of a series (development stages) or of an episode (all stages): every output versioned and approved before the next one. */
 export function LadderPanel({ scope, id }: { scope: 'series' | 'episode'; id: number; characters?: { id: number; name: string }[] }) {
-  const { L } = usePL()
+  const { L, n } = usePL()
   const base = scope === 'series' ? `/series/${id}/ladder` : `/episodes/${id}/ladder`
   const q = useQuery<Payload>(base)
   if (q.error && !q.data) return <ErrorState error={q.error} onRetry={q.reload} />
@@ -46,10 +46,10 @@ export function LadderPanel({ scope, id }: { scope: 'series' | 'episode'; id: nu
       <p className="muted">{L('هر مرحله خروجی نسخه‌دار دارد و باید پیش از مرحلهٔ بعد تأیید شود. اگر مرحله‌ای پیش از خودش تغییر کند، تأییدِ بعدی‌ها «کهنه» می‌شود تا دوباره نگاهشان کنید.',
         'Every stage keeps its versions and must be approved before the next one. If an earlier stage changes, the approvals after it turn «stale» so you look at them again.')}</p>
       <div className="row">
-        <Badge tone="ok">{L('تأییدشده', 'Approved')} {p.counts.approved ?? 0}</Badge>
-        <Badge tone="warn">{L('پیش‌نویس', 'Draft')} {p.counts.draft ?? 0}</Badge>
-        <Badge tone="err">{L('کهنه', 'Stale')} {p.counts.stale ?? 0}</Badge>
-        <Badge>{L('خالی', 'Empty')} {p.counts.empty ?? 0}</Badge>
+        <Badge tone="ok">{L('تأییدشده', 'Approved')} {n(p.counts.approved ?? 0)}</Badge>
+        <Badge tone="warn">{L('پیش‌نویس', 'Draft')} {n(p.counts.draft ?? 0)}</Badge>
+        <Badge tone="err">{L('کهنه', 'Stale')} {n(p.counts.stale ?? 0)}</Badge>
+        <Badge>{L('خالی', 'Empty')} {n(p.counts.empty ?? 0)}</Badge>
       </div>
       {p.phases.map((ph) => {
         const stages = p.stages.filter((s) => s.phase === ph.key)
@@ -73,18 +73,21 @@ const VERDICT_TONE: Record<string, 'neutral' | 'ok' | 'warn' | 'err' | 'info'> =
 
 /** The automatic self-test of the studio pipeline: what was checked by itself, what passed, what was skipped and why (models not installed yet, GPU PC off). */
 function SelfTestCard() {
-  const { L, lang } = usePL()
+  const { L, lang, n } = usePL()
   const q = useQuery<STPayload>('/studio/selftest', { interval: (d) => (d?.running ? 4000 : false) })
   const runner = useJobRunner({ onFinished: () => q.reload() })
   const text: Record<string, string> = { ok: L('درست', 'Passed'), warn: L('هشدار', 'Warning'), fail: L('خطا', 'Failed'), skip: L('رد شد', 'Skipped'), pending: L('منتظر', 'Waiting') }
   const run = (gpu: boolean) => runner.start(() => api.post<{ job: any }>('/studio/selftest', { gpu }))
   const rep = q.data?.report
+  const waiting = rep ? rep.checks.filter((c) => c.verdict === 'pending').length : 0           // checks that wait for the GPU PC: "all sound" would be a claim about what has not run
   return (
     <section className="card stack-sm" aria-label={L('آزمون خودکار', 'Automatic self-test')} data-selftest>
       <div className="row between">
         <h3>{L('آزمون خودکار استودیو', 'Automatic studio self-test')}</h3>
         <span className="row">
-          {rep && <Badge tone={rep.ok ? 'ok' : 'err'}>{rep.ok ? L('همه‌چیز سالم', 'All sound') : L('خطا دارد', 'Has failures')}</Badge>}
+          {rep && !rep.ok && <Badge tone="err">{L('خطا دارد', 'Has failures')}</Badge>}
+          {rep && rep.ok && waiting === 0 && <Badge tone="ok">{L('همه‌چیز سالم', 'All sound')}</Badge>}
+          {rep && rep.ok && waiting > 0 && <span data-testid="selftest-partial"><Badge tone="info">{L(`تا اینجا سالم؛ ${n(waiting)} بررسی منتظر است`, `Sound so far; ${waiting} check${waiting === 1 ? '' : 's'} waiting`)}</Badge></span>}
           {q.data?.running && <Badge tone="info">{L('در حال اجرا…', 'Running…')}</Badge>}
         </span>
       </div>
@@ -111,7 +114,7 @@ function SelfTestCard() {
 }
 
 function StageCard({ s, base, id, scope, stages, onChanged, setPayload }: { s: Stage; base: string; id: number; scope: string; stages: Stage[]; onChanged: () => void; setPayload: (d: Payload) => void }) {
-  const { L, lang } = usePL()
+  const { L, lang, n } = usePL()
   const act = useAction()
   const confirm = useConfirm()
   const [open, setOpen] = useState(false)
@@ -137,7 +140,7 @@ function StageCard({ s, base, id, scope, stages, onChanged, setPayload }: { s: S
       <div className="row between" style={{ flexWrap: 'nowrap' }}>
         <button className="linklike strong" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{L(s.fa, s.en)}</button>
         <span className="row nw">
-          {s.version > 0 && <Badge>v{s.version}</Badge>}
+          {s.version > 0 && <Badge>{lang === 'fa' ? 'نسخهٔ ' + n(s.version) : 'v' + s.version}</Badge>}
           {s.auto && <Badge tone="info">{L('خودکار', 'auto')}</Badge>}
           <Badge tone={STAGE_TONE[s.status]}>{statusText}</Badge>
         </span>
@@ -152,7 +155,7 @@ function StageCard({ s, base, id, scope, stages, onChanged, setPayload }: { s: S
           <Button size="sm" variant="primary" icon="check" busy={act.busy} disabled={s.blocked_by.length > 0} onClick={() => call('/approve')}>{L('تأیید', 'Approve')}</Button>
         )}
         {s.status === 'approved' && <Button size="sm" busy={act.busy} onClick={async () => { if (await confirm({ title: L('تأیید این مرحله برداشته شود؟', 'Withdraw the approval of this stage?'), message: '', danger: true })) call('/revoke') }}>{L('برداشتن تأیید', 'Withdraw approval')}</Button>}
-        {s.versions.length > 0 && <Button size="sm" variant="ghost" onClick={() => setShowVersions((v) => !v)}>{L('نسخه‌ها', 'Versions')} ({s.versions.length})</Button>}
+        {s.versions.length > 0 && <Button size="sm" variant="ghost" onClick={() => setShowVersions((v) => !v)}>{L('نسخه‌ها', 'Versions')} ({n(s.versions.length)})</Button>}
         {where && <Link className="btn sm" to={where.to}>{L(where.fa, where.en)}</Link>}
       </div>
       {s.blocked_by.length > 0 && s.status !== 'approved' && <div className="small muted">{L('برای تأیید، اول این‌ها تأیید شوند: ', 'To approve, approve these first: ')}{names.join(L('، ', ', '))}</div>}
@@ -255,16 +258,16 @@ function StageView({ s }: { s: Stage }) {
         if (f.type === 'rows') {
           const rows = (v ?? []) as Data[]
           return (
-            <div key={f.key} className="stack-sm"><b className="small">{pick(f as any)}</b>
+            <div key={f.key} className="stack-sm"><b className="small">{pick(f as any, 'label')}</b>
               <div style={{ overflowX: 'auto' }}>
-                <table className="table small"><thead><tr>{f.columns!.map((c) => <th key={c.key}>{pick(c as any)}</th>)}</tr></thead>
+                <table className="table small"><thead><tr>{f.columns!.map((c) => <th key={c.key}>{pick(c as any, 'label')}</th>)}</tr></thead>
                   <tbody>{rows.map((r, i) => <tr key={i}>{f.columns!.map((c) => <td key={c.key}>{c.type === 'bool' ? (r[c.key] ? '✓' : '') : c.type === 'choice' ? word(lang, String(r[c.key] ?? '')) : String(r[c.key] ?? '')}</td>)}</tr>)}</tbody></table>
               </div>
             </div>
           )
         }
         const text = Array.isArray(v) ? v.join('\n') : String(v ?? '')
-        return text ? <div key={f.key}><b className="small">{pick(f as any)}</b><div style={{ whiteSpace: 'pre-wrap' }}>{text}</div></div> : null
+        return text ? <div key={f.key}><b className="small">{pick(f as any, 'label')}</b><div style={{ whiteSpace: 'pre-wrap' }}>{text}</div></div> : null
       })}
     </div>
   )
@@ -276,11 +279,11 @@ function StageFields({ s, data, onChange }: { s: Stage; data: Data; onChange: (d
   return (
     <div className="stack-sm">
       {s.fields.map((f) => {
-        const label = pick(f as any)
+        const label = pick(f as any, 'label')
         if (f.type === 'rows') return <RowsEditor key={f.key} label={label} cols={f.columns!} rows={(data[f.key] ?? []) as Data[]} onChange={(r) => set(f.key, r)} />
         if (f.type === 'list') return <StringListField key={f.key} label={label} value={(data[f.key] ?? []) as string[]} onChange={(v) => set(f.key, v)} addLabel={L('افزودن', 'Add')} />
         if (f.type === 'number') return <NumberField key={f.key} label={label} value={data[f.key] ?? null} onChange={(v) => set(f.key, v)} />
-        if (f.type === 'style') return <StylePicker key={f.key} showTheme name="ladder-look" value={{ style_key: data.style_key ?? '', realism: data.realism ?? '', theme_key: data.theme_key ?? '' } as Look} onChange={(v) => onChange({ ...data, ...v })} />
+        if (f.type === 'style') return <StylePicker key={f.key} showTheme scroll name="ladder-look" value={{ style_key: data.style_key ?? '', realism: data.realism ?? '', theme_key: data.theme_key ?? '' } as Look} onChange={(v) => onChange({ ...data, ...v })} />
         if (f.type === 'text') return <TextField key={f.key} label={label} value={String(data[f.key] ?? '')} onChange={(v) => set(f.key, v)} />
         return <AreaField key={f.key} label={label} value={String(data[f.key] ?? '')} onChange={(v) => set(f.key, v)} />
       })}
@@ -297,18 +300,18 @@ function RowsEditor({ label, cols, rows, onChange }: { label: string; cols: Col[
       <b className="small">{label}</b>
       <div style={{ overflowX: 'auto' }}>
         <table className="table small">
-          <thead><tr><th>#</th>{cols.map((c) => <th key={c.key}>{pick(c as any)}</th>)}<th /></tr></thead>
+          <thead><tr><th>#</th>{cols.map((c) => <th key={c.key}>{pick(c as any, 'label')}</th>)}<th /></tr></thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={i}>
                 <td>{i + 1}</td>
                 {cols.map((c) => (
-                  <td key={c.key} style={{ minWidth: c.type === 'long' ? 220 : c.type === 'number' ? 80 : 120 }}>
-                    {c.type === 'choice' ? <SelectField label="" aria-label={pick(c as any)} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} options={[{ value: '', label: '—' }, ...(c.options ?? []).map((o) => ({ value: o, label: word(lang, o) }))]} />
-                      : c.type === 'number' ? <NumberField label="" aria-label={pick(c as any)} value={r[c.key] ?? null} onChange={(v) => setCell(i, c.key, v)} />
-                      : c.type === 'bool' ? <input type="checkbox" aria-label={pick(c as any)} checked={!!r[c.key]} onChange={(e) => setCell(i, c.key, e.target.checked)} />
-                      : c.type === 'long' ? <AreaField label="" aria-label={pick(c as any)} compact value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} />
-                      : <TextField label="" aria-label={pick(c as any)} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} />}
+                  <td key={c.key} style={{ minWidth: c.type === 'long' ? 220 : c.type === 'number' ? 96 : 120 }}>
+                    {c.type === 'choice' ? <SelectField label="" aria-label={pick(c as any, 'label')} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} options={[{ value: '', label: '—' }, ...(c.options ?? []).map((o) => ({ value: o, label: word(lang, o) }))]} />
+                      : c.type === 'number' ? <NumberField label="" aria-label={pick(c as any, 'label')} value={r[c.key] ?? null} onChange={(v) => setCell(i, c.key, v)} />
+                      : c.type === 'bool' ? <input type="checkbox" aria-label={pick(c as any, 'label')} checked={!!r[c.key]} onChange={(e) => setCell(i, c.key, e.target.checked)} />
+                      : c.type === 'long' ? <AreaField label="" aria-label={pick(c as any, 'label')} compact value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} />
+                      : <TextField label="" aria-label={pick(c as any, 'label')} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} />}
                   </td>
                 ))}
                 <td><Button size="sm" variant="ghost" iconOnly icon="trash" aria-label={L('حذف ردیف', 'Delete row')} onClick={() => onChange(rows.filter((_, j) => j !== i))} /></td>

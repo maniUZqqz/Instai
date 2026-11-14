@@ -74,6 +74,62 @@ def test_every_family_of_the_library_has_a_stage_background():
     assert handled | {"graphic"} == set(schema.FAMILIES), "graphic is the fallback of the stage"
 
 
+def _looks_table() -> tuple[dict[str, str], set[str], str]:
+    look = (REMOTION / "src" / "kit" / "Look.tsx").read_text(encoding="utf-8")
+    start = look.index("export const LOOKS")
+    body = look[look.index("{", start) + 1:look.index("\n}\n", start)]
+    entries = [e.strip() for e in re.sub(r"//[^\n]*", "", body).replace("\n", " ").split(",") if e.strip()]
+    mapping = {}
+    for e in entries:
+        key, _, val = e.partition(":")
+        mapping[key.strip()] = (val or key).strip()
+    plain = set(re.findall(r"'([a-z0-9_]+)'", look[look.index("export const PLAIN_MOTIFS"):].split("\n")[0]))
+    return mapping, plain, look
+
+
+def test_every_motif_of_the_library_has_a_drawn_look_or_is_plain_on_purpose():
+    """Review of 0.10.0: Pixel Art was not pixelated, the Chalkboard had no chalk, Stained Glass no glass, Glassmorphism no frosted card - eight named styles shared one circle
+    backdrop in different colours. Each style's `motif` (the word that picks its swatch) now selects a drawn surface in remotion/src/kit/Look.tsx."""
+    from instai.styles.builtin_styles import BUILTIN_STYLES
+
+    mapping, plain, look = _looks_table()
+    motifs = {s["motif"] for s in BUILTIN_STYLES.values()}
+    assert motifs <= set(mapping) | plain, f"no look and not plain on purpose: {sorted(motifs - set(mapping) - plain)}"
+    assert not (set(mapping) & plain), "a motif is either drawn or plain"
+    assert (set(mapping) | plain) <= motifs, f"a look for a motif no style has: {sorted((set(mapping) | plain) - motifs)}"
+    for val in set(mapping.values()):
+        assert re.search(rf"^const {val}: Maker", look, re.M), f"{val} is not defined"
+    drawn = [k for k, s in BUILTIN_STYLES.items() if s["motif"] in mapping]
+    assert len(drawn) >= 85 and len(set(mapping.values())) >= 40, (len(drawn), len(set(mapping.values())))      # 87 of 116 are drawn, 29 are plain on purpose
+    # the named ones of the review each have a surface of their own
+    own = {"pixel_art_16bit": "pixel", "chalkboard_classroom": "chalk", "neo_brutalism": "brutal", "stained_glass": "stained", "minimal_bw_essay": "essay",
+           "vaporwave_dream": "vapor", "stop_motion_puppet": "felt", "whiteboard_explainer": "whiteboard", "glassmorphism_ui": "glass"}
+    for key, maker in own.items():
+        assert mapping[BUILTIN_STYLES[key]["motif"]] == maker, key
+    assert len({maker for maker in own.values()}) == len(own), "no two of them share a surface"
+    # a style that shares its motif with a different-looking one may get its own surface by key (Islamic geometry: a star lattice)
+    keyed = re.findall(r"([a-z0-9_]+): ([A-Za-z]+)", re.search(r"const KEY_LOOKS[^{]*\{([^}]*)\}", look).group(1))
+    assert keyed and all(k in BUILTIN_STYLES and re.search(rf"^const {v}: Maker", look, re.M) for k, v in keyed), keyed
+
+
+def test_the_kit_carries_the_motif_and_the_stage_draws_the_look():
+    from instai.remotion import kit
+    from instai.styles.builtin_styles import BUILTIN_STYLES
+
+    assert kit.style_kit("pixel_art_16bit")["motif"] == "pixel" and kit.style_kit("glassmorphism_ui")["motif"] == "glass"
+    assert all(k["motif"] == BUILTIN_STYLES[k["key"]]["motif"] for k in kit.all_kits() if k["builtin"])
+    stage = (REMOTION / "src" / "kit" / "Stage.tsx").read_text(encoding="utf-8")
+    assert "lookFor(kit" in stage and "look?.replace" in stage and "look.filter" in stage
+    assert "motif: String(r.motif" in (REMOTION / "src" / "kit" / "theme.ts").read_text(encoding="utf-8")
+
+
+def test_an_emphasised_word_reads_on_a_light_background():
+    """Review of 0.10.0: the starred word of KineticText under minimal_bw_essay was grey on light grey. Words are small text: they need 4.5:1, not the 3:1 of big shapes."""
+    text = (REMOTION / "src" / "compositions" / "KineticText.tsx").read_text(encoding="utf-8")
+    assert "accentOn(p.background, p.accent, 4.5)" in text
+    assert "min = 3" in (REMOTION / "src" / "kit" / "theme.ts").read_text(encoding="utf-8")
+
+
 def test_the_font_and_its_licence_are_in_the_project():
     fonts = REMOTION / "public" / "fonts"
     assert (fonts / "Vazirmatn-Regular.woff2").stat().st_size > 10000 and (fonts / "Vazirmatn-Bold.woff2").stat().st_size > 10000 and (fonts / "OFL.txt").is_file()
@@ -122,7 +178,7 @@ def test_status_code_and_kits_endpoints(api):
     code = api.get("/api/remotion/code").json()
     assert [c["id"] for c in code["compositions"]] == ["TitleCard", "KineticText", "Explainer", "LowerThird"]
     assert all(len(c["code"]) > 800 and "useCurrentFrame" in c["code"] for c in code["compositions"])
-    assert {x["name"] for x in code["shared"]} == {"theme.ts", "motion.ts", "Stage.tsx", "catalog.ts", "render.mjs"}
+    assert {x["name"] for x in code["shared"]} == {"theme.ts", "motion.ts", "Stage.tsx", "Look.tsx", "catalog.ts", "render.mjs"}
     kits = api.get("/api/remotion/kits").json()
     assert len(kits["kits"]) >= 20 and kits["default"] == "cinematic_realistic"
     keys = {g["key"] for g in kits["groups"]}
@@ -261,6 +317,13 @@ def test_the_renders_list_names_files_and_errors(api, worker, fake_toolchain):
     finish(api, worker, post_render(api))
     rows = api.get("/api/remotion/renders").json()["renders"]
     assert rows[0]["status"] == "succeeded" and rows[0]["url"].endswith(".mp4") and rows[0]["composition"] == "TitleCard" and rows[0]["bytes"] == 2048
+    # review of 0.10.0: the page printed the RENDER time next to the resolution as if it were the length of the video (a 14 s video showed "3 minutes 59 seconds")
+    assert rows[0]["duration_sec"] == 5.0 and rows[0]["fps"] == 30 and rows[0]["render_seconds"] is not None and rows[0]["frames"] == 150, "150 frames at 30 fps are a 5 second video"
+    still = finish(api, worker, post_render(api, still=30))
+    again = {r["job_id"]: r for r in api.get("/api/remotion/renders").json()["renders"]}[still["id"]]
+    assert again["duration_sec"] is None, "a picture has no length"
+    page = (ROOT / "frontend" / "src" / "remotion" / "RemotionPage.tsx").read_text(encoding="utf-8")
+    assert "r.duration_sec" in page and "f.duration(r.seconds)" not in page, "the card shows the video's length, and the render time on its own line"
 
 
 def test_the_setup_job_waits_while_the_background_setup_of_start_bat_runs(api, worker, tmp_path, monkeypatch):

@@ -74,6 +74,14 @@ def animatic_hash(ep: Episode) -> str:
     return hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode()).hexdigest()[:20]
 
 
+def animatic_shape_hash(ep: Episode) -> str:
+    """What the animatic is ABOUT - the shots, their words, lengths and techniques - without the pictures. The pictures only change from placeholders to real keyframes
+    once production has run, which is no reason to ask the owner to look at the animatic (the timing check) again; `animatic_hash` still includes them so the
+    Pre-production tab can offer a rebuild with the real pictures."""
+    rows = [[s.pk, s.description, s.narration, s.duration_sec, s.technique] for s in story_services.all_shots(ep)]
+    return hashlib.sha256(json.dumps(rows, ensure_ascii=False).encode()).hexdigest()[:20]
+
+
 def animatic_asset(ep: Episode) -> Asset | None:
     return Asset.objects.filter(episode=ep, shot__isnull=True, role="animatic", is_current=True).order_by("-version").first()
 

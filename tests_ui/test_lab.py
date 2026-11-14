@@ -704,7 +704,7 @@ def test_automation_page_renders_every_section(browser, server, fresh_page, lang
         assert page.locator("[data-testid=slots] li").count() == 4                    # the next four publication slots
         assert page.locator("[data-testid=ap-state]").inner_text().strip() == ("خاموش" if lang == "fa" else "Off")
         assert page.locator("[data-testid=ap-enable]").is_disabled()                  # blocked until the sentence is typed
-        assert page.locator("[data-testid=targets-empty]").is_visible()
+        page.locator("[data-testid=targets-empty]").wait_for(state="visible", timeout=15000)      # it appears after an asynchronous fetch (slow over a tunnel)
         page.locator("[data-testid=instagram-requirements] summary").click()          # the account checklist is one click away
         assert page.locator("[data-testid=instagram-requirements] li").count() == 6
         phone_ok(page, f"automation {lang} {size}")

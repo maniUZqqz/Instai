@@ -147,8 +147,11 @@ def renders_view(request):
     rows = []
     for j in Job.objects.filter(kind="remotion.render").order_by("-id")[:30]:
         r = j.result or {}
+        fps, frames = r.get("fps"), r.get("frames")
+        length = round(frames / fps, 1) if isinstance(fps, (int, float)) and fps and isinstance(frames, (int, float)) and r.get("kind") == "mp4" else None
         rows.append({"job_id": j.pk, "status": j.status, "composition": (j.payload or {}).get("composition"), "style": (j.payload or {}).get("style"),
                      "size": (j.payload or {}).get("size"), "url": r.get("url", ""), "kind": r.get("kind", ""), "seconds": r.get("seconds"),
+                     "render_seconds": r.get("seconds"), "duration_sec": length, "fps": fps,       # `seconds` is how long the RENDER took; `duration_sec` is the length of the video
                      "width": r.get("width"), "height": r.get("height"), "frames": r.get("frames"), "bytes": r.get("bytes"),
                      "created_at": j.created_at.isoformat(), "error": j.error[:300] if j.status == Job.FAILED else ""})
     return Response({"renders": rows})

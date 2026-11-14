@@ -257,6 +257,8 @@ class ComfyHandler(_H):
             return self.send_json(o.object_info())
         if u.path == "/system_stats":
             return self.send_json(getattr(o, "stats", None) or {"system": {"comfyui_version": "fake-0.3"}, "devices": []})
+        if u.path == "/queue":            # what another program (the NMarketing agent) may have running or waiting: set `queue_running` / `queue_pending`
+            return self.send_json({"queue_running": list(getattr(o, "queue_running", [])), "queue_pending": list(getattr(o, "queue_pending", []))})
         if u.path.startswith("/history/"):
             pid = u.path.rsplit("/", 1)[1]
             h = o.history.get(pid)
@@ -329,6 +331,7 @@ def comfy_server(missing_models=(), polls=0, reject=False, execution_error=False
     s = _Server(ComfyHandler)
     s.history, s.files, s.prompts, s.prompt_times, s.video_bytes = {}, {}, [], [], None
     s.freed = s.interrupted = s.uploads = 0
+    s.queue_running, s.queue_pending = [], []
     s.polls, s.reject, s.execution_error = polls, reject, execution_error
 
     def object_info():

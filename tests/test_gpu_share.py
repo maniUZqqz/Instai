@@ -251,6 +251,37 @@ def test_comfyui_is_freed_only_after_a_quiet_period_and_only_once(monkeypatch):
         settings_store.set_setting("comfyui_url", "")
 
 
+def test_comfyui_is_not_freed_while_another_program_has_a_prompt_in_it(monkeypatch):
+    """Review of 0.10.0: only InstAI's own job table was checked, so the models of a shared ComfyUI could be unloaded between two steps of an NMarketing job (a slowdown).
+    Now a running or waiting prompt in ComfyUI's own queue keeps the models; the release is asked again at the next tick and happens once the queue is empty."""
+    from instai.core import settings_store
+    from instai.gpu import coexist
+
+    with fakes.comfy_server() as c:
+        settings_store.set_setting("comfyui_url", c.url)
+        coexist.STATE["released_at"] = 0.0
+        c.queue_running = [[1, "p-from-nm-agent", {}, {}, []]]
+        res = coexist.release_idle(idle_for=10 ** 6)
+        assert res == {"freed": False, "reason": "comfy_busy"} and c.freed == 0
+        c.queue_running, c.queue_pending = [], [[2, "p-waiting", {}, {}, []]]
+        assert coexist.release_idle(idle_for=10 ** 6)["reason"] == "comfy_busy" and c.freed == 0, "a waiting prompt counts too"
+        c.queue_pending = []
+        assert coexist.release_idle(idle_for=10 ** 6)["freed"] is True and c.freed == 1, "the queue is empty: the other program gets the whole card"
+        assert coexist.release_idle(idle_for=10 ** 6)["reason"] == "already" and c.freed == 1
+        settings_store.set_setting("comfyui_url", "")
+
+
+def test_a_comfyui_without_a_queue_endpoint_is_treated_as_before(monkeypatch):
+    from instai.providers.base import ProviderError
+    from instai.providers.comfy.client import ComfyClient
+
+    def no_queue(self, path, timeout=10, **kw):
+        raise ProviderError("ComfyUI GET /queue failed")
+
+    monkeypatch.setattr(ComfyClient, "_get", no_queue)
+    assert ComfyClient("http://127.0.0.1:9").queue_busy() is None, "unknown, not 'busy': the quiet-period rule alone decides"
+
+
 def test_a_comfyui_that_is_down_is_left_alone(monkeypatch):
     from instai.gpu import coexist
 
