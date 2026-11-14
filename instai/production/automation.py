@@ -264,6 +264,12 @@ def tick(now: datetime | None = None) -> list[dict]:
         selftest.auto_queue()                   # the studio pipeline tests itself: CPU checks per new version, GPU checks as soon as the machine can do them
     except Exception:  # noqa: BLE001 - a self-test must never disturb the automation
         log.debug("studio self-test auto-queue failed", exc_info=True)
+    try:
+        from instai.ops import pcselftest
+
+        pcselftest.auto_queue()                 # this PC tests itself: ffmpeg, Persian text, update channel ... per version, Remotion / Ollama / ComfyUI on the GPU as soon as each can run
+    except Exception:  # noqa: BLE001 - a self-test must never disturb the automation
+        log.debug("PC self-test auto-queue failed", exc_info=True)
     return done
 
 

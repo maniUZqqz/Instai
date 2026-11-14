@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Notice, PageHead, type Tone } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { PcSelfTestCard } from './PcSelfTest'
 
 const STATUS_TONE: Record<string, Tone> = { ok: 'ok', warn: 'warn', missing: 'err', error: 'err' }
 
@@ -15,6 +16,7 @@ export default function System() {
   return (
     <div className="stack-lg">
       <PageHead title={t('nav.system')} />
+      <PcSelfTestCard />
       <HardwareSection />
       <BenchmarkSection />
     </div>
