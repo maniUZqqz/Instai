@@ -194,6 +194,42 @@ def transition(ep: Episode, to: str, *, reason: str = "", actor: str = "user", e
     return ep
 
 
+def release_scripting(ep: Episode, prev: str = "", *, reason: str = "script generation did not finish") -> str:
+    """Take an episode out of `scripting` when its script job ended WITHOUT a script (the language model is off, the job was cancelled or
+    deferred, the job crashed). A direct compare-and-set - never `transition()`, whose rules forbid going back - and it NEVER raises, so the
+    original error of the job (a wait, a cancel, a real failure) always reaches the worker. Goes back to `prev` when that was a reviewable
+    state with a script, else to `planned`. Returns the state the episode is in now."""
+    try:
+        ep.refresh_from_db(fields=["state", "script"])
+        if ep.state != states.SCRIPTING:
+            return ep.state
+        to = states.SCRIPT_REVIEW if prev == states.SCRIPT_REVIEW and len((ep.script or {}).get("blocks", [])) >= 3 else states.PLANNED
+        if Episode.objects.filter(pk=ep.pk, state=states.SCRIPTING).update(state=to, error="", updated_at=timezone.now()) == 1:
+            EpisodeEvent.objects.create(episode=ep, from_state=states.SCRIPTING, to_state=to, reason=reason[:300], actor="system")
+            ep.state = to
+        return ep.state
+    except Exception:  # noqa: BLE001 - the caller is already handling a more important error
+        return ep.state
+
+
+def heal_stuck_scripting(ep: Episode | None = None) -> int:
+    """An episode in `scripting` whose script job is gone (no queued or running `story.script` job) can never leave that state by itself,
+    e.g. rows left by an older version that did not release it. Put it back (`release_scripting`). One episode, or every episode when
+    `ep` is None (the worker's tick). Returns how many were healed."""
+    from instai.jobs.models import Job
+
+    healed = 0
+    qs = Episode.objects.filter(state=states.SCRIPTING) if ep is None else Episode.objects.filter(pk=ep.pk, state=states.SCRIPTING)
+    for e in list(qs):
+        if Job.objects.filter(episode_id=e.pk, kind="story.script", status__in=(Job.QUEUED, Job.RUNNING)).exists():
+            continue
+        if release_scripting(e, reason="no script job is running: back to planned") != states.SCRIPTING:
+            healed += 1
+    if ep is not None and healed:
+        ep.refresh_from_db()
+    return healed
+
+
 def fail_episode(ep: Episode, message: str) -> None:
     ep.refresh_from_db(fields=["state"])
     if ep.state not in (states.FAILED, states.CANCELLED, states.PUBLISHED):

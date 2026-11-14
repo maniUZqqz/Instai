@@ -24,8 +24,13 @@ CACHE_SECONDS = 8
 NODES_CACHE_SECONDS = 90
 
 
-def _item(id_: str, label: str, status: str, detail: str = "", data: dict | None = None, hint: str = "") -> dict:
-    return {"id": id_, "label": label, "status": status, "detail": detail, "data": data or {}, "hint": hint}
+def _item(id_: str, label: str, status: str, detail: str = "", data: dict | None = None, hint: str = "", action: dict | None = None, tech: str = "") -> dict:
+    """One row of the System page. `action` = a button that fixes it ({"package": id} runs the installer of the Models page, {"ollama": tag} pulls
+    a model, {"link": path} opens a page); `tech` = the command line / English text kept for the «اطلاعات فنی» view (never shown by default)."""
+    from .fa_digits import fa_numbers
+
+    detail, hint = fa_numbers(detail), fa_numbers(hint)           # Persian digits in Persian sentences; versions, paths and addresses stay as they are
+    return {"id": id_, "label": label, "status": status, "detail": detail, "data": data or {}, "hint": hint, "action": action, "tech": tech}
 
 
 def _run(cmd: list[str], timeout: float = 8) -> tuple[int, str]:
@@ -178,7 +183,7 @@ def node_stats() -> dict:
 def check_gpu() -> dict:
     g = gpu_status()
     if not g:
-        return _item("gpu", "کارت گرافیک (NVIDIA)", "missing", "nvidia-smi پیدا نشد", {},
+        return _item("gpu", "کارت گرافیک (NVIDIA)", "missing", "درایورِ NVIDIA پیدا نشد", {},
                      "روی این رایانه GPU یا درایور NVIDIA دیده نشد. تولید ویدئو فقط روی رایانه‌ی GPUدار ممکن است.")
     gb = (g["total_mb"] or 0) / 1024
     st = "ok" if gb >= 11 else "warn"
@@ -208,7 +213,8 @@ def check_ollama(url: str | None = None) -> dict:
         pass
     return _item("ollama", "Ollama (مدل زبانی)", "ok" if models else "warn", f"{len(models)} مدل نصب است",
                  {"url": url, "models": models, "loaded": loaded},
-                 "" if models else "هیچ مدلی نصب نیست؛ مثلاً: ollama pull qwen3:8b")
+                 "" if models else "هیچ مدلی نصب نیست؛ مدلِ پیشنهادی را با دکمهٔ «دانلود» بگیرید.",
+                 None if models else {"ollama": "qwen3:8b"}, "" if models else "ollama pull qwen3:8b")
 
 
 def comfy_object_info(url: str | None = None, force: bool = False) -> dict | None:
@@ -258,14 +264,15 @@ def check_comfyui(url: str | None = None) -> dict:
     return _item("comfyui", "ComfyUI (تصویر و ویدئو)", "ok" if ready else "warn",
                  f"{len(info)} نود؛ نسخه {stats.get('system', {}).get('comfyui_version', '?')}؛ {ready} از {len(wf)} گردشِ کار آماده",
                  {"url": url, "node_count": len(info), "workflows": wf, "system": stats.get("system", {})},
-                 "" if ready else "مدل‌های لازم برای گردش‌های کار پیدا نشد؛ Download-Models.bat را اجرا کنید.")
+                 "" if ready else "مدل‌های لازم برای گردش‌های کار پیدا نشد؛ از صفحهٔ «مدل‌ها» یا «دانلودها» بگیرید.",
+                 None if ready else {"link": "/downloads"}, "" if ready else "Download-Models.bat")
 
 
 def check_ffmpeg() -> dict:
     info = runtime.ffmpeg_info()
     if not info["ffmpeg"]:
         return _item("ffmpeg", "FFmpeg (مونتاژ ویدئو)", "missing", "پیدا نشد", {},
-                     "START.bat آن را به‌صورت خودکار دانلود می‌کند (پوشه‌ی tools).")
+                     "FFmpeg را با دکمهٔ «نصب» بگیرید (هنگامِ شروعِ برنامه هم خودکار گرفته می‌شود).", {"package": "ffmpeg"})
     feats = info.get("features", {})
     missing = [k for k in ("libx264", "ass", "zoompan", "xfade") if not feats.get(k)]
     return _item("ffmpeg", "FFmpeg (مونتاژ ویدئو)", "warn" if missing else "ok",
@@ -278,7 +285,7 @@ def check_tts() -> list[dict]:
 
     out = []
     for s in tts_status():
-        out.append(_item(s["id"], s["label"], s["status"], s["detail"], s.get("data", {}), s.get("hint", "")))
+        out.append(_item(s["id"], s["label"], s["status"], s["detail"], s.get("data", {}), s.get("hint", ""), s.get("action"), s.get("tech", "")))
     return out
 
 
@@ -307,10 +314,11 @@ def check_models() -> dict:
 def check_tools() -> list[dict]:
     items = []
     rh = runtime.find_tool("rhubarb")
-    items.append(_item("rhubarb", "Rhubarb Lip Sync (فازِ ۳)", "ok" if rh else "missing", rh or "نصب نیست",
-                       {"path": rh}, "" if rh else "برای هم‌گام‌سازی لب در فاز ۳ لازم می‌شود؛ فعلاً ضروری نیست."))
+    items.append(_item("rhubarb", "Rhubarb Lip Sync (حرکتِ دهانِ عروسک)", "ok" if rh else "missing", rh or "نصب نیست",
+                       {"path": rh}, "" if rh else "برای حرکتِ دقیقِ دهانِ عروسک‌ها لازم است؛ بدونِ آن دهان از روی بلندیِ صدا حرکت می‌کند.",
+                       None if rh else {"package": "rhubarb"}))
     bl = runtime.find_tool("blender")
-    items.append(_item("blender", "Blender (ارائه‌دهنده‌ی سه‌بعدی، فازِ ۳)", "ok" if bl else "missing", bl or "نصب نیست",
+    items.append(_item("blender", "Blender (ساختِ سه‌بعدی)", "ok" if bl else "missing", bl or "نصب نیست",
                        {"path": bl}, "" if bl else "فعلاً ضروری نیست."))
     return items
 

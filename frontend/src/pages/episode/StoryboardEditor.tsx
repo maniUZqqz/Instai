@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../api/client'
-import type { Episode, EpisodeEstimate, PageDetail, Shot } from '../../api/types'
+import type { Episode, EpisodeEstimate, PageDetail, Preflight, Shot, ShotFallback } from '../../api/types'
 import { useConfirm } from '../../components/feedback'
-import { Badge, Button, Card, CheckField, Notice, NumberField, SelectField, TextField, AreaField } from '../../components/ui'
+import { Badge, Button, Card, CheckField, LinkButton, Notice, NumberField, SelectField, TextField, AreaField } from '../../components/ui'
 import { CAMERA_MOVES, IMPLEMENTED_TECHNIQUES, useFormats } from '../../formats'
 import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
@@ -205,6 +205,8 @@ export function StoryboardEditor({ ep, page, speakers, editable, structureEditab
                   onRegenerate={onRegenerate}
                   hasMedia={hasMedia}
                   epState={ep.state}
+                  fallback={sh.id && serverShots.get(sh.id)?.technique === sh.technique ? ep.fallbacks?.find((x) => x.shot === sh.id) : undefined}
+                  onAutoRig={async () => { await api.post<Preflight>(`/episodes/${ep.id}/preflight`, {}); onChanged() }}
                 />
               ))}
               {editable && structureEditable && (
@@ -235,7 +237,7 @@ export function StoryboardEditor({ ep, page, speakers, editable, structureEditab
   )
 }
 
-function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptions, speakers, onChange, onMove, onRemove, canRemove, onChanged, onRegenerate, hasMedia, epState }: {
+function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptions, speakers, onChange, onMove, onRemove, canRemove, onChanged, onRegenerate, hasMedia, epState, fallback, onAutoRig }: {
   n: number
   sh: DShot
   server: Shot | undefined
@@ -252,12 +254,14 @@ function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptio
   onRegenerate: () => void
   hasMedia: boolean
   epState: string
+  fallback?: ShotFallback
+  onAutoRig: () => Promise<void>
 }) {
-  const { t, f, tr } = useI18n()
+  const { t, f, tr, lang } = useI18n()
   const confirm = useConfirm()
   const act = useAction()
   const notes = server?.estimate?.notes ?? []
-  const fallback = !IMPLEMENTED_TECHNIQUES.includes(sh.technique) || notes.includes('falls_back_to_still_kenburns')
+  const unimplemented = !IMPLEMENTED_TECHNIQUES.includes(sh.technique) || notes.includes('falls_back_to_still_kenburns')
   const canAct = !!server && hasMedia && ['asset_generation', 'animation', 'assembly', 'quality_review', 'ready_for_approval', 'failed'].includes(epState)
   const regenerate = async () => {
     if (!server) return
@@ -304,7 +308,17 @@ function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptio
           <SelectField label={t('sbd.camera')} value={sh.move} onChange={(v) => onChange({ move: v })} options={CAMERA_MOVES.map((m) => ({ value: m, label: tr('cam.' + m, m) }))} disabled={!editable} />
           <NumberField label={t('sbd.intensity')} min={0} max={1} step={0.1} value={sh.intensity} onChange={(v) => onChange({ intensity: v ?? 0.5 })} disabled={!editable} />
         </div>
-        {fallback && <Notice tone="warn">{t('sbd.fallback')}</Notice>}
+        {fallback ? (
+          <Notice tone="warn">
+            <strong>{t('sbd.fb_title')}</strong> <span>{lang === 'en' ? fallback.en : fallback.fa}</span>
+            {fallback.code === 'no_rig' && (
+              <span className="row" style={{ marginBlockStart: '0.4rem' }}>
+                <Button size="sm" icon="spark" busy={act.busy} onClick={() => act.run(onAutoRig, { success: t('pf.rigs_made') })}>{t('pf.make_rigs')}</Button>
+                <LinkButton size="sm" to="/lab/rigs">{t('pf.open_rigs')}</LinkButton>
+              </span>
+            )}
+          </Notice>
+        ) : unimplemented && <Notice tone="warn">{t('sbd.fallback')}</Notice>}
         {server && sh.technique === 'motion_graphics' && <MotionPlanBlock shotId={server.id} editable={editable} dirty={dirty} />}
         {notes.includes('clips_chained') && <Notice tone="info">{t('sbd.chained')}</Notice>}
         <div className="grid-3">

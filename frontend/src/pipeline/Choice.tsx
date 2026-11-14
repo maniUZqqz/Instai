@@ -213,7 +213,7 @@ export default function ChoiceEditor() {
 }
 
 function GraphMap({ nodes, layout, sel, onSel, errNodes }: { nodes: Node[]; layout: Report['layout']; sel: string; onSel: (id: string) => void; errNodes: Set<string | undefined> }) {
-  const { n } = usePL()
+  const { L, n } = usePL()
   const CW = 150, RH = 92, BW = 112, BH = 58, PAD = 16
   const pos = layout.positions
   const W = PAD * 2 + layout.columns * CW
@@ -232,7 +232,7 @@ function GraphMap({ nodes, layout, sel, onSel, errNodes }: { nodes: Node[]; layo
           const p = xy(nd.id)
           const col = nd.kind === 'ending' ? END_COLOUR[nd.ending] ?? END_COLOUR.neutral : KIND_COLOUR[nd.kind]
           return (
-            <g key={nd.id} transform={`translate(${p.x},${p.y})`} onClick={() => onSel(nd.id)} style={{ cursor: 'pointer' }} tabIndex={0} role="button" aria-label={`post ${nd.number}`} onKeyDown={(e) => { if (e.key === 'Enter') onSel(nd.id) }}>
+            <g key={nd.id} transform={`translate(${p.x},${p.y})`} onClick={() => onSel(nd.id)} style={{ cursor: 'pointer' }} tabIndex={0} role="button" aria-label={`${L('پست', 'post')} ${n(nd.number)}`} onKeyDown={(e) => { if (e.key === 'Enter') onSel(nd.id) }}>
               <rect width={BW} height={BH} rx="12" fill={col} stroke={errNodes.has(nd.id) ? '#ff2d2d' : nd.id === sel ? '#ffffff' : '#1f2430'} strokeWidth={errNodes.has(nd.id) || nd.id === sel ? 4 : 2} />
               <text x={BW / 2} y="25" textAnchor="middle" fill="#fff" fontWeight="700" fontSize="20">{n(nd.number)}</text>
               <text x={BW / 2} y="46" textAnchor="middle" fill="#fff" fontSize="12">{(nd.title || nd.id).slice(0, 14)}</text>

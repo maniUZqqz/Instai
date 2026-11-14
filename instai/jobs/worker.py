@@ -49,7 +49,8 @@ def execute(job: Job, worker: str = "inline") -> str:
     try:
         if fn is None:
             return queue.fail(job, f"no handler for job kind {job.kind}", retryable=False, code="no_handler")
-        queue.log_job(job, f"started (attempt {job.attempts}/{job.max_attempts}) by {worker}", dedupe=True)
+        queue.log_job(job, f"started (attempt {job.attempts}/{job.max_attempts}) by {worker}", dedupe=True, code="started",
+                      params={"attempt": job.attempts, "max": job.max_attempts, "worker": worker})
         ctx.check()
         result = fn(ctx) or {}
         queue.complete(job, result, ctx.gpu_seconds)
@@ -127,6 +128,80 @@ def _on_final_failure(job: Job) -> None:
                 pass
 
 
+# ------------------------------------------------------------------ the 30-second automation tick
+# Every step runs on its own: one that raises must not skip the ones after it (it used to: one shared try/except meant a broken
+# `automation.tick()` stopped the GPU-memory release and the style samples every 30 s, with nothing in the UI). The last error of each
+# step is kept on the worker's row and the Monitor page names the step (`TICK_LABELS`, fa + en).
+TICK_LABELS = {
+    "reap": ("آزاد کردن کارهای رهاشده", "Releasing abandoned tasks"),
+    "automation": ("خودکارسازی صفحه‌ها", "Page automation"),
+    "health": ("سنجش رایانه‌های کارگر", "Worker PC check"),
+    "report": ("گزارش و پاک‌سازی سابقه", "Report housekeeping"),
+    "vram": ("آزاد کردن حافظهٔ کارت گرافیک", "Releasing GPU memory"),
+    "styles": ("نمونه‌تصویر سبک‌ها", "Style sample pictures"),
+    "scripting": ("بازگرداندن فیلم‌نامه‌های گیرکرده", "Recovering stuck scripts"),
+    "update": ("بررسی نسخهٔ تازه", "Checking for a new version"),
+}
+
+
+def tick_steps() -> list[tuple[str, object]]:
+    """(key, callable) in order. Imports happen inside each callable so a broken module only fails its own step."""
+    def reap():
+        from instai.jobs import workers
+
+        workers.reap_expired()
+
+    def automation_tick():
+        from instai.production import automation
+
+        automation.tick()
+
+    def health():
+        from instai.production import automation
+
+        automation.check_worker_health()
+
+    def report_maintain():
+        from instai.ops import report
+
+        report.maintain()                                       # close silent sessions, thin and delete old report rows (at most every 10 minutes)
+
+    def vram():
+        from instai.gpu import coexist
+
+        coexist.release_idle()                                  # no GPU work for a while: give ComfyUI's VRAM back to the other programs on this PC
+
+    def styles():
+        from instai.styles import previews
+
+        previews.auto_queue()                                   # real sample pictures of the styles, by themselves, in the night window, once ComfyUI is ready
+
+    def scripting():
+        from instai.story import services
+
+        services.heal_stuck_scripting()                         # an episode that says "writing the script" with no script job left
+
+    def update_check():
+        from instai.ops import update
+
+        update.night_check()                                    # in the idle night window: is there a newer InstAI? (the badge in the top bar)
+
+    return [("reap", reap), ("automation", automation_tick), ("health", health), ("report", report_maintain), ("vram", vram),
+            ("styles", styles), ("scripting", scripting), ("update", update_check)]
+
+
+def run_tick_steps(steps) -> dict[str, str]:
+    """Run every step, whatever the others do. Returns {key: error text} for the ones that raised (empty = all fine)."""
+    errors: dict[str, str] = {}
+    for key, fn in steps:
+        try:
+            fn()
+        except Exception as e:  # noqa: BLE001 - automation must never take the worker down, nor skip the next step
+            log.warning("automation step %s failed: %s", key, e, exc_info=True)
+            errors[key] = f"{type(e).__name__}: {e}"
+    return errors
+
+
 class WorkerRunner:
     def __init__(self, name: str | None = None, cpu_lanes: int = 2, gpu_lanes: int = 1, poll: float = 1.0):
         self.name = name or f"{socket.gethostname()}-{os.getpid()}"
@@ -165,8 +240,8 @@ class WorkerRunner:
 
     def _heartbeat_row(self) -> None:
         row, _ = Worker.objects.get_or_create(name=self.name)
-        Worker.objects.filter(pk=row.pk).update(pid=os.getpid(), last_seen=timezone.now(), info={"cpu_lanes": self.cpu_lanes,
-                                                                                               "gpu_lanes": self.gpu_lanes})
+        info = {**(row.info or {}), "cpu_lanes": self.cpu_lanes, "gpu_lanes": self.gpu_lanes}          # keeps `tick_errors` (see _record_tick_errors)
+        Worker.objects.filter(pk=row.pk).update(pid=os.getpid(), last_seen=timezone.now(), info=info)
         running = list(Job.objects.filter(lease_owner=self.name, status=Job.RUNNING).values_list("pk", flat=True))
         Worker.objects.filter(pk=row.pk).update(current_jobs=running)
         try:                  # the report: this PC is online (session), resource sample about once a minute
@@ -178,27 +253,24 @@ class WorkerRunner:
             log.debug("report heartbeat failed", exc_info=True)
 
     def _automation_tick(self) -> None:
+        errors = run_tick_steps(tick_steps())
+        self._record_tick_errors(errors)
+
+    def _record_tick_errors(self, errors: dict[str, str]) -> None:
+        """Keep the last error of each automation step on this worker's row (`info.tick_errors`) so the Monitor page can say which one is broken."""
         try:
-            from instai.jobs import workers
-            from instai.production import automation
-
-            workers.reap_expired()
-            automation.tick()
-            automation.check_worker_health()
-            from instai.ops import report
-
-            report.maintain()                                   # close silent sessions, thin and delete old report rows (at most every 10 minutes)
-            try:
-                from instai.gpu import coexist
-
-                coexist.release_idle()                          # no GPU work for a while: give ComfyUI's VRAM back to the other programs on this PC
-            except Exception:  # noqa: BLE001 - a failure here must not skip the steps after it
-                log.debug("release_idle failed", exc_info=True)
-            from instai.styles import previews
-
-            previews.auto_queue()                               # real sample pictures of the styles, by themselves, in the night window, once ComfyUI is ready
-        except Exception:  # noqa: BLE001 - automation must never take the worker down
-            log.exception("automation tick failed")
+            row = Worker.objects.filter(name=self.name).first()
+            if not row:
+                return
+            info = dict(row.info or {})
+            old = info.get("tick_errors") or {}
+            now = timezone.now().isoformat()
+            new = {k: {"at": (old.get(k) or {}).get("at") or now, "error": v[:400]} for k, v in errors.items()}
+            if new != old:
+                info["tick_errors"] = new
+                Worker.objects.filter(pk=row.pk).update(info=info)
+        except Exception:  # noqa: BLE001 - reporting a problem must not become one
+            log.debug("could not record the tick errors", exc_info=True)
 
     def _ensure_gpu_lanes(self) -> None:
         """One GPU lane per usable device: this PC plus every enabled paired worker (up to 2 extra). A lane only waits for a free device."""

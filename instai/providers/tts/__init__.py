@@ -198,16 +198,16 @@ class PiperTTS(TTSProvider):
         ok, detail = self.available() if voice == self.voice else (True, "")
         exe = runtime.find_tool("piper")
         if not ok or not exe:
-            raise ProviderError(f"Piper unavailable: {detail}", retryable=False)
+            raise ProviderError(f"Piper unavailable: {detail}", retryable=False, fa="Piper (گویندگیِ پشتیبان) آماده نیست؛ از صفحهٔ «مدل‌ها» نصبش کنید.")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         t0 = time.time()
         try:
             p = subprocess.run([exe, "--model", str(self._model(voice)), "--output_file", str(out_path)], input=text.encode("utf-8"),
                                capture_output=True, timeout=300, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except (OSError, subprocess.SubprocessError) as e:
-            raise ProviderError(f"Piper failed: {e}") from e
+            raise ProviderError(f"Piper failed: {e}", fa="Piper نتوانست صدا بسازد.") from e
         if p.returncode != 0 or not out_path.exists():
-            raise ProviderError("Piper failed: " + p.stderr.decode("utf-8", "replace")[-200:])
+            raise ProviderError("Piper failed: " + p.stderr.decode("utf-8", "replace")[-200:], fa="Piper نتوانست صدا بسازد.")
         w = wave.open(str(out_path), "rb")
         rate = w.getframerate()
         w.close()
@@ -257,7 +257,7 @@ class MossTTS(TTSProvider):
     def synthesize(self, text, out_path, *, voice=None, language="fa", seed=None, reference=None) -> TTSResult:
         ref = reference or (voice[4:] if voice and voice.startswith("ref:") else None) or self.default_reference()
         if not ref:
-            raise ProviderError("MOSS-TTS needs a reference voice file", retryable=False)
+            raise ProviderError("MOSS-TTS needs a reference voice file", retryable=False, fa="MOSS-TTS یک فایلِ صدای نمونه می‌خواهد؛ در «آزمایشگاه تولید ← صداها» یکی اضافه کنید.")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if self.managed:
             from instai.providers.audio import services
@@ -269,9 +269,9 @@ class MossTTS(TTSProvider):
             r.raise_for_status()
             j = r.json()
         except requests.RequestException as e:
-            raise ProviderError(f"MOSS-TTS request failed: {type(e).__name__}") from e
+            raise ProviderError(f"MOSS-TTS request failed: {type(e).__name__}", fa="سرورِ MOSS-TTS پاسخ نداد؛ کمی بعد دوباره امتحان می‌شود.") from e
         if not j.get("ok") or not out_path.exists():
-            raise ProviderError("MOSS-TTS returned no audio")
+            raise ProviderError("MOSS-TTS returned no audio", fa="MOSS-TTS صدایی برنگرداند.")
         return TTSResult(out_path, wav_duration(out_path), self.id, voice or "persian-lora", int(j.get("sample_rate") or 24000), time.time() - t0)
 
 
@@ -319,9 +319,9 @@ class PocketTTS(TTSProvider):
         try:
             r = requests.post(self.url + "/api/voice/tts", json=body, timeout=900)
         except requests.RequestException as e:
-            raise ProviderError(f"Pocket-TTS gateway not reachable: {type(e).__name__}") from e
+            raise ProviderError(f"Pocket-TTS gateway not reachable: {type(e).__name__}", fa="دروازهٔ Pocket-TTS در دسترس نیست؛ نشانی‌اش را در «تنظیمات» بررسی کنید.") from e
         if r.status_code != 200 or len(r.content) < 64:
-            raise ProviderError(f"Pocket-TTS failed (HTTP {r.status_code}): {r.text[:160]}", retryable=r.status_code >= 500)
+            raise ProviderError(f"Pocket-TTS failed (HTTP {r.status_code}): {r.text[:160]}", retryable=r.status_code >= 500, fa="Pocket-TTS صدا نساخت.")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(r.content)
         w = wave.open(str(out_path), "rb")
@@ -361,7 +361,7 @@ class EdgeTTS(TTSProvider):
         try:
             import edge_tts
         except ImportError as e:
-            raise ProviderError("edge-tts is not installed", retryable=False, code="not_ready") from e
+            raise ProviderError("edge-tts is not installed", retryable=False, code="not_ready", fa="بستهٔ Edge TTS روی این رایانه نصب نیست.") from e
         from instai.render import ffmpeg
 
         voice = voice or DEFAULT_VOICES["edge"].get(language[:2], DEFAULT_VOICES["edge"]["fa"])
@@ -371,9 +371,9 @@ class EdgeTTS(TTSProvider):
         try:
             asyncio.run(edge_tts.Communicate(text, voice).save(str(mp3)))
         except Exception as e:  # noqa: BLE001 - network, endpoint changes, unknown voice
-            raise ProviderError(f"Edge TTS failed ({type(e).__name__}: {str(e)[:120]}); it is an unofficial online service") from e
+            raise ProviderError(f"Edge TTS failed ({type(e).__name__}: {str(e)[:120]}); it is an unofficial online service", fa="Edge TTS (سرویسِ آنلاینِ غیررسمی) جواب نداد؛ اینترنت را بررسی کنید.") from e
         if not mp3.exists() or mp3.stat().st_size < 64:
-            raise ProviderError("Edge TTS returned no audio")
+            raise ProviderError("Edge TTS returned no audio", fa="Edge TTS صدایی برنگرداند.")
         ffmpeg.run(["-i", str(mp3), "-ar", "24000", "-ac", "1", "-c:a", "pcm_s16le", str(out_path)])
         shutil.rmtree(mp3.parent, ignore_errors=True)
         return TTSResult(out_path, wav_duration(out_path), self.id, voice, 24000, time.time() - t0)
@@ -399,6 +399,7 @@ def get_tts(engine: str | None = None) -> TTSProvider:
         if cand.available()[0]:
             return cand
     raise ProviderError("No speech engine is ready (start the MOSS-TTS server or install a Piper voice)", retryable=False,
+                        fa="هیچ موتورِ گویندگی آماده نیست؛ در صفحهٔ «سیستم» دکمهٔ «نصب» را برای MOSS-TTS یا Piper بزنید.",
                         code="not_ready")
 
 
@@ -406,15 +407,35 @@ def all_engines() -> list[TTSProvider]:
     return [MossTTS(), PiperTTS(), PocketTTS(), EdgeTTS()]
 
 
+# what the owner is told when an engine is missing, and the button that fixes it (the same installer as the Models page); `tech` keeps the
+# command line / English text for the «اطلاعات فنی» view
+STATUS_HINTS = {
+    "piper": ("برای گویندگیِ پشتیبان (بدونِ اینترنت) Piper را نصب کنید.", {"package": "piper"}, "Download-Models.bat --only piper"),
+    "moss": ("برای بهترین گویندگیِ فارسی MOSS-TTS را نصب کنید؛ سرورش هنگامِ نیاز خودکار روشن می‌شود.", {"package": "moss-tts"}, "Download-Models.bat --only moss-tts"),
+    "pocket": ("Pocket-TTS از دروازهٔ جعبه‌ابزارِ صدا گفتار می‌دهد (نشانیِ آن را در «تنظیمات» بنویسید)؛ فقط برای کارِ غیرتجاری.", None, "Settings > Pocket URL"),
+    "edge": ("Edge TTS سرویسِ آنلاینِ غیررسمی و غیرتجاری است؛ پیش‌فرض نصب نمی‌شود و اینترنت می‌خواهد.", None, "pip install edge-tts"),
+}
+
+
+def detail_fa(ok: bool, detail: str) -> str:
+    """The one-line state of an engine in Persian (the English text `available()` returns stays in `tech`)."""
+    from instai.core.fa_catalog_data import SERVICE
+
+    if detail in SERVICE:
+        return SERVICE[detail]
+    if detail.startswith("voice ") and "is not downloaded" in detail:
+        return "صدای پیش‌فرض دانلود نشده است"
+    return "آماده است" if ok else "در دسترس نیست"
+
+
 def tts_status() -> list[dict]:
-    hints = {"piper": "Download-Models.bat --only piper", "moss": "Download-Models.bat --only moss-tts؛ سپس سرور MOSS را اجرا کنید.",
-             "pocket": "Pocket-TTS از دروازهٔ کیت صدا (Settings > Pocket URL) گفتار می‌دهد؛ فقط غیرتجاری.",
-             "edge": "pip install edge-tts (اینترنت لازم است)"}
     out = []
     for p in all_engines():
         ok, detail = p.available()
         lic = p.licence_info()
-        out.append({"id": f"tts_{p.id}", "label": p.label, "status": "ok" if ok else "missing", "detail": detail,
+        hint, action, tech_hint = STATUS_HINTS.get(p.id, ("", None, ""))
+        out.append({"id": f"tts_{p.id}", "label": p.label, "status": "ok" if ok else "missing", "detail": detail_fa(ok, detail),
                     "data": {"engine": p.id, "resource": p.resource, "licence": p.licence, "commercial": lic["commercial"],
-                             "warning": lic["warning"], "online": p.online}, "hint": "" if ok else hints.get(p.id, "")})
+                             "warning": lic["warning"], "online": p.online}, "hint": "" if ok else hint, "action": None if ok else action,
+                    "tech": "" if ok and not tech_hint else " | ".join(x for x in (detail, "" if ok else tech_hint) if x)})
     return out

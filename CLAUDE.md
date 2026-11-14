@@ -105,6 +105,14 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
+## Audit round «ia_core» (0.15.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
+- **Never roll an episode back with `services.transition` from a job's `except`**: use `services.release_scripting` (compare-and-set, never raises) and let the original exception reach the worker.
+- **A new technique that may not be rendered as planned** goes into `production/fallbacks.shot_fallback` (fa + en text); never write a fallback note by hand. `GET/POST /episodes/<id>/preflight` and `auto_rig` on produce make the stick-figure puppet.
+- **A new automation step of the worker** = one entry in `worker.tick_steps()` + a label in `TICK_LABELS` (fa + en); it must not rely on the steps before it.
+- **A new catalogue text (package, model, licence, workflow, installer item)** needs its Persian twin in `core/fa_catalog_data.py` (`tests/test_core_audit_catalog.py` checks); a hint on the System page = Persian sentence + `action` (a button) + the command in `tech`. Never put `pip install`, `Download-Models.bat --only ...` or a Windows path in a Persian sentence.
+- **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
+- **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
+
 
 ## Motion graphics: the scene-plan engine (0.16.0; docs in `docs/MOTION.md`, decisions in `docs/DECISIONS.md`)
 - A `motion_graphics` shot is DRAWN by Remotion from a SCENE PLAN (`instai/motion_plan`: components, specs, fallback, patch, plans, qa, critique, shots, jobs, api; TSX in `remotion/src/components`). `remotion/src/components/registry.ts` = `motion_plan/components.py` = `components/defs.ts` (page) = `toolchain.SCENE_COMPOSITIONS`: add a component in ALL FOUR (`tests/test_motion_plan.py` fails otherwise).

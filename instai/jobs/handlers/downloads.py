@@ -67,7 +67,7 @@ def _run_on_worker(ctx, worker_id: int, packages: list[str]) -> dict:
     if "downloads" not in (w.capabilities or []):
         raise ProviderError(f"worker PC {w.name} runs an older InstAI that cannot download", retryable=False, code="not_ready",
                             fa=f"برنامهٔ رایانهٔ «{w.name}» قدیمی است و دانلود را نمی‌شناسد. آن را به‌روز کنید و START-WORKER.bat را دوباره بزنید.")
-    ctx.log(f"download of {', '.join(packages)} goes to worker PC {w.name}")
+    ctx.log_t("dl_to_worker", packages=', '.join(packages), worker=w.name)
     cand = compute.Candidate(w.name, False, False, w.vram_free_mb, w.vram_total_mb, None, w.pk)
     res = compute._run_remote(ctx, cand, "download.pack", {"packages": packages, "timeout": 24 * 3600}, None, ["downloads"], 0, 24 * 3600)
     res.cleanup()
@@ -82,7 +82,7 @@ def run_ollama(ctx):
     model = str(ctx.payload.get("model") or "").strip()
     if not _MODEL.match(model):
         raise ProviderError("bad Ollama model name", retryable=False, code="validation_error", fa="نام مدل Ollama درست نیست.")
-    ctx.log(f"pulling the Ollama model {model}")
+    ctx.log_t("ollama_pull", model=model)
     ctx.live(phase="downloading", model=model, provider="ollama", force=True)
 
     def stop() -> bool:

@@ -144,9 +144,9 @@ def script(ctx):
         services.save_script(ep, res.data, note="generated")
         services.transition(ep, states.SCRIPT_REVIEW, reason="script ready", actor="system")
     except BaseException:
-        ep.refresh_from_db()
-        if ep.state == states.SCRIPTING:
-            services.transition(ep, prev if prev != states.SCRIPTING else states.PLANNED, reason="script generation failed", actor="system")
+        # Whatever ended the job (model off or out of credit = a WAIT, a cancel, a deferral, a real error) the episode leaves `scripting`
+        # and the ORIGINAL exception reaches the worker (it decides: wait / cancel / defer / fail). release_scripting never raises.
+        services.release_scripting(ep, prev, reason="script generation did not finish")
         raise
     return {"episode_id": ep.pk, "checks": ep.script_checks, "meta": res.meta()}
 

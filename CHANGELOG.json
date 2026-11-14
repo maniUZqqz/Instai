@@ -30,6 +30,44 @@
     ]
   },
   {
+    "version": "0.15.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "بازبینی کیفیت: فیلم‌نامه‌ای که گیر نمی‌کند، هشدار برای شات‌هایی که عوض می‌شوند، متن فارسی بدون دستور و انگلیسی، و «نسخهٔ تازه آماده است»",
+      "en": "Quality audit: a script that no longer gets stuck, warnings for shots that change technique, Persian text without commands or English, and «a new version is ready»"
+    },
+    "items": [
+      {
+        "fa": "وقتی مدل زبانی خاموش است یا اعتبار ندارد، نوشتنِ فیلم‌نامهٔ اولِ قسمت دیگر برای همیشه روی «در حال نوشتن فیلم‌نامه» نمی‌ماند: کار در صف منتظر می‌ماند، قسمت به «برنامه‌ریزی‌شده» برمی‌گردد و وقتی مدل برگشت خودش ادامه می‌دهد. قسمتی که از قبل گیر کرده با باز شدن صفحه‌اش (یا با نبض ۳۰ ثانیه‌ای برنامه) آزاد می‌شود و یک دکمهٔ «برگرد و دوباره بنویس» هم دارد.",
+        "en": "With the language model off or out of credit, writing the first script of an episode no longer stays on «writing the script» for ever: the job waits in the queue, the episode goes back to «planned» and the job continues by itself when the model is back. An episode that is already stuck is freed when its page opens (or by the program's 30-second upkeep) and has a «go back and write again» button."
+      },
+      {
+        "fa": "شاتِ عروسکی که عروسک ندارد، پارالاکس بدون لایه و روش‌های ساخته‌نشده دیگر بی‌صدا تصویر ثابت با حرکت دوربین نمی‌شوند: کنار هر شات در فهرست شات‌ها نوشته می‌شود، «بررسی کیفیت» هشدار می‌دهد (تعداد، کدام شات‌ها، راه حل) و دیگر بدون ذکر هشدار «مشکل جدی ندارد» نمی‌گوید. پیش از «ساخت پیش‌نمایش / نسخهٔ نهایی» اگر شخصیتی عروسک ندارد، با یک کلیک عروسک چوبی خودکار ساخته می‌شود.",
+        "en": "A puppet shot without a puppet, parallax without layers and techniques that are not made yet no longer silently become a still with a camera move: the shot list says so beside each shot, the quality check warns (how many, which shots, the way out) and no longer says «no serious problem» without the warnings. Before «make preview / final» a character without a puppet gets one automatic stick-figure puppet with one click."
+      },
+      {
+        "fa": "اگر یکی از کارهای پایش خودکارِ هر ۳۰ ثانیه (آزاد کردن حافظهٔ کارت گرافیک، نمونه‌تصویر سبک‌ها، ...) خطا بدهد، بقیه ادامه می‌دهند و صفحهٔ «پایش» می‌گوید «پایش خودکار: خطا در ...».",
+        "en": "If one step of the automatic upkeep that runs every 30 seconds (releasing graphics memory, style sample pictures ...) fails, the others go on and the Monitor page says «Automatic upkeep: error in ...»."
+      },
+      {
+        "fa": "صفحه‌های فارسی بدون جملهٔ انگلیسی و دستور: متن بسته‌ها، مدل‌ها، مجوزها و گردش‌کارها در «تنظیمات، مدل‌ها و دانلودها» فارسی است؛ جای «Download-Models.bat --only piper» یا «pip install ...» یک دکمهٔ «نصب» است و خودِ دستور پشت «اطلاعات فنی» می‌ماند؛ پیام خطای صدا و موسیقی خط اولش فارسی است.",
+        "en": "Persian pages without English sentences or commands: the text of packages, models, licences and workflows in Settings, Models and Downloads is Persian; where «Download-Models.bat --only piper» or «pip install ...» stood there is an «Install» button and the command stays behind «Technical details»; speech and music errors start with a Persian line."
+      },
+      {
+        "fa": "«شروعِ پروژه از این ایده» حالا ایده را در اتاق توسعه نشان می‌دهد: کارتِ «ایدهٔ شروعِ این پروژه» بالای صفحهٔ سری، و گام اول (یادداشت طراحی شخصیت یا تخته ایده‌پردازی) خالی نیست. نامِ صفحهٔ خالی دیگر پذیرفته نمی‌شود.",
+        "en": "«Start a project from this idea» now shows the idea in the development room: an «idea this project started from» card at the top of the series page, and the first step (character brief or brainstorm board) is no longer empty. An empty page name is no longer accepted."
+      },
+      {
+        "fa": "عددها با رقم فارسی در صفحه‌های صف، سیستم و گزارش، شمارهٔ پست‌ها در نقشهٔ داستان انتخابی و خط‌های لاگِ کارها: «اجرا شد (تلاش ۱ از ۳)»، «در ۱۳٫۳ ثانیه تمام شد» و یادداشت‌های مونتاژ به زبان رابط نمایش داده می‌شوند (خط‌های قدیمیِ لاگ همان‌طور که بودند می‌مانند).",
+        "en": "Numbers with Persian digits on the queue, system and report pages, post numbers in the choice-story map, and the job log lines: «started (attempt 1 of 3)», «finished in 13.3 s» and the assembly notes are shown in the interface language (old log lines stay as they were)."
+      },
+      {
+        "fa": "وقتی نسخهٔ تازه‌ای از InstAI در گیت‌هاب هست، در نوار بالای صفحه «نسخهٔ تازه آماده است» می‌آید؛ یک کلیک (و یک پرسش) برنامه را می‌بندد، به‌روز می‌کند و دوباره باز می‌کند، بی‌آنکه مجبور باشید STOP و START بزنید. هر شب در ساعت بی‌کاری هم یک بار بررسی می‌شود. فقط روی رایانهٔ ویندوزیِ شما آزموده می‌شود، چون این بخش روی سرور اجرا نشد.",
+        "en": "When GitHub has a newer InstAI, «A new version is ready» appears in the top bar; one click (and one question) closes the program, updates it and opens it again, without STOP and START. It is also checked once every night in the idle window. It can only be tried on your Windows PC; this part could not be run on the server."
+      }
+    ]
+  },
+  {
     "version": "0.14.0",
     "date": "2026-11-14",
     "title": {

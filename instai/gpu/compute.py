@@ -246,7 +246,7 @@ def _run_remote(ctx, cand: Candidate, kind: str, payload: dict, inputs: dict[str
     (d / "out").mkdir(parents=True, exist_ok=True)
     for name, src in (inputs or {}).items():
         shutil.copyfile(src, d / "in" / Path(name).name)
-    ctx.log(f"task {t.pk} ({kind}) sent to worker {cand.name}")
+    ctx.log_t("task_sent", task=t.pk, kind=kind, worker=cand.name)
     t0 = time.time()
     queued_since = time.time()
     cancel_sent = False
@@ -350,7 +350,7 @@ def run_task(ctx, kind: str, payload: dict, inputs: dict[str, Path] | None = Non
             if pick.local or not e.retryable:
                 raise
             log.warning("worker %s failed (%s); trying another device", pick.name, e)
-            ctx.log(f"worker {pick.name} failed ({str(e)[:160]}); trying another device", "warning")
+            ctx.log_t("worker_failed", "warning", worker=pick.name, detail=str(e)[:160])
             tried.append(pick.name)
             last_wait_code = e.code if e.code in ("worker_offline", "worker_lost") else ""
             continue

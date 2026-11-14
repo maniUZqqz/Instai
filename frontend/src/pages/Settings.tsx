@@ -217,7 +217,7 @@ const COMMERCIAL: Record<string, { tone: Tone; key: 'lic.yes' | 'lic.conditional
 }
 
 function ModelsSection() {
-  const { t, f } = useI18n()
+  const { t, f, tr } = useI18n()
   const confirm = useConfirm()
   const q = useQuery<ModelsPayload>('/models')
   const runner = useJobRunner({ onFinished: () => q.reload() })
@@ -314,10 +314,10 @@ function ModelsSection() {
                         <tbody>
                           {m.workflows.map((w) => (
                             <tr key={w.id}>
-                              <td><div className="strong">{w.title}</div><div className="small muted ltr">{w.id}</div></td>
-                              <td className="ltr">{w.kind}</td>
+                              <td><div className="strong" title={w.id}>{w.title}</div></td>
+                              <td>{tr('wf.kind.' + w.kind, w.kind)}</td>
                               <td>{w.vram_gb != null ? `${f.num(w.vram_gb)} GB` : '—'}</td>
-                              <td className="small">{w.licence} <Badge tone={w.licence_status === 'verified' ? 'ok' : 'warn'}>{w.licence_status}</Badge></td>
+                              <td className="small">{w.licence} <Badge tone={w.licence_status === 'verified' ? 'ok' : 'warn'}>{tr('wf.lic.' + w.licence_status, w.licence_status)}</Badge></td>
                               <td>{w.available == null ? <Badge>{t('set.wf_unknown')}</Badge> : w.available ? <Badge tone="ok">{t('set.wf_ready')}</Badge> : <Badge tone="warn" title={w.missing.join(', ')}>{t('set.wf_missing', { n: w.missing.length })}</Badge>}</td>
                             </tr>
                           ))}
@@ -348,8 +348,8 @@ function ModelCard({ r, pkg, busy, onInstall }: { r: ModelRow; pkg: PackageInfo 
       <div className="small muted" dir="auto">{r.role}</div>
       <div className="row">
         <Badge tone={c.tone}>{t('lic.commercial')}: {t(c.key)}</Badge>
-        {r.excluded && <Badge tone="err">{t('lic.excluded')} · EXCLUDED</Badge>}
-        {r.decision && <Badge tone="warn">{t('lic.decision')} · OWNER DECISION</Badge>}
+        {r.excluded && <Badge tone="err">{t('lic.excluded')}</Badge>}
+        {r.decision && <Badge tone="warn">{t('lic.decision')}</Badge>}
       </div>
       <div className="small"><span className="muted">{t('lic.licence')}:</span> <bdi>{r.licence}</bdi></div>
       <div className="small">

@@ -20,6 +20,7 @@ os.environ["INSTAI_OLLAMA_URL"] = "http://127.0.0.1:9"       # nothing listens h
 os.environ["INSTAI_COMFYUI_URL"] = "http://127.0.0.1:9"
 os.environ["INSTAI_SCAN_DEFAULTS"] = "0"      # model discovery reads only the folders a test gives it, never this PC's disk
 os.environ["INSTAI_OLLAMA_RETRY_DELAYS"] = "0.05,0.05"   # a refused Ollama connection is retried twice; tests must not wait seconds for it
+os.environ["INSTAI_NO_UPDATE"] = "1"          # the updater (and the update badge) never asks GitHub from a test; tests that exercise it switch it on themselves
 os.environ.pop("INSTAI_SCAN_ROOTS", None)
 for _v in ("COMFYUI_DIR", "NM_HOME", "NM_DATA_DIR", "OLLAMA_MODELS"):
     os.environ.pop(_v, None)
