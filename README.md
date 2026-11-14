@@ -20,7 +20,7 @@ with fake providers; real GPU behaviour is measured by the benchmark on the owne
 - وقتی InstAI روشن است، کدش را زیر پایش عوض نمی‌کنیم؛ فقط می‌نویسد نسخهٔ تازه هست. `STOP.bat` و بعد `START.bat`.
 - خاموش کردن: `INSTAI_AUTO_UPDATE=0` را در فایل `.env` بنویسید.
 
-**یک بار کار دستی لازم است (چرا؟)** پوشهٔ فعلی شما (`C:\Users\QQz\Desktop\Instai-main\V2\Instai-main`) با «Download ZIP» ساخته شده و `START.bat`ِ قدیمی‌اش هنوز به‌روزرسانی را بلد نیست؛ پس خودش نمی‌تواند خودش را عوض کند. فقط همین یک بار:
+**یک بار کار دستی لازم است (چرا؟)** پوشهٔ فعلی شما (`C:\Users\QQz\Desktop\Instai-main\V2\Instai-main`) با «Download ZIP» ساخته شده و `START.bat`ِ قدیمی‌اش هنوز به‌روزرسانی را بلد نیست؛ پس خودش نمی‌تواند خودش را عوض کند. **اگر پردازشگر NMarketing روی همین رایانه روشن است، همین یک بار را هم خودش انجام می‌دهد** (به‌روزرسانِ خودِ InstAI را از GitHub می‌گیرد و اجرا می‌کند؛ `data`، `.env` و مدل‌ها دست نمی‌خورد؛ وضعیتش در آزمون خودکار گره دیده می‌شود) و دیگر لازم نیست چیزی کپی کنید. اگر پردازشگر را ندارید، فقط همین یک بار:
 
 1. در مرورگر `https://github.com/maniUZqqz/Instai` را باز کنید ← دکمهٔ سبز **Code** ← **Download ZIP**.
 2. ZIP را باز کنید و همهٔ فایل‌های داخل پوشهٔ `Instai-main` را روی پوشهٔ فعلی کپی کنید و «Replace the files» را بزنید. (پوشه‌های `data`، `.venv`، `models`، `tools`، `media` و فایل `.env` در ZIP نیستند؛ پس داده‌ها و تنظیمات شما دست نمی‌خورد.)
