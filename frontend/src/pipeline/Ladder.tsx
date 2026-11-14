@@ -231,6 +231,7 @@ function StyleLine({ data }: { data: Data }) {
   const { L, lang } = usePL()
   const lib = useLibrary()
   const key = String(data.style_key ?? '')
+  if (!lib.data) return key ? <div data-testid="ladder-style-line"><b className="small">{L('سبک هنری', 'Art style')}</b><div>…</div></div> : null     // names come with the library: never flash the raw keys
   const st = lib.style(key)
   const th = lib.theme(String(data.theme_key ?? ''))
   const parts = [st ? nm(st, lang) : key, vocab(lib.data?.realism, String(data.realism ?? ''), lang), th ? nm(th, lang) : ''].filter(Boolean)

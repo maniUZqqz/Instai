@@ -71,6 +71,7 @@ def test_the_series_art_style_card_shows_the_style_name_not_its_keys(browser, se
         card.get_by_role("button", name=re.compile("سبک هنری")).first.click()
         line = card.locator("[data-testid=ladder-style-line]")
         line.wait_for(timeout=8000)
+        page.wait_for_function("() => { const e = document.querySelector('[data-testid=ladder-style-line]'); return !!e && !/stickman_doodle/.test(e.innerText) && !/…/.test(e.innerText) }", timeout=10000)
         text = line.inner_text()
         assert "stickman_doodle" not in text and "mono_paper" not in text, text
         assert re.search(r"[؀-ۿ]", text), "the style is named in Persian"
@@ -97,6 +98,8 @@ def test_the_choice_editor_review_line_names_the_endings_in_persian(browser, ser
 def test_the_identity_colour_key_names_its_roles_in_persian(browser, server, world):
     ctx, page, problems = visit(browser, server, "desktop", f"/pages/{world['page']}/characters")
     try:
+        card = page.locator(".card", has_text="رامین").first
+        card.get_by_role("button", name=re.compile("ویرایش")).first.click()          # the identity panel is inside the opened character
         page.get_by_text("کلید رنگ").first.wait_for(timeout=15000)
         main = page.locator("main").inner_text()
         assert not RAW_WORDS.search(main), RAW_WORDS.search(main).group(0)

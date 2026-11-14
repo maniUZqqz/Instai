@@ -108,17 +108,22 @@ def live_key_art(series, ep):
 
 
 def live_animation(series, ep):
+    """Motion of every shot. A shot that asks for a model clip (Wan) and has none is covered by the Ken Burns / parallax fallback ONLY once production has really assembled
+    the episode without it (a preview or final video exists): on a PC with no ComfyUI the production run finishes that way, and the ladder must not stay stuck at "animation"
+    - with compositing, edit, grade and delivery behind it - for work that was already done. Before any production run, and while ComfyUI could still make the clip, it is not ready."""
     shots = story_services.all_shots(ep)
+    assembled = Asset.objects.filter(episode=ep, shot__isnull=True, role__in=("final", "preview"), is_current=True).exists()
     rows, sig = [], []
     need = 0
     for s in shots:
         clip = _current(s, "shot_clip")
         needs_clip = s.technique in ("wan_i2v", "wan_flf")
         need += 1 if needs_clip else 0
-        rows.append({"shot": s.pk, "label": f"{s.scene.index}.{s.index}", "technique": s.technique, "clip": _asset_row(clip), "needs_clip": needs_clip})
-        sig.append([s.technique, clip.sha256 if clip else ""])
-    ready = bool(shots) and all((not r["needs_clip"]) or r["clip"] for r in rows)
-    return {"hash": h(sig), "data": {"shots": rows, "video_shots": need}, "ready": ready, "approved_elsewhere": False}
+        fallback = bool(needs_clip and clip is None and assembled)
+        rows.append({"shot": s.pk, "label": f"{s.scene.index}.{s.index}", "technique": s.technique, "clip": _asset_row(clip), "needs_clip": needs_clip, "fallback": fallback})
+        sig.append([s.technique, clip.sha256 if clip else "", fallback])
+    ready = bool(shots) and all((not r["needs_clip"]) or r["clip"] or r["fallback"] for r in rows)
+    return {"hash": h(sig), "data": {"shots": rows, "video_shots": need, "fallback_shots": sum(1 for r in rows if r["fallback"])}, "ready": ready, "approved_elsewhere": False}
 
 
 def live_compositing(series, ep):
