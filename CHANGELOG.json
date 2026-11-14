@@ -1,5 +1,39 @@
 [
   {
+    "version": "0.11.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "اصلاح پلهٔ استودیو، انتظار خودکار برای GPU، دانلود خودکار Qwen، نام‌های فارسی",
+      "en": "Studio ladder fix, jobs that wait for the GPU, automatic Qwen download, Persian names"
+    },
+    "items": [
+      {
+        "fa": "پلهٔ استودیوی قسمت: به‌محض اینکه قسمت برگهٔ طراحی یا انیماتیک داشت، تب «پلهٔ استودیو» خطای داخلی می‌داد و تأیید انیماتیک و طراحی و ساخت لی‌اوت هم ممکن نبود. درست شد؛ حالا همهٔ ۲۱ مرحله تا تحویل پشت‌سر هم جلو می‌روند و یک آزمون کامل از همین مسیر نوشته شده است.",
+        "en": "The episode Studio ladder: as soon as an episode had design sheets or an animatic the ladder tab showed an internal error, and approving the animatic or design and making the layout were impossible. Fixed; all 21 stages now go forward to delivery and a full test walks that path."
+      },
+      {
+        "fa": "کارهای GPU دیگر شکست نمی‌خورند، منتظر می‌مانند: ساخت تصویر پست‌های داستان انتخابی با هوش مصنوعی، برگهٔ مدل شخصیت، تصویر برگه‌های طراحی و کلیدفریم‌ها وقتی ComfyUI یا رایانهٔ GPU خاموش است در صف می‌مانند و با روشن شدن خودشان ادامه می‌یابند؛ لازم نیست دوباره دکمه را بزنید.",
+        "en": "GPU jobs no longer fail, they wait: AI pictures of choice-story posts, character model sheets, design-sheet pictures and keyframes stay in the queue while ComfyUI or the GPU PC is off and continue by themselves when it comes on; no need to press the button again."
+      },
+      {
+        "fa": "آزمون خودکار استودیو: هر بررسیِ GPU جداگانه سنجیده می‌شود. بررسیِ ردشده (رایانه خاموش بود، مدل Qwen هنوز نیامده بود) به‌محض آماده شدنِ پیش‌نیازِ خودش دوباره اجرا می‌شود، بی‌آنکه منتظر هفته یا ساعت بماند و بی‌آنکه بررسی‌های انجام‌شده تکرار شوند.",
+        "en": "Automatic studio self-test: every GPU check is judged on its own. A skipped check (the PC was off, the Qwen model had not arrived) runs again the moment its own requirement is there, without waiting a week or an hour and without repeating the checks that already ran."
+      },
+      {
+        "fa": "دانلود خودکار Qwen-Image-Edit (شخصیت ثابت برای تصویرهای هوش مصنوعی، حدود ۳۱ گیگابایت، مجوز Apache): فقط در بازهٔ شبانه، فقط وقتی دست‌کم ۲۵ گیگابایت جای خالی بماند و فقط اگر لغوش نکرده باشید. وضعیتش زیر مدل در صفحهٔ «مدل‌ها» نوشته می‌شود. دو مسیر خراب این بسته در فهرست مدل‌ها هم درست شد (دانلودش در ویندوز هرگز کار نمی‌کرد).",
+        "en": "Automatic download of Qwen-Image-Edit (consistent characters for AI pictures, about 31 GB, Apache licence): only in the night window, only when at least 25 GB stay free and only if you have not cancelled it. Its state is shown under the model on the Models page. Two broken destination paths of this package in the model list were fixed too (its download could never have worked on Windows)."
+      },
+      {
+        "fa": "جست‌وجوی سبک‌ها نام خودِ شما را می‌فهمد: «Lego-like bricks» (و هر نام دیگری که زیر سبک‌ها نوشته شده) همان سبک را پیدا می‌کند.",
+        "en": "The style search understands your own wording: «Lego-like bricks» (and every other name written under a style) finds that style."
+      },
+      {
+        "fa": "دیگر کلید انگلیسی در صفحه‌های فارسی دیده نمی‌شود: خط «پایان‌ها» در بازبینی داستان، نقش رنگ‌ها در کلید رنگ شخصیت، کارت سبک هنری (حالا نام سبک را می‌نویسد)، گزینه‌های آدمک چوبی، حالت چهره، نوع صدا و رنگ‌بندی، و نام قابلیت چندمرجعی در صفحهٔ «مدل‌ها». توصیف انگلیسی هویت شخصیت هم غلط «a amber» ندارد.",
+        "en": "No raw English key in the Persian screens any more: the endings line of the story review, the roles in a character's colour key, the art-style card (it now shows the style's name), the stick-figure options, expressions, sound cues and grade presets, and the name of the multi-reference feature on the Models page. The English identity words no longer say «a amber»."
+      }
+    ]
+  },
+  {
     "version": "0.10.0",
     "date": "2026-11-13",
     "title": {
