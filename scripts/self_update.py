@@ -138,8 +138,10 @@ def save_state(state: dict) -> None:
 
 
 def is_protected(rel: str) -> bool:
-    top = rel.replace("\\", "/").split("/", 1)[0]
-    return top in PROTECTED or top.startswith(".venv")
+    parts = rel.replace("\\", "/").split("/")
+    # `node_modules` at ANY depth belongs to the owner's PC (frontend/node_modules after an `npm install`): the repository once held a symlink of
+    # that name, which a ZIP turns into a 39-byte file that cannot replace a directory (the whole update then failed for ever)
+    return parts[0] in PROTECTED or parts[0].startswith(".venv") or "node_modules" in parts
 
 
 def server_running() -> bool:
@@ -280,6 +282,9 @@ def apply_files(files: dict, state: dict) -> tuple[list[str], list[str], list[st
         if is_protected(rel):
             continue
         dest = os.path.join(ROOT, *rel.split("/"))
+        if os.path.isdir(dest):
+            say("..", f"{rel} is a folder on this PC (the update brings a file of that name); left alone")
+            continue
         if os.path.isfile(dest) and sha256_bytes(data) == sha256_file(dest):
             continue
         changed.append(rel)

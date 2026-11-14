@@ -48,3 +48,23 @@ every 20 s, delete it afterwards, treat an expired or dead-pid lease as free. In
 
 `tests/test_gpu_share.py` (plan, request options, keep-alive, the neighbour detection, the report, `release_idle`, port clash) and the Models page in
 `tests_ui/test_qa_sweep.py`.
+
+## Audit of the 2026-11-14 round: starting by itself, ports, the card (0.12.0)
+
+**Both programs start with Windows.** `START.bat` runs `scripts/autostart.py --ensure`: the first time it puts a minimized shortcut to `scripts/START-AUTO.bat`
+in the user's Startup folder (no administrator; `START-AUTO.bat` = `START.bat` without the browser and without the "press a key" pause). The NMarketing agent
+does the same for its own `START.bat` (`processing/autostart.py`, agent 2.11+). At logon the two start side by side; each one updates itself first
+(InstAI from GitHub `main` through `scripts/self_update.py`, the agent from the site). Off switches: InstAI `Autostart-Off.bat` / `INSTAI_AUTOSTART=0`
+(`Autostart-On.bat` brings it back); the agent: the "start by itself" setting of the node in the panel / `NM_AUTOSTART=0`.
+A folder made from an OLD ZIP has a `START.bat` that cannot update itself: replace the folder once with a fresh ZIP of `main` (your `data`, `.env`, `models`, `tools`
+are kept by copying them over); from then on everything is automatic.
+
+**Ports (checked against `processing/agent.py` `SERVICES` and `instai/gpu/coexist.KNOWN_PORTS`).** InstAI 8765 (the agent does not use it; the next free port is taken
+and saved in `.env` when something else holds it), Ollama 11434 and ComfyUI 8188 (one of each per PC, shared), voice servers 5640 / 5641 / 5642 (the same fixed ports in
+both programs: a server that already runs is used), NMarketing's voice gateway 5620, its photo / video / voice kit 5670 / 5680 / 5600 and the ComfyUI bridge 5000
+(InstAI never uses them), Abagram runs on 127.0.0.1 on a free port of its own. No clash.
+
+**The card.** Nothing needs a hand-written `gpu-peers.json`: every VRAM holder of InstAI lives in a service the agent already frees before its own heavy job (Ollama
+`keep_alive 0`, ComfyUI `/free`) - except the speech / effects / music servers InstAI starts itself, which the agent cannot stop. Since 0.12.0 a quiet InstAI (no GPU
+work for `INSTAI_GPU_RELEASE_AFTER` seconds) stops those too (`coexist.release_idle`, once per quiet period; never a server another program runs), next to the ComfyUI `/free`
+it already did. The other direction was already there: InstAI waits while another program holds more than max(2.5 GB, 25 %) of the card.
