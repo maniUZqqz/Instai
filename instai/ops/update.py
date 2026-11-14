@@ -66,6 +66,8 @@ def _write(d: dict) -> None:
 
 def disabled() -> bool:
     su = _su()
+    if os.environ.get("INSTAI_TESTING") == "1" and os.environ.get("INSTAI_UPDATE_IN_TESTS") != "1":
+        return True                      # the test suite never asks GitHub (like the other "surprise" guards); the updater's own tests set INSTAI_UPDATE_IN_TESTS=1
     return su.setting("INSTAI_NO_UPDATE") in ("1", "true", "yes") or su.setting("INSTAI_AUTO_UPDATE") in ("0", "false", "no")
 
 
