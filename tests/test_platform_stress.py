@@ -83,14 +83,15 @@ def test_stress_many_writers_no_lost_or_duplicated_job_and_no_lock_error(busy_ms
     produced = threading.Event()
     stop = threading.Event()
 
-    def guard(fn):
+    def guard(fn, ms=busy_ms):
         def run(*a):
             try:
                 with connection.cursor() as c:
-                    c.execute(f"PRAGMA busy_timeout={busy_ms}")
+                    c.execute(f"PRAGMA busy_timeout={ms}")
                 fn(*a)
             except BaseException as e:  # noqa: BLE001
-                errors.append(e)
+                import traceback
+                errors.append(RuntimeError(f"{fn.__name__}: {e!r}" + chr(10) + traceback.format_exc()))
             finally:
                 connection.close()
         return run
@@ -126,7 +127,8 @@ def test_stress_many_writers_no_lost_or_duplicated_job_and_no_lock_error(busy_ms
             time.sleep(0.005)
 
     def slow_writer():
-        for _ in range(3):                         # another process holding the write lock for a while (a long transaction)
+        for _ in range(3):                         # another process holding the write lock for a while (a long transaction); it keeps the real 30 s busy timeout (guard(..., 30000)):
+            # the retry layer under test protects InstAI's own writes, not this stand-in, which used to fail by itself when 10 threads and a busy PC kept it from the lock for 40 ms
             with transaction.atomic():
                 Job.objects.filter(pk=0).update(progress=0)         # takes the write lock (BEGIN IMMEDIATE)
                 time.sleep(1.2)
@@ -134,7 +136,7 @@ def test_stress_many_writers_no_lost_or_duplicated_job_and_no_lock_error(busy_ms
 
     threads = ([threading.Thread(target=guard(producer), args=(i,)) for i in range(PRODUCERS)]
                + [threading.Thread(target=guard(lane), args=(f"lane{i}",)) for i in range(LANES)]
-               + [threading.Thread(target=guard(reporter)), threading.Thread(target=guard(slow_writer))])
+               + [threading.Thread(target=guard(reporter)), threading.Thread(target=guard(slow_writer, 30000))])
     t0 = time.time()
     for t in threads:
         t.start()

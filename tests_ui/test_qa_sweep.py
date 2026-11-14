@@ -76,6 +76,7 @@ def check(page, name: str, size: str, lang: str, problems: list[str], expect_not
             bad.append(f"{name}: horizontal scroll ({sw} > {iw})")
         nameless = page.evaluate("""() => [...document.querySelectorAll('button, a[href]')].filter(e => {
             const r = e.getBoundingClientRect(); if (!r.width || !r.height) return false
+            const d = e.closest('details'); if (d && !d.open && !e.closest('summary')) return false      // Chrome reports a box (but no text) for a control inside a CLOSED <details>: nobody can see or press it
             return !(e.innerText || '').trim() && !e.getAttribute('aria-label') && !e.getAttribute('title') && !e.querySelector('img[alt]:not([alt=""])') }).map(e => e.outerHTML.slice(0, 90))""")
         if nameless:
             bad.append(f"{name}: buttons / links without a name: {nameless[:3]}")
