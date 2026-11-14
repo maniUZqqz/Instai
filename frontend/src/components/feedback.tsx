@@ -51,27 +51,32 @@ interface ConfirmOpts {
   title?: string
   message: ReactNode
   confirmLabel?: string
+  /** a second way forward next to the main one (only `useChoose` shows it) */
+  altLabel?: string
   danger?: boolean
 }
+export type Choice = 'yes' | 'alt' | 'no'
 interface Ctx {
   push: (kind: ToastKind, text: string) => void
   confirm: (o: ConfirmOpts) => Promise<boolean>
+  choose: (o: ConfirmOpts) => Promise<Choice>
 }
 const FeedbackCtx = createContext<Ctx | null>(null)
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n()
   const [toasts, setToasts] = useState<ToastItem[]>([])
-  const [dlg, setDlg] = useState<(ConfirmOpts & { resolve: (v: boolean) => void }) | null>(null)
+  const [dlg, setDlg] = useState<(ConfirmOpts & { resolve: (v: Choice) => void }) | null>(null)
   const seq = useRef(0)
   const push = useCallback((kind: ToastKind, text: string) => {
     const id = ++seq.current
     setToasts((l) => [...l.slice(-3), { id, kind, text }])
     window.setTimeout(() => setToasts((l) => l.filter((x) => x.id !== id)), kind === 'err' ? 9000 : 4000)
   }, [])
-  const confirm = useCallback((o: ConfirmOpts) => new Promise<boolean>((resolve) => setDlg({ ...o, resolve })), [])
-  const value = useMemo(() => ({ push, confirm }), [push, confirm])
-  const close = (v: boolean) => {
+  const choose = useCallback((o: ConfirmOpts) => new Promise<Choice>((resolve) => setDlg({ ...o, resolve })), [])
+  const confirm = useCallback((o: ConfirmOpts) => choose(o).then((v) => v === 'yes'), [choose])
+  const value = useMemo(() => ({ push, confirm, choose }), [push, confirm, choose])
+  const close = (v: Choice) => {
     dlg?.resolve(v)
     setDlg(null)
   }
@@ -89,13 +94,18 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {dlg && (
         <Modal
           title={dlg.title ?? t('confirm.title')}
-          onClose={() => close(false)}
+          onClose={() => close('no')}
           actions={
             <>
-              <button className="btn" onClick={() => close(false)}>
+              <button className="btn" onClick={() => close('no')}>
                 {t('common.cancel')}
               </button>
-              <button className={'btn ' + (dlg.danger ? 'danger solid' : 'primary')} onClick={() => close(true)}>
+              {dlg.altLabel && (
+                <button className="btn" onClick={() => close('alt')}>
+                  {dlg.altLabel}
+                </button>
+              )}
+              <button className={'btn ' + (dlg.danger ? 'danger solid' : 'primary')} onClick={() => close('yes')}>
                 {dlg.confirmLabel ?? t('common.confirm')}
               </button>
             </>
@@ -121,4 +131,9 @@ export function useToast() {
 
 export function useConfirm() {
   return useFeedback().confirm
+}
+
+/** Like `useConfirm` with a second way forward: 'yes' (main button), 'alt' (`altLabel`) or 'no' (cancel / Escape). */
+export function useChoose() {
+  return useFeedback().choose
 }

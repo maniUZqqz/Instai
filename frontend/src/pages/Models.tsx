@@ -376,7 +376,7 @@ function ItemRow({ i }: { i: FoundItem }) {
         </td>
         <td className="small">
           {i.path ? <div className="ltr mono">{i.path}</div> : i.listed ? <div className="ltr mono">{t('mdl.listed')}: {i.listed}</div> : null}
-          {!i.found && i.folder && <div className="muted">{t('mdl.put_in', { folder: i.folder })}</div>}
+          {!i.found && i.folder && <div className="muted">{(() => { const [a, b] = t('mdl.put_in', { folder: '\u0001' }).split('\u0001'); return <>{a}<bdi className="ltr mono">{'models\\' + i.folder}</bdi>{b}</> })()}</div>}
           {!i.found && i.elsewhere && <div className="muted">{t('mdl.elsewhere')}: <span className="ltr mono">{i.elsewhere}</span></div>}
           {!i.found && i.missing && i.missing.length > 0 && <div className="muted ltr">{i.missing.slice(0, 3).join(' · ')}</div>}
           {i.models && i.models.length > 0 && !i.models_detail && <div className="ltr">{i.models.slice(0, 6).join(', ')}</div>}

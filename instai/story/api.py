@@ -82,8 +82,19 @@ def episode_dict(e: Episode) -> dict:
                      "verified": s.verified, "added_by": s.added_by} for s in e.sources.all()],
         "jobs": JobSerializer(e.jobs.all()[:20], many=True).data,
         "stale": stale_summary(e),
+        "fallbacks": _fallbacks_of(e),
     })
     return d
+
+
+def _fallbacks_of(e: Episode) -> list[dict]:
+    """Shots that will be made as a still with a camera move instead of their planned technique (see production/fallbacks.py): the shot list shows a banner."""
+    from instai.production import fallbacks
+
+    try:
+        return fallbacks.episode_fallbacks(e)
+    except Exception:  # noqa: BLE001 - a warning helper must never break the episode page
+        return []
 
 
 def stale_summary(e: Episode) -> dict:
@@ -264,6 +275,8 @@ def episode_detail(request, pk):
     if request.method == "DELETE":
         e.delete()
         return Response(status=204)
+    if e.state == states.SCRIPTING and services.heal_stuck_scripting(e):   # its script job is gone: the page must not say "writing" forever
+        e = _ep(pk)
     if request.method == "PATCH":
         for f in ("title", "logline", "goal", "cliffhanger", "duration_sec", "notes"):
             if f in request.data:
@@ -398,11 +411,26 @@ def episode_research(request, pk):
 def episode_produce(request, pk):
     from instai.production import pipeline
 
+    from instai.production import fallbacks
+
     e = _ep(pk)
     mode = request.data.get("mode", "preview")
+    made = fallbacks.ensure_stick_rigs(e) if request.data.get("auto_rig") else []      # the owner said yes to «ساخت عروسکِ چوبیِ خودکار»
     jobs = pipeline.start(e, mode)
     e.refresh_from_db()
-    return Response({"episode": episode_dict(e), "jobs": JobSerializer(jobs, many=True).data}, status=202)
+    return Response({"episode": episode_dict(e), "jobs": JobSerializer(jobs, many=True).data, "rigs_made": made}, status=202)
+
+
+@api_view(["GET", "POST"])
+def episode_preflight(request, pk):
+    """Before production: which shots will NOT be made with their planned technique (they become a still with a camera move) and which
+    characters need a puppet for that. POST makes the missing stick-figure puppets (one click) and returns the new state."""
+    from instai.production import fallbacks
+
+    e = _ep(pk)
+    made = fallbacks.ensure_stick_rigs(e) if request.method == "POST" else []
+    return Response({"needs_rig": fallbacks.needs_rig(e), "fallbacks": fallbacks.episode_fallbacks(e), "rigs_made": made,
+                     "rigs_path": fallbacks.LAB_RIGS_PATH})
 
 
 @api_view(["POST"])
@@ -529,6 +557,7 @@ urlpatterns = [
     path("episodes/<int:pk>/approve-storyboard", approve_storyboard),
     path("episodes/<int:pk>/research", episode_research),
     path("episodes/<int:pk>/produce", episode_produce),
+    path("episodes/<int:pk>/preflight", episode_preflight),
     path("episodes/<int:pk>/approve", episode_approve),
     path("episodes/<int:pk>/revoke", episode_revoke),
     path("episodes/<int:pk>/retry", episode_retry),

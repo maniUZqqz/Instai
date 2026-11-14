@@ -82,6 +82,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "instai.core.fa_catalog.PersianCatalogMiddleware",       # Persian catalogue texts on the catalogue endpoints (core/fa_catalog.py)
 ]
 
 ROOT_URLCONF = "instai.urls"

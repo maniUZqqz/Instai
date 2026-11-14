@@ -44,6 +44,12 @@ export default function Monitor() {
                       </li>
                     ))}
                   </ul>
+                  {m.workers.flatMap((w) => (w.tick_errors ?? []).map((e) => (
+                    <Notice key={w.name + e.step} tone="warn">
+                      <span>{t('mon.tick_error', { step: lang === 'en' ? e.label_en : e.label_fa })}</span>
+                      <details style={{ marginBlockStart: "0.35rem" }}><summary>{t('common.tech')}</summary><code className="ltr">{e.error}</code></details>
+                    </Notice>
+                  )))}
                 </Card>
                 <GpuPanel
                   compact
@@ -152,7 +158,7 @@ function JobLinks({ j }: { j: Job }) {
 
 /** Live log of one job: new lines are fetched with ?after=<last id>; scrolling follows the end only while the reader is at the end. */
 function LogViewer({ job, onClose }: { job: Job; onClose: () => void }) {
-  const { t, f } = useI18n()
+  const { t, f, lang } = useI18n()
   const jobTitle = useJobTitle()
   const [lines, setLines] = useState<JobLogLine[]>([])
   const [err, setErr] = useState(false)
@@ -225,7 +231,7 @@ function LogViewer({ job, onClose }: { job: Job; onClose: () => void }) {
         >
           {lines.length === 0 ? <span style={{ opacity: 0.7 }}>{t('mon.logs_empty')}</span> : lines.map((l) => (
             <div key={l.id} className={'log-line lvl-' + l.level}>
-              <span style={{ opacity: 0.6 }}>{f.time(l.at)}</span> {l.message}
+              <span style={{ opacity: 0.6 }}>{f.time(l.at)}</span> {(lang === "en" ? l.text_en : l.text_fa) || l.message}
             </div>
           ))}
         </div>

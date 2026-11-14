@@ -50,14 +50,14 @@ WAIT_TEXT_EN = {
 
 
 @retry_on_lock
-def log_job(job: Job | int, message: str, level: str = "info", dedupe: bool = False) -> None:
+def log_job(job: Job | int, message: str, level: str = "info", dedupe: bool = False, *, code: str = "", params: dict | None = None) -> None:
     """One line in the job's log. `dedupe` skips it when it is one of the job's last six lines (a job that waits and looks again every
     15 seconds must not write the same two lines a thousand times)."""
     jid = job.pk if isinstance(job, Job) else job
     message = str(message)[:4000]
     if dedupe and message in list(JobLog.objects.filter(job_id=jid).order_by("-id").values_list("message", flat=True)[:6]):
         return
-    JobLog.objects.create(job_id=jid, level=level, message=message)
+    JobLog.objects.create(job_id=jid, level=level, message=message, code=code[:40], params=params or {})
 
 
 @retry_on_lock
@@ -93,7 +93,7 @@ def enqueue(kind: str, payload: dict | None = None, *, resource: str | None = No
     if run_after:
         Job.objects.filter(pk=job.pk).update(run_after=run_after)   # run_after is auto_now_add: a value given at creation is overwritten
         job.run_after = run_after
-    log_job(job, "queued")
+    log_job(job, "queued", code="queued")
     return job
 
 
@@ -160,7 +160,10 @@ def complete(job: Job, result: dict | None, gpu_seconds: float = 0.0) -> None:
     Job.objects.filter(pk=job.pk).update(status=Job.SUCCEEDED, result=result or {}, progress=1.0, finished_at=now, duration_sec=dur,
                                          gpu_seconds=gpu_seconds, lease_owner="", lease_expires=None, waiting_reason="", wait_code="",
                                          waiting_since=None)
-    log_job(job, f"succeeded in {dur:.1f}s" if dur is not None else "succeeded")
+    if dur is not None:
+        log_job(job, f"succeeded in {dur:.1f}s", code="succeeded", params={"seconds": round(dur, 1)})
+    else:
+        log_job(job, "succeeded", code="succeeded_plain")
 
 
 @retry_on_lock
@@ -173,12 +176,13 @@ def fail(job: Job, error: str, *, retryable: bool = True, code: str = "job_faile
         Job.objects.filter(pk=job.pk).update(status=Job.QUEUED, error=error[:2000], error_code=code, lease_owner="", lease_expires=None,
                                              run_after=now + timedelta(seconds=delay), waiting_reason="", progress_text="retry scheduled",
                                              wait_code="", waiting_since=None)
-        log_job(job, f"failed (attempt {job.attempts}/{job.max_attempts}); retry in {delay}s: {error[:300]}", "warning")
+        log_job(job, f"failed (attempt {job.attempts}/{job.max_attempts}); retry in {delay}s: {error[:300]}", "warning", code="failed_retry",
+                params={"attempt": job.attempts, "max": job.max_attempts, "delay": int(delay), "detail": error[:300]})
         return Job.QUEUED
     dur = (now - job.started_at).total_seconds() if job.started_at else None
     Job.objects.filter(pk=job.pk).update(status=Job.FAILED, error=error[:2000], error_code=code, finished_at=now, duration_sec=dur,
                                          lease_owner="", lease_expires=None, waiting_reason="", wait_code="", waiting_since=None)
-    log_job(job, f"failed: {error[:500]}", "error")
+    log_job(job, f"failed: {error[:500]}", "error", code="failed", params={"detail": error[:500]})
     return Job.FAILED
 
 
@@ -188,7 +192,7 @@ def mark_cancelled(job: Job) -> None:
     Job.objects.filter(pk=job.pk).update(status=Job.CANCELLED, finished_at=now, lease_owner="", lease_expires=None, waiting_reason="",
                                          wait_code="", waiting_since=None,
                                          duration_sec=(now - job.started_at).total_seconds() if job.started_at else None)
-    log_job(job, "cancelled", "warning")
+    log_job(job, "cancelled", "warning", code="cancelled")
 
 
 @retry_on_lock
@@ -199,7 +203,7 @@ def request_cancel(job: Job) -> Job:
         n = Job.objects.filter(pk=job.pk, status=Job.QUEUED).update(status=Job.CANCELLED, cancel_requested=True, finished_at=timezone.now(),
                                                                    waiting_reason="", wait_code="", waiting_since=None)
         if n:
-            log_job(job, "cancelled while waiting", "warning")
+            log_job(job, "cancelled while waiting", "warning", code="cancelled_waiting")
     elif job.status == Job.RUNNING:
         Job.objects.filter(pk=job.pk).update(cancel_requested=True)
     job.refresh_from_db()
@@ -213,7 +217,7 @@ def requeue(job: Job, *, reset_attempts: bool = False) -> Job:
                                          run_after=now, ready_at=now, progress=0.0, progress_text="", lease_owner="", lease_expires=None, live={},
                                          wait_code="", waiting_since=None, waiting_reason="", lost_count=0,
                                          **({"attempts": 0} if reset_attempts else {}))
-    log_job(job, "re-queued")
+    log_job(job, "re-queued", code="requeued")
     return Job.objects.get(pk=job.pk)
 
 
@@ -259,7 +263,7 @@ def defer(job: Job, reason: str, code: str, *, delay: float | None = None, run_a
         progress_text="waiting", error="", error_code="", deferrals=F("deferrals") + (1 if count else 0),
         attempts=Greatest(F("attempts") - 1, 0))             # the attempt the claim took is given back, for a planned pause too
     if changed:
-        log_job(job, f"waiting ({code}): {reason[:300]}", "warning", dedupe=True)
+        log_job(job, f"waiting ({code}): {reason[:300]}", "warning", dedupe=True, code="waiting", params={"code": code, "reason": reason[:300]})
     return Job.QUEUED
 
 
@@ -277,7 +281,7 @@ def reap_expired() -> int:
     n = 0
     for job in Job.objects.filter(status=Job.RUNNING, lease_expires__lt=now):
         if job.lost_count >= MAX_LOST_FREE:
-            log_job(job, f"lease expired (worker stopped?) for the {job.lost_count + 1}th time", "warning")
+            log_job(job, f"lease expired (worker stopped?) for the {job.lost_count + 1}th time", "warning", code="lease_lost_n", params={"n": job.lost_count + 1})
             fail(job, "worker stopped before the job finished (it did so repeatedly)", retryable=True, code="lease_expired")
             n += 1
             continue
@@ -287,7 +291,7 @@ def reap_expired() -> int:
             waiting_reason="کارگر (برنامهٔ اجراکننده) وسط کار بسته شد؛ کار به صف برگشت و دوباره انجام می‌شود.", progress_text="re-queued",
             attempts=Greatest(F("attempts") - 1, 0))
         if got:
-            log_job(job, "lease expired (worker stopped?); re-queued without using an attempt", "warning")
+            log_job(job, "lease expired (worker stopped?); re-queued without using an attempt", "warning", code="lease_lost")
             n += 1
     return n
 

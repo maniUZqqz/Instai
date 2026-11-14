@@ -61,7 +61,7 @@ function EnginesOverview({ data }: { data: EnginesPayload }) {
                 {e.needs_reference && <Badge tone="info">{s('vc.clones')}</Badge>}
               </div>
               <div className="small muted">{s('vc.languages')}: <span className="ltr">{e.languages.join(' / ')}</span> · {s('vc.resource')}: <span className="ltr">{e.resource}</span></div>
-              <div className="small muted ltr">{e.detail}</div>
+              <div className="small muted" dir="auto">{e.detail}</div>
               <EngineWarning engine={e} />
             </section>
           ))}

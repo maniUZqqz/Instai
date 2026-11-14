@@ -240,6 +240,8 @@ export interface Development {
   automation_level: 'manual' | 'assisted' | 'automatic'
   running_jobs: Job[]
   has_plan: boolean
+  /** the bank idea this series was started from («شروعِ پروژه از این ایده»), when it was */
+  start_idea?: { key: string; title_fa: string; title_en: string; logline_fa: string; logline_en: string; hook_fa: string; hook_en: string } | null
 }
 
 // ---------------------------------------------------------------- pre-production (instai/studio/preprod)
