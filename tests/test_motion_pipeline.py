@@ -103,6 +103,13 @@ def motion_episode(api, worker, which=(0, 2)):
     return ep_id, picked, shots
 
 
+def why_failed() -> list:
+    """What the failed jobs said (a failing episode state alone says nothing)."""
+    from instai.jobs.models import Job
+
+    return [(j.kind, (j.error or "")[-500:]) for j in Job.objects.filter(status=Job.FAILED)]
+
+
 def calls(state) -> list:
     p = state["log"]
     return [json.loads(x) for x in p.read_text().splitlines()] if p.exists() else []
@@ -116,7 +123,7 @@ def test_a_motion_shot_is_drawn_planned_checked_and_assembled_without_a_kenburns
 
     ep_id, picked, shots = motion_episode(api, worker)
     ep = produce(api, worker, ep_id, "preview")
-    assert ep["state"] == "ready_for_approval", ep.get("qc")
+    assert ep["state"] == "ready_for_approval", (ep.get("qc"), why_failed())
     # no keyframe is made for a motion shot; the others have theirs
     for s in shots:
         kf = Asset.objects.filter(shot=s, role="keyframe", is_current=True).exists()
@@ -156,7 +163,7 @@ def test_the_clip_waits_for_the_toolchain_and_an_edit_redraws_only_that_shot(api
     toolchain_stub["ready"] = True
     Job.objects.filter(pk__in=[j.pk for j in waiting]).update(run_after=timezone.now())
     ep = produce(api, worker, ep_id, "preview")
-    assert ep["state"] == "ready_for_approval", ep.get("qc")
+    assert ep["state"] == "ready_for_approval", (ep.get("qc"), why_failed())
     first = {s.pk: Asset.objects.get(shot=s, role="shot_clip", is_current=True) for s in picked}
     assert len(calls(toolchain_stub)) >= 2 * len(picked)
     # the owner edits the narration of ONE motion shot: only that clip is drawn again
@@ -168,7 +175,7 @@ def test_the_clip_waits_for_the_toolchain_and_an_edit_redraws_only_that_shot(api
 
     assert s0.pk in [s.pk for s in motion.missing(s0.scene.episode, "preview")], "the narration is stale, so is the clip that is as long as it"
     ep2 = produce(api, worker, ep_id, "preview")
-    assert ep2["state"] == "ready_for_approval", ep2.get("qc")
+    assert ep2["state"] == "ready_for_approval", (ep2.get("qc"), why_failed())
     assert len([x for x in calls(toolchain_stub) if not x["qa"]]) - before == 1
     assert Asset.objects.get(shot=picked[1], role="shot_clip", is_current=True).pk == first[picked[1].pk].pk, "the other motion shot kept its clip"
     assert Asset.objects.get(shot=s0, role="shot_clip", is_current=True).pk != first[s0.pk].pk
@@ -264,7 +271,7 @@ def test_real_toolchain_an_explainer_episode_assembles_with_drawn_clips(api, wor
     assert toolchain.status()["ready"], toolchain.status()
     ep_id, picked, shots = motion_episode(api, worker)
     ep = produce(api, worker, ep_id, "preview")
-    assert ep["state"] == "ready_for_approval", ep.get("qc")
+    assert ep["state"] == "ready_for_approval", (ep.get("qc"), why_failed())
     for s in picked:
         clip = Asset.objects.get(shot=s, role="shot_clip", is_current=True)
         plan = MotionPlan.objects.get(shot=s)

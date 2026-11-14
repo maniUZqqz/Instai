@@ -69,10 +69,26 @@ Fonts: only Vazirmatn (SIL OFL, `remotion/public/fonts/OFL.txt`), as before. NMa
 
 ## Tests and self-test
 
-* `tests/test_motion_plan.py` (53 tests: Python = Remotion registry / vocabulary / timeline (run through node + esbuild), plans, patches, versions, QA, prompts, roles, critique, API), `tests/test_motion_pipeline.py` (the pipeline with a stand-in renderer that makes real mp4 clips with ffmpeg: no keyframe, plan, QA, clip, assembly without Ken Burns, waiting, one-shot redraw, critique waiting for Ollama; and **the real run**), `tests/test_remotion.py` (every motif still has a look; the 24 compositions).
+* `tests/test_motion_plan.py` (55 tests: Python = Remotion registry / vocabulary / timeline (run through node + esbuild), plans, patches, versions, QA, prompts, roles, critique, API), `tests/test_motion_pipeline.py` (the pipeline with a stand-in renderer that makes real mp4 clips with ffmpeg: no keyframe, plan, QA, clip, assembly without Ken Burns, waiting, one-shot redraw, critique waiting for Ollama; and **the real run**), `tests/test_remotion.py` (every motif still has a look; the 24 compositions).
 * The real run (`INSTAI_REMOTION_REAL=1 python -m pytest tests/test_motion_pipeline.py -k real_toolchain`, or `python -m instai.motion_plan.selftest <folder>`): one frame of every component x 3 sizes through the real toolchain, `qa.py` over the geometry, a montage per size.
 * PC self-test rows (`instai/ops/pcselftest.py`): `motion_library` (always), `motion_frames` (when Remotion is ready: the 57 frames above), `motion_critique` (when Ollama runs and has a vision model). See `docs/selftests/instai-gpu-remotion-update.md`.
 
 ## Measured (this server, Linux, headless Chromium, no GPU; the owner's PC will be faster in the browser and the same in Python)
 
 See `docs/BENCHMARKS.md` ("Motion-graphics components").
+
+## Port provenance (read this before the next sync)
+
+Ported on 2026-11-14 from the motion-studio v2 STAGING copy (`/root/stage/motion2`, the files unchanged since 11:46 UTC of that day: `components.py`, `specs.py`, `plans.py`, `patch.py`, `qa.py`, `critique.py`, `promptkit.py`, `timeline.py`, `motionlib.py`, `qa_browser.py` and `motion/remotion/src/{scenes,comp-data,comp-text,ctx,kit,fit,anim,text,qa,registry,presets,timeline,types,util}`, plus `motion/tools/qa.mjs`), because the v2 deploy (`motion2-integrate.log`) had not finished yet. NMarketing v3.02 is at `c23f861`. The live NM tree must be compared with this port when v2 lands: every NM file that this port copied is named in a `SOURCE:` line.
+
+| NM file | InstAI file | what changed |
+|---|---|---|
+| `components.py` | `instai/motion_plan/components.py` | 19 of 33, fa+en labels / samples, `series` / `hook` / `next_episode` / `source` fields |
+| `specs.py` | `specs.py` | style = a kit, `size` instead of `aspect`, `series` instead of `brand`, no audio block, SpecError / notes in fa+en, the honesty rule |
+| `plans.py` + `models.py` | `plans.py` + `models.py` | a plan belongs to a shot, not a store / user |
+| `patch.py` | `patch.py` | no brand / audio keys, English rules next to the Persian ones |
+| `qa.py` + `qa_browser.py` | `qa.py` + `qa_browser.py` | colours from the kit (`colors.py`), fa+en findings, render.mjs `qa` mode instead of qa.mjs |
+| `critique.py` + `promptkit.py` | `critique.py` + `promptkit.py` + `role.py` | InstAI's Ollama + vision model, no cloud, wait on `ollama_down`; episode / explainer prompts |
+| `timeline.py` + `motionlib.py` | `timeline.py` + `motionlib.py` | the style's transition from `adapter.json` |
+| `motion/remotion/src/*` | `remotion/src/components/*` | `ctx.tsx styleFromKit` (adapter), `ScenePlan.tsx` instead of `Template.tsx`, the series card, `SourceNote`, no shop pieces |
+| (new) | `fallback.py`, `shots.py`, `jobs.py`, `api.py`, `selftest.py`, `defs.ts`, `adapter.json` | InstAI's own: the deterministic plan, the pipeline, the page |

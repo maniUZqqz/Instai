@@ -121,7 +121,7 @@ export function MotionPlanBlock({ shotId, editable, dirty }: { shotId: number; e
             )}
             {plan.history && plan.history.length > 1 && (
               <details>
-                <summary className="small">{t('mp.versions', { n: plan.history.length })}</summary>
+                <summary className="small" data-testid="mp-versions" data-count={plan.history.length}>{t('mp.versions', { n: plan.history.length })}</summary>
                 <ol className="small" style={{ margin: 0, paddingInlineStart: '1.2rem' }}>
                   {plan.history.map((h) => <li key={h.n} style={{ fontWeight: h.current ? 700 : 400 }} dir="auto">{h.label} <span className="muted">({tr('mp.src.' + h.source, h.source)})</span></li>)}
                 </ol>

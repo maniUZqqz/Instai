@@ -23,7 +23,7 @@ from instai.jobs import queue
 from instai.jobs.models import Job
 from instai.styles import library as style_library
 
-from . import plans, qa, role, specs, timeline
+from . import fallback, motionlib, plans, qa, role, specs, timeline
 from .models import MotionPlan, MotionPlanRev
 
 log = logging.getLogger("instai.motion_plan")
@@ -71,12 +71,17 @@ def render_size(ep) -> str:
 
 
 def render_scale(ep, mode: str) -> float:
-    """The renderer's scale (1 = the composition's 1080 short side): the preview is rendered small, the final at the page's final height."""
+    """The renderer's scale of the composition (1 = 1080 x 1920): the preview is drawn small, the final at the page's final height. Remotion needs the scaled width and height to be
+    whole numbers (and h264 even ones): the scale is a multiple of 1/120 for which that holds in every size (a rounded 0.333 once made 638.361 and the render failed)."""
     from instai.production import pipeline
 
     o = pipeline.render_options(ep, mode)
-    base = max(1920, 1)
-    return round(max(0.25, min(2.0, max(o.width, o.height) / base)), 3)
+    target = max(o.width, o.height) / 1920.0
+    sizes = list(motionlib.SIZES.values())
+    for cand in (round(target * 120) / 120, round(target * 4) / 4, 0.5):
+        if cand >= 0.25 and all(float(w * cand).is_integer() and float(h * cand).is_integer() and int(w * cand) % 2 == 0 and int(h * cand) % 2 == 0 for w, h in sizes):
+            return min(cand, 2.0)
+    return 0.5
 
 
 def narration_of(shot):
@@ -159,6 +164,25 @@ def ensure_plan(shot, ep, *, ctx=None, provider=None, force: bool = False) -> Mo
     MotionPlan.objects.filter(pk=plan.pk).update(source_hash=ih)
     plan.refresh_from_db()
     return plan
+
+
+def prepare_plans(ep) -> int:
+    """A first plan for every motion shot that has a narration and none yet: the deterministic one (no model, instant), so the storyboard shows it. The speech does not exist yet, so the
+    plan's inputs hash differs from the one production computes: production writes an UNEDITED plan again, with the model, once the length of the speech is known. => how many were made."""
+    n = 0
+    kit = kit_of_episode(ep)
+    style, theme = look_keys(ep)
+    lang = page_of(ep).language or "fa"
+    for s in motion_shots(ep):
+        if not narration_of(s) or latest_plan(s) is not None:
+            continue
+        seconds = target_seconds(s, ep)
+        spec = fallback.make_plan(narration_of(s), seconds, lang=lang if lang in ("fa", "en") else "fa", style=style, theme=theme, size=render_size(ep), series=series_context(ep, s),
+                                  sources=verified_sources(ep), kit=kit, allowed_sources=[x["title"] for x in verified_sources(ep)])
+        plan = plans.create(spec, shot=s, origin="fallback", source="fallback", label="Version 1: fallback")
+        MotionPlan.objects.filter(pk=plan.pk).update(source_hash=inputs_hash(s, ep, seconds))
+        n += 1
+    return n
 
 
 def clip_hash(plan: MotionPlan, shot, ep, mode: str) -> str:

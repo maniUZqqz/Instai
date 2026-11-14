@@ -746,6 +746,9 @@ def make_shot(api, worker, technique="motion_graphics", narration="آب ۷۱ د�
     shot = Shot.objects.filter(scene__episode_id=ep_id).order_by("scene__index", "index").first()
     shot.technique, shot.narration, shot.duration_sec = technique, narration, 6.0
     shot.save()
+    from instai.motion_plan.models import MotionPlan
+
+    MotionPlan.objects.filter(shot=shot).delete()           # the storyboard job already made a first plan for a shot that was a motion shot then: start clean
     return shot
 
 
@@ -832,3 +835,19 @@ def test_the_costs_know_the_technique_and_charge_the_cpu_not_the_gpu():
     assert e["gpu_seconds"] == 0 and e["cpu_seconds"] > 6 * 3 and "falls_back_to_still_kenburns" not in e["notes"]
     assert costs.shot_estimate("motion_graphics", 6, "preview")["cpu_seconds"] < e["cpu_seconds"]
     assert "motion_graphics" not in costs.KEYFRAME and "motion_graphics" not in costs.VIDEO
+
+
+def test_the_storyboard_gives_every_motion_shot_a_first_plan_that_production_rewrites_when_the_speech_is_known(api, worker):
+    from instai.motion_plan import shots
+    from tests.conftest import finish
+
+    shot = make_shot(api, worker)
+    ep = shot.scene.episode
+    assert shots.latest_plan(shot) is None
+    assert shots.prepare_plans(ep) >= 1
+    plan = shots.latest_plan(shot)
+    assert plan.origin == "fallback" and plan.spec["scenes"] and plan.cursor == 1
+    assert shots.prepare_plans(ep) == 0, "once is enough"
+    # the storyboard job calls it by itself (the job result says how many): a regenerated storyboard of the same episode
+    j = finish(api, worker, api.post(f"/api/episodes/{ep.pk}/generate-storyboard"))
+    assert "motion_plans" in j["result"]

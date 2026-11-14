@@ -69,9 +69,11 @@ def validate_view(request):
         raise _bad("spec", str(e), e.en)
     t = timeline.seconds(spec, kit)
     findings = qa.static_findings(spec, kit)
-    return Response({"spec": spec, "notes": notes, "timeline": {"starts": t["starts"], "ends": t["ends"], "total": t["total"], "fps": t["fps"]},
-                     "findings": findings, "summary_fa": qa.summary({"fixed": 0, "remaining": [f for f in findings if f["severity"] in ("error", "warn")], "geometry": False}, "fa"),
-                     "summary_en": qa.summary({"fixed": 0, "remaining": [f for f in findings if f["severity"] in ("error", "warn")], "geometry": False}, "en")})
+    bad = [f for f in findings if f["severity"] in ("error", "warn")]
+    fa = "قاعده‌ها: مشکلی پیدا نشد." if not bad else f"قاعده‌ها: {qa.fa(len(bad))} مورد پیدا شد؛ بازبینی خودکار آن‌ها را اصلاح می‌کند."
+    en = "Rules: nothing found." if not bad else f"Rules: {len(bad)} issue(s) found; the automatic check fixes them."
+    return Response({"spec": spec, "notes": notes, "timeline": {"starts": t["starts"], "ends": t["ends"], "total": t["total"], "fps": t["fps"]}, "findings": findings,
+                     "summary_fa": fa, "summary_en": en})
 
 
 @api_view(["POST"])
