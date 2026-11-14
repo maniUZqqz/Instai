@@ -1,5 +1,43 @@
 [
   {
+    "version": "0.13.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "اصلاح مشکل‌های بازبینی: ویرایشگرهای نردبان با برچسب، سبک‌های ویدئو با کد که واقعاً فرق دارند، و چند اصلاح کوچک",
+      "en": "Review fixes: labelled ladder editors, styles that really look different in code-made video, and a few smaller fixes"
+    },
+    "items": [
+      {
+        "fa": "نردبان استودیو: جدول‌ها و فیلدهای ویرایش (فهرست نماها، طراحی صدا، لاگ‌لاین و ...) سرستون و برچسب دارند؛ تا امروز خالی بودند و فقط «#» دیده می‌شد. باکس‌های عددی هم دیگر «-۲۸» را نمی‌بُرند.",
+        "en": "Studio ladder: the editing tables and fields (shot list, sound design, logline ...) now have column headers and labels; until today they were empty and showed only «#». The number boxes no longer clip «-28»."
+      },
+      {
+        "fa": "ویدئو با کد (Remotion): ۴۶ پس‌زمینهٔ ترسیمی تازه برای ۸۷ سبک از ۱۱۶ سبک. پیکسل‌آرت واقعاً بلوکی است، تخته‌سیاه گچ و قاب چوبی دارد، شیشهٔ رنگی سرب‌کاری‌شده است، گلس‌مورفیسم کارت مات دارد، نئوبروتالیسم بلوک‌های زمخت، وی‌پرویو خورشید و شبکه، و ... به‌جای یک دایرهٔ مشترک با رنگ‌های دیگر. کلمهٔ ستاره‌دار در متن متحرک هم روی زمینهٔ روشن خوانا شد.",
+        "en": "Code-made video (Remotion): 46 new drawn backdrops for 87 of the 116 styles. Pixel Art really is blocky, the chalkboard has chalk and a wooden frame, stained glass has lead lines, glassmorphism has a frosted card, neo-brutalism has heavy blocks, vaporwave a sun and a grid ... instead of one shared circle in other colours. The starred word of the kinetic text now reads on a light background."
+      },
+      {
+        "fa": "سبک هنری نردبان (و اتاق توسعه) فقط سبکی را می‌پذیرد که در کتابخانه هست؛ پیش‌تر هر نام ناشناخته‌ای ذخیره و تأیید می‌شد و همهٔ تولیدکننده‌ها بی‌صدا پرامپت سبک خالی می‌گرفتند.",
+        "en": "The art style of the ladder (and of the development room) accepts only a style the library has; before, any unknown name was saved and approved and every generator silently got an empty style prompt."
+      },
+      {
+        "fa": "انیماتیک بعد از تولید دیگر کهنه نمی‌شود: فقط وقتی نماها، متن یا زمان‌بندی عوض شود کهنه است؛ آمدن تصویرهای واقعی به‌جای جای‌نگهدار تأیید اضافه نمی‌خواهد (بازسازی با تصویرهای واقعی همچنان در تب پیش‌تولید هست).",
+        "en": "The animatic no longer goes stale after production: only a change of the shots, words or timing makes it stale; real pictures replacing the placeholders need no extra approval (a rebuild with the real pictures is still offered in the Pre-production tab)."
+      },
+      {
+        "fa": "فارسی درست‌تر: عددها در جمله‌های فارسی با رقم فارسی (نردبان، آزمون خودکار)، «همه‌چیز سالم» تا وقتی بررسی‌های مدل منتظرند نمی‌آید، نقش شخصیت (قهرمان) و عنوان پست داستان انتخابی بدون کد داخلی، یادداشت حافظهٔ کارت گرافیک در صفحهٔ مدل‌ها فارسی، و برگهٔ مدل رسم‌شده برای سری فارسی با برچسب فارسی.",
+        "en": "Better Persian: numbers inside Persian sentences use Persian digits (ladder, self-test); «all sound» is not shown while the model checks are still waiting; a character's role and a choice-story post title without internal codes; the graphics-memory note on the Models page in Persian; and the drawn model sheet of a Persian series with Persian labels."
+      },
+      {
+        "fa": "جست‌وجوی کتابخانه: نامی که با پرانتز و گیومه از فهرست کپی شده («Chrome 22K (chrome metallic type)») هم سبکش را پیدا می‌کند. فهرست ویدئوهای ساخته‌شدهٔ Remotion «طول ویدئو» را نشان می‌دهد، نه مدت ساختن آن را.",
+        "en": "Library search: a name pasted with brackets and quotes from a list («Chrome 22K (chrome metallic type)») finds its style. The list of rendered Remotion videos shows the video's length, not how long it took to make."
+      },
+      {
+        "fa": "همزیستی با NMarketing: وقتی در صف ComfyUI برنامهٔ دیگری کار دارد (یا منتظر است)، InstAI مدل‌های ComfyUI را آزاد نمی‌کند؛ نوبت بعد دوباره می‌پرسد. READMEِ فارسی هم دیگر نمی‌گوید مخزن خصوصی است (باید عمومی بماند تا به‌روزرسانی خودکار کار کند).",
+        "en": "Living next to NMarketing: while another program has a prompt running or waiting in ComfyUI's queue, InstAI does not unload ComfyUI's models; it asks again at the next tick. The Persian README no longer says the repository is private (it must stay public for the automatic update to work)."
+      }
+    ]
+  },
+  {
     "version": "0.12.0",
     "date": "2026-11-14",
     "title": {
