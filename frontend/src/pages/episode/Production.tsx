@@ -227,7 +227,7 @@ function VideoCard({ ep }: { ep: Episode }) {
 }
 
 function QcCard({ ep }: { ep: Episode }) {
-  const { t, tr } = useI18n()
+  const { t, tr, lang } = useI18n()
   const checks = ep.qc?.checks ?? []
   if (checks.length === 0) return null
   const icon = { ok: 'check', warn: 'alert', fail: 'close', info: 'info' } as const
@@ -241,7 +241,7 @@ function QcCard({ ep }: { ep: Episode }) {
               <Icon name={icon[c.level]} />
               <span className="sr-only">{tr('qc.level_' + c.level, c.level)}</span>
             </span>
-            <span>{c.message}</span>
+            <span data-testid={`qc-${c.name}`}>{lang === 'en' && c.message_en ? c.message_en : c.message}</span>
           </li>
         ))}
       </ul>

@@ -193,7 +193,8 @@ def derive_delivery(series, ep) -> dict:
     for a, use in (("1:1", "feed square"), ("4:5", "feed portrait")):
         if a != aspect:
             renditions.append({"name": a, "aspect": a, "use": use})
-    checklist = [{"item": t, "done": False} for t in ("Subtitles checked (Persian shaping, no overlap)", "Loudness about -16 LUFS", "Cover chosen", "Caption and hashtags reviewed",
+    lufs = int(round(float(page.profile("audio")["target_lufs"])))             # the page's own target (new pages -14, old pages -16), measured and corrected after the render
+    checklist = [{"item": t, "done": False} for t in ("Subtitles checked (Persian shaping, no overlap)", f"Loudness about {lufs} LUFS", "Cover chosen", "Caption and hashtags reviewed",
                                                       "Posting time set (never posted automatically)", "AI-generated label added where the platform requires it")]
     return {"renditions": renditions, "caption": caption, "hashtags": list(pub.get("hashtags") or page.profile("strategy").get("hashtags") or [])[:12],
             "cover": "a frame from the hook, with the episode number", "checklist": checklist}

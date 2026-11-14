@@ -34,7 +34,7 @@ from instai.story import costs, services, states
 from instai.story.models import Episode, Shot
 from instai.styles import library as style_library
 
-from . import hero
+from . import deliveryqc, hero
 
 log = logging.getLogger("instai.pipeline")
 PREVIEW, FINAL = "preview", "final"
@@ -260,7 +260,9 @@ def timeline_hash(ep: Episode, mode: str) -> str:
                       s.transition, s.narration, s.technique])
     from . import mixing
 
-    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], page_of(ep).profile("audio")["target_lufs"], mixing.mix_hash_parts(ep))
+    aud = page_of(ep).profile("audio")
+    extra = [] if aud.get("loudness_settle", True) else ["no-settle"]       # only a NON-default switch enters the hash: renders made before 0.15 stay current
+    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], aud["target_lufs"], mixing.mix_hash_parts(ep), *extra)
 
 
 # ------------------------------------------------------------------ steps (called by job handlers)
@@ -555,13 +557,15 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
         ctx.progress(0.6, "joining, mixing, subtitles")
         out = work / "episode.mp4"
         info = asm.assemble(specs, clips, opts, out, work / "work", ctx=ctx, on_progress=lambda f: ctx.progress(0.6 + 0.35 * f, "encoding"))
+        delivery_audio = deliveryqc.after_render(ctx, page_of(ep), mode, out, specs, info["timeline"], opts.tracks, work)   # loudness settled to the target + the sound check (never fails a render)
         stamp = _h(ctx.job.pk, mode)[:6]
         rel = f"episodes/{ep.pk}/renders/{mode}-{stamp}.mp4"
         thash = timeline_hash(ep, mode)
         video = asset_storage.register(out, rel, kind="video", role=mode, page=page_of(ep), episode=ep, input_hash=thash, loudness=True,
                                        provenance={"mode": mode, "width": opts.width, "height": opts.height, "fps": opts.fps, "job_id": ctx.job.pk,
                                                    "shots": len(specs), "techniques": sorted({s.technique for s in specs}), "notes": notes,
-                                                   "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"]})
+                                                   "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"],
+                                                   "target_lufs": float(opts.target_lufs), **delivery_audio})
         cover_tmp = work / "cover.png"
         asm.extract_cover(asset_storage.storage.path_for(video.path), cover_tmp, at=min(1.0, info["duration"] / 2))
         asset_storage.register(cover_tmp, f"episodes/{ep.pk}/renders/{mode}-{stamp}-cover.png", kind="image", role="cover", page=page_of(ep), episode=ep,
@@ -581,10 +585,11 @@ def run_qc(ep: Episode, video: Asset) -> dict:
     from instai.render import qc
 
     page = page_of(ep)
-    report = qc.technical(asset_storage.storage.path_for(video.path), expected_duration=_expected_duration(ep, video),
-                          width=video.width, height=video.height, target_lufs=float(page.profile("audio")["target_lufs"]),
-                          loudness=video.loudness_lufs)
+    path = asset_storage.storage.path_for(video.path)
+    report = qc.technical(path, expected_duration=_expected_duration(ep, video), width=video.width, height=video.height,
+                          target_lufs=float(page.profile("audio")["target_lufs"]), loudness=video.loudness_lufs, settled=deliveryqc.settled_of(video))
     checks = report["checks"]
+    checks += deliveryqc.audio_rows(video, path)        # doubled voice, music over the voice, phase: each names the shot and the track
     sc = ep.script_checks or {}
     checks.append({"name": "script", "level": "ok" if sc.get("ok", True) else "warn", "value": sc.get("warnings", []),
                    "message": "فیلم‌نامه: کامل بودن، طول و سرعت خواندن" if sc.get("ok", True) else "هشدار فیلم‌نامه: " + "، ".join(sc.get("warnings", []))})

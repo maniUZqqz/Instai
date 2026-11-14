@@ -231,6 +231,13 @@ function VisualForm({ draft, set, formats }: FormProps & { formats: Formats }) {
   )
 }
 
+/** The named loudness targets (render/loudness.py PROFILES); the stored number is `target_lufs`, a number that is none of these is «custom». */
+const LOUDNESS_PROFILES = { social: -14, messenger: -16, broadcast: -23 } as const
+function loudnessProfile(lufs: unknown): keyof typeof LOUDNESS_PROFILES | 'custom' {
+  const n = Number(lufs)
+  return (Object.keys(LOUDNESS_PROFILES) as (keyof typeof LOUDNESS_PROFILES)[]).find((k) => Math.abs(LOUDNESS_PROFILES[k] - n) < 0.05) ?? 'custom'
+}
+
 function AudioForm({ draft, set }: FormProps) {
   const { t } = useI18n()
   return (
@@ -244,7 +251,24 @@ function AudioForm({ draft, set }: FormProps) {
         ]} hint={t('pf.engine_hint')} />
         <TextField label={t('pf.narration_voice')} ltr value={draft.narration_voice ?? ''} onChange={(v) => set({ narration_voice: v })} />
         <SelectField label={t('pf.audio_lang')} value={draft.language ?? 'fa'} onChange={(v) => set({ language: v })} options={[{ value: 'fa', label: 'فارسی' }, { value: 'en', label: 'English' }]} />
-        <NumberField label={t('pf.lufs')} min={-30} max={-8} value={draft.target_lufs} onChange={(v) => set({ target_lufs: v ?? -16 })} hint={t('pf.lufs_hint')} />
+        <NumberField label={t('pf.lufs')} min={-30} max={-8} value={draft.target_lufs} onChange={(v) => set({ target_lufs: v ?? -14 })} hint={t('pf.lufs_hint')} />
+      </div>
+      <div className="stack-sm" data-testid="loudness-profile">
+        <Segmented
+          label={t('dl.profile_title')}
+          value={loudnessProfile(draft.target_lufs)}
+          onChange={(k) => {
+            if (k !== 'custom') set({ target_lufs: LOUDNESS_PROFILES[k] })
+          }}
+          options={[
+            { key: 'social', label: t('dl.profile_social') },
+            { key: 'messenger', label: t('dl.profile_messenger') },
+            { key: 'broadcast', label: t('dl.profile_broadcast') },
+            { key: 'custom', label: t('dl.profile_custom') },
+          ]}
+        />
+        <p className="small muted">{t('dl.profile_hint')}</p>
+        <SwitchField label={t('dl.settle')} hint={t('dl.settle_hint')} checked={draft.loudness_settle !== false} onChange={(v) => set({ loudness_settle: v })} />
       </div>
       <div className="grid-2">
         <div className="stack-sm">

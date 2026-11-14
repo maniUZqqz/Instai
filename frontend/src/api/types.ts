@@ -328,6 +328,8 @@ export interface QcCheck {
   level: 'ok' | 'warn' | 'fail' | 'info'
   value: unknown
   message: string
+  /** English text of the row (rows added in 0.15 carry it; older stored reports do not) */
+  message_en?: string
 }
 
 export interface Source {
@@ -695,3 +697,75 @@ export interface HistoryEvent {
 }
 
 export * from './studioTypes'
+
+// ---- delivery (0.15): the nine networks, the package plan of a publication and the caption check
+export interface DeliveryNetworkInfo {
+  key: string
+  fa: string
+  en: string
+  group: string
+  aspect: string
+  width: number
+  height: number
+  fps: number
+  quality: string
+  crf: number
+  audio_kbps: number
+  max_seconds: number | null
+  safe_zone: string
+  lufs: number
+  loudness_profile: string
+  any_aspect: boolean
+  approximate: boolean
+}
+export interface DeliveryNote {
+  fa: string
+  en: string
+}
+export interface DeliveryNetworkPlan {
+  key: string
+  fa: string
+  en: string
+  group: string
+  status: 'ready' | 'fit' | 'needs_aspect'
+  mode: string
+  have_aspect: string | null
+  want_aspect: string
+  width: number | null
+  height: number | null
+  fps: number
+  lufs: number
+  max_seconds: number | null
+  notes: DeliveryNote[]
+  warnings: DeliveryNote[]
+  offers: string[]
+  fit: string
+  targets: number[]
+}
+export interface LintItem {
+  code: string
+  level: 'warn' | 'note'
+  message: string
+  message_en: string
+}
+export interface DeliveryPlan {
+  source: { asset: number | null; role: string | null; width: number | null; height: number | null; aspect: string | null; duration: number | null; loudness_lufs: number | null; loudness: { before?: number; tp?: number; target?: number; adjusted?: boolean } | null; preview: boolean }
+  networks: DeliveryNetworkPlan[]
+  ignored: { target: number; platform: string }[]
+  no_targets: boolean
+  lint: LintItem[]
+  hashtags: { given: string[]; repaired: string[]; changed: string[] }
+  page_lufs: number
+  rerender_aspects: string[]
+}
+export interface PageTarget {
+  id: number
+  platform: string
+  network: string | null
+  network_fa: string
+  network_en: string
+  enabled: boolean
+  fit: string
+  mode: string
+  handle: string
+}

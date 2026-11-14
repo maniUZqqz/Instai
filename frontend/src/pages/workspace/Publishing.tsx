@@ -3,6 +3,7 @@ import { api } from '../../api/client'
 import type { EpisodeBrief, PageBrief, Publication } from '../../api/types'
 import { useConfirm } from '../../components/feedback'
 import { JobView, StateBadge } from '../../components/domain'
+import { DeliveryCard, NetworksCard } from '../../components/DeliveryCard'
 import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Link, Loading, Notice, PageHead, SelectField, TagsField, TextField, AreaField, type Tone } from '../../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../../hooks'
 import { useI18n } from '../../i18n'
@@ -29,6 +30,7 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
   const pubs = useQuery<Publication[]>(`/pages/${pageId}/publications`)
   const eps = useQuery<EpisodeBrief[]>(`/pages/${pageId}/episodes`)
   const [episode, setEpisode] = useState('')
+  const [netTick, setNetTick] = useState(0)
   const act = useAction()
   const eligible = (eps.data ?? []).filter((e) => ELIGIBLE.includes(e.state))
   const add = async () => {
@@ -44,6 +46,9 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
     <div className="stack">
       <h2>{t('ws.tab_publishing')}</h2>
       <Notice tone="info">{t('pub.manual_note')}</Notice>
+      <Card title={t('dl.nets_title')}>
+        <NetworksCard pageId={pageId} onChanged={() => setNetTick((n) => n + 1)} />
+      </Card>
       <Card title={t('pub.new')}>
         {eps.loading && !eps.data ? (
           <Loading />
@@ -71,7 +76,7 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
           ) : (
             <div className="stack">
               {list.map((p) => (
-                <PublicationCard key={p.id} p={p} onChanged={pubs.reload} />
+                <PublicationCard key={p.id} p={p} onChanged={pubs.reload} netTick={netTick} />
               ))}
             </div>
           )
@@ -81,7 +86,7 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
   )
 }
 
-function PublicationCard({ p, onChanged }: { p: Publication; onChanged: () => void }) {
+function PublicationCard({ p, onChanged, netTick = 0 }: { p: Publication; onChanged: () => void; netTick?: number }) {
   const { t, f, tr } = useI18n()
   const confirm = useConfirm()
   const [caption, setCaption] = useState(p.caption)
@@ -135,6 +140,7 @@ function PublicationCard({ p, onChanged }: { p: Publication; onChanged: () => vo
         {!eligible && <Notice tone="warn">{t('pub.not_ready')}</Notice>}
         <AreaField label={t('pub.caption')} value={caption} onChange={setCaption} />
         <TagsField label={t('strat.hashtags')} value={tags} onChange={setTags} ltr />
+        <DeliveryCard pubId={p.id} caption={caption} tags={tags} savedAt={`${p.status}|${p.package_url ?? ''}|${netTick}`} />
         <CheckField label={t('pub.ai_label')} hint={t('pub.ai_label_hint')} checked={ai} onChange={setAi} />
         <div className="grid-2">
           <TextField label={t('pub.schedule')} type="datetime-local" ltr value={when} onChange={setWhen} hint={when ? f.dateTime(new Date(when)) : t('pub.schedule_hint')} />

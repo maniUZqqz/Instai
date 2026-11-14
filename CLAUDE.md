@@ -105,3 +105,11 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
+
+## Delivery (0.15; docs in `docs/DELIVERY.md`, numbers in `docs/BENCHMARKS.md`, ported from NMarketing v3.02)
+- **Loudness** (`render/loudness.py`): `step_assemble` settles a FINAL render to the page's `audio.target_lufs` (new pages -14, old pages keep -16 through `pages/migrations/0004`) before the Asset is made; the result is kept in `provenance["loudness"]`. A new render path that makes a final file records the same dict.
+- **Sound check** (`render/audioqc.py`, needs numpy): echo, music over the voice (stems rendered with `assemble.track_filters` + `assemble.DUCK_FILTER`), phase; the rows `audio_echo` / `audio_masking` / `audio_phase` carry `message` (fa) AND `message_en` and name the shot and the track. A new QC row needs both texts.
+- **Delivery table** (`render/delivery.py`): the nine network keys; a network the episode's shape does not fit gets NO file (never a crop) unless the owner chose `fit = "blur"`. A `PublishTarget.platform` goes through `delivery.network_for`.
+- **Package** (`publishing/delivery_package.py`): one folder per targeted network; the caption is never rewritten, hashtags are repaired only inside the package. SRT and covers are looked up by asset (`find_srt`, `cover_for`), never required.
+- **Self-test rows** `delivery_loudness`, `delivery_echo` in `ops/pcselftest.py` (group pc, every PC).
+- UI: `components/DeliveryCard.tsx` (networks card + delivery/check card), the audio form in `ProfilesTab.tsx`, `message_en` in the quality panel; keys `dl.*` in `i18n/packs/delivery.ts`.

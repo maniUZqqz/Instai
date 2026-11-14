@@ -12,6 +12,8 @@
 | `disk` | pc | free space of the data and models drives | >= 20 GB ok, 3-20 warn, < 3 fail | - |
 | `ffmpeg` | pc | encode a 1 s 320x180 pattern + sine with libx264/aac | file > 1.5 kB; warn when `ass`, `zoompan`, `xfade` are missing | - |
 | `persian_text` | pc | draw a Persian sentence with the program's font (Vazirmatn) | the picture has more than 400 ink pixels; fail when the font did not load | - |
+| `delivery_loudness` | pc | a 3 s synthetic video with speech-like sound is made 4 LU too quiet (one-pass loudnorm to -18), settled to -14 LUFS like a final render (`render/loudness.py`) and measured again with the platforms' meter | within +-0.8 LU of -14 and true peak <= -1 dBTP; warn when numpy is missing; fail when ffmpeg is missing | - |
+| `delivery_echo` | pc | two 3.5 s synthetic videos: a clean narration and the same narration plus its own copy 150 ms later, both through `audioqc.analyze_file` | the doubled mix reports the echo (lag 150 ms +-30) and the clean one reports nothing; fail on a miss or a false alarm; warn when numpy is missing | - |
 | `update_channel` | pc | read START.bat + scripts/self_update.py + data/logs/update.log, fetch GitHub's `VERSION` (raw) | START.bat calls the updater and the version equals GitHub's; WARN (with the one thing to do) for an old Download-ZIP folder, a newer GitHub, a working copy ahead of GitHub, or no internet | - |
 | `autostart` | pc | `scripts/autostart.py` status | the Startup shortcut exists; `skip` off Windows or when the owner switched it off | - |
 | `remotion_toolchain` | tools | `toolchain.status()`; starts the idempotent background setup when it is not running | Node.js + packages + browser present | it is installing (retried every 15 min) |

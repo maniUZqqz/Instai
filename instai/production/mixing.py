@@ -128,7 +128,7 @@ def resolve(ep, specs, timeline: list[dict]) -> list[dict]:
         if end - start < 0.05:
             continue
         out.append({"file": path, "kind": tr.kind, "start": round(start, 3), "end": round(end, 3), "gain_db": tr.gain_db, "duck": tr.duck, "fade_in": tr.fade_in,
-                    "fade_out": tr.fade_out, "loop": loop, "id": tr.pk})
+                    "fade_out": tr.fade_out, "loop": loop, "id": tr.pk, "label": tr.label})
     return out
 
 
