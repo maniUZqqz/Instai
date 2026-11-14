@@ -6,7 +6,7 @@ import { useI18n } from '../i18n'
 import { Icon } from './Icon'
 import { Badge, Notice, SwitchField, SelectField, Button, type Tone } from './ui'
 
-const STATUS_TONE: Record<string, Tone> = { ready: 'ok', fit: 'info', needs_aspect: 'warn' }
+const STATUS_TONE: Record<string, Tone> = { ready: 'ok', fit: 'info', needs_aspect: 'warn', no_video: 'neutral' }
 
 /** What the publishing package of ONE publication will hold (a file per network of the page, the reason for any missing file) and the caption check.
  *  The check runs on the text that is typed in the box (not only on the saved one) after a short pause; nothing is ever rewritten. */
@@ -35,6 +35,8 @@ export function DeliveryCard({ pubId, caption, tags, savedAt }: { pubId: number;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pubId, caption, tagKey, savedAt])
   const say = (n: { fa: string; en: string }) => (lang === 'en' ? n.en : n.fa)
+  // pixel sizes and frame rates: the reader's digits, without a thousands separator (1080, not 1,080)
+  const plain = (n: number) => n.toLocaleString(lang === 'fa' ? 'fa-IR' : 'en-US', { useGrouping: false })
   if (failed && !plan) return <Notice tone="warn">{t('dl.failed')}</Notice>
   if (!plan) return <p className="small muted">{t('dl.loading')}</p>
   const src = plan.source
@@ -58,7 +60,7 @@ export function DeliveryCard({ pubId, caption, tags, savedAt }: { pubId: number;
               </span>
               <span>
                 <strong>{lang === 'en' ? n.en : n.fa}</strong>
-                {n.width && n.height ? <span className="muted small ltr"> · {t('dl.net_spec', { w: String(n.width), h: String(n.height), fps: String(n.fps), lufs: f.num(n.lufs) })}</span> : null}
+                {n.width && n.height ? <span className="muted small"> · {t('dl.net_spec', { w: plain(n.width), h: plain(n.height), fps: plain(n.fps), lufs: f.num(n.lufs) })}</span> : null}
                 {[...n.notes, ...n.warnings].map((x, i) => (
                   <span key={i} className="small muted" style={{ display: 'block' }}>
                     {say(x)}

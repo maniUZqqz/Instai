@@ -1,4 +1,4 @@
-"""Caption lint and hashtag repair (0.15), ported from NMarketing's caption_guard / hashtags tests and adapted: arithmetic rules only, warnings only, never a rewrite; the shop's
+"""Caption lint and hashtag repair (0.16), ported from NMarketing's caption_guard / hashtags tests and adapted: arithmetic rules only, warnings only, never a rewrite; the shop's
 «never say» list and the price reminders are gone; the platform limits are notes labelled approximate; every warning has Persian AND English text."""
 from __future__ import annotations
 

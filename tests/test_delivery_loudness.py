@@ -1,4 +1,4 @@
-"""Delivery loudness (0.15): the file is measured with the platforms' meter after the render and brought to the page's target (-14 LUFS for new pages, -16 for old ones),
+"""Delivery loudness (0.16): the file is measured with the platforms' meter after the render and brought to the page's target (-14 LUFS for new pages, -16 for old ones),
 true peak held under -1 dBTP; the picture is never touched. Real ffmpeg on tiny synthetic mixes (docs/BENCHMARKS.md has the measured numbers)."""
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def test_a_quiet_file_is_brought_to_minus_14_within_0_8_and_under_the_true_peak_
     after = loudness.measure(mp4)
     assert rep["adjusted"] and rep["rounds"] >= 1 and rep["before"] == before["lufs"] and rep["target"] == -14.0 and rep["ok"] is True
     assert abs(after["lufs"] + 14.0) <= 0.8 and after["tp"] <= -0.95
-    assert rep["lufs"] == after["lufs"] and rep["tp"] == after["tp"]
+    assert rep["lufs"] == after["lufs"] == rep["after"] and rep["tp"] == after["tp"]
     info_after = ffmpeg.probe(mp4)
     assert (info_after["width"], info_after["height"], info_after["vcodec"]) == (info_before["width"], info_before["height"], info_before["vcodec"])
     assert abs(info_after["duration"] - info_before["duration"]) < 0.15 and info_after["has_audio"]

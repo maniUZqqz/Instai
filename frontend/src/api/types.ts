@@ -328,7 +328,7 @@ export interface QcCheck {
   level: 'ok' | 'warn' | 'fail' | 'info'
   value: unknown
   message: string
-  /** English text of the row (rows added in 0.15 carry it; older stored reports do not) */
+  /** English text of the row (rows added in 0.16 carry it; older stored reports do not) */
   message_en?: string
 }
 
@@ -698,7 +698,7 @@ export interface HistoryEvent {
 
 export * from './studioTypes'
 
-// ---- delivery (0.15): the nine networks, the package plan of a publication and the caption check
+// ---- delivery (0.16): the nine networks, the package plan of a publication and the caption check
 export interface DeliveryNetworkInfo {
   key: string
   fa: string
@@ -727,7 +727,7 @@ export interface DeliveryNetworkPlan {
   fa: string
   en: string
   group: string
-  status: 'ready' | 'fit' | 'needs_aspect'
+  status: 'ready' | 'fit' | 'needs_aspect' | 'no_video'
   mode: string
   have_aspect: string | null
   want_aspect: string

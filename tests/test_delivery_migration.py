@@ -1,4 +1,4 @@
-"""Pages made before 0.15 keep -16 LUFS: the data migration pins it (a new page starts at -14). Run on the real migration graph, going back to 0003 and forward again."""
+"""Pages made before 0.16 keep -16 LUFS: the data migration pins it (a new page starts at -14). Run on the real migration graph, going back to 0003 and forward again."""
 from __future__ import annotations
 
 import pytest

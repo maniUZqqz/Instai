@@ -28,7 +28,7 @@ from the brief*, shown in the app labelled "estimate" until a measurement replac
 | Layer cut-out / puppet layer | 10 s / 5 s (placeholder guess) | InstAI default |
 | FFmpeg 2.5D assembly (CPU) | measured, not estimated: the 4 end-to-end render tests (incl. a 1080x1920 30 fps render of 3 short shots, preview renders, partial regeneration) take 38 s in total on the dev PC (i5-4590, 8 GB RAM, no GPU) | `tests/test_pipeline_e2e.py` |
 
-## Delivery (0.15): loudness and sound checks (measured on the dev server, no GPU: Ubuntu 22.04, ffmpeg n8.1.3, Python 3.10, numpy 2.2; `scripts/bench_delivery.py`)
+## Delivery (0.16): loudness and sound checks (measured on the dev server, no GPU: Ubuntu 22.04, ffmpeg n8.1.3, Python 3.10, numpy 2.2; `scripts/bench_delivery.py`)
 
 Everything below was measured; nothing is estimated. The mixes are synthetic (noise-excited syllables with moving formants, `render/audiofixtures.py`), encoded like a render: ONE pass of
 `loudnorm=I=<target>:TP=-1.5:LRA=11` (what `assemble.build_filter` ends with) and AAC 160k; then `loudness.settle`.

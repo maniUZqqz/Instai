@@ -1,4 +1,4 @@
-// Delivery (0.15): loudness profiles, the sound checks in the quality panel, the networks of a page, the package plan and the caption check.
+// Delivery (0.16): loudness profiles, the sound checks in the quality panel, the networks of a page, the package plan and the caption check.
 // One value per line, single quotes only (tests/test_i18n.py reads this file line by line).
 export const fa: Record<string, string> = {
   // ---- the audio settings: loudness
@@ -31,6 +31,7 @@ export const fa: Record<string, string> = {
   'dl.status_ready': 'فایل ساخته می‌شود',
   'dl.status_fit': 'قاب کامل با کناره‌های محو',
   'dl.status_needs_aspect': 'نسبت تصویر نمی‌خورد؛ فایلی ساخته نمی‌شود',
+  'dl.status_no_video': 'هنوز ویدئویی ساخته نشده',
   'dl.ignored': 'مقصدی که این بسته نمی‌شناسد: {platform}',
   'dl.source_preview': 'ویدئوی مبدأ پیش‌نمایش است؛ پیش از انتشار نسخهٔ نهایی را بسازید.',
   'dl.source_loud': 'بلندی صدای فایل اصلی: {lufs} LUFS (هدف صفحه {target})',
@@ -72,6 +73,7 @@ export const en: Record<string, string> = {
   'dl.status_ready': 'A file is made',
   'dl.status_fit': 'Whole frame with blurred sides',
   'dl.status_needs_aspect': 'The shape does not fit; no file is made',
+  'dl.status_no_video': 'No video yet',
   'dl.ignored': 'A target this package does not know: {platform}',
   'dl.source_preview': 'The source video is a preview; make the final version before posting.',
   'dl.source_loud': 'Loudness of the finished file: {lufs} LUFS (page target {target})',

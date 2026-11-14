@@ -1,4 +1,4 @@
-# Delivery: loudness, sound check, the nine networks and the package (0.15)
+# Delivery: loudness, sound check, the nine networks and the package (0.16)
 
 Ported from NMarketing (backend/services/editing/audioqc.py, audiofx.py, social_sizes.py, export.py, safezones.py, apps/content/caption_guard.py, hashtags.py @ v3.02, c23f861)
 and customised for a channel / series producer. Every ported module carries a `SOURCE:` note. InstAI does not import anything from NMarketing at run time.
@@ -16,7 +16,7 @@ What the owner gets, in one list:
 
 * `PROFILES`: `social` -14 (YouTube, Shorts, Reels, TikTok), `messenger` -16 (Telegram, Aparat), `broadcast` -23. The stored value stays the number `audio.target_lufs`; the profile is only a name
   for it in the settings screen (a number that is none of the three shows as «Custom»).
-* **New pages start at -14. A page made before 0.15 keeps -16** until its owner changes it: `pages/migrations/0004_keep_legacy_loudness.py` writes -16 into every audio profile that lacks the number and gives a
+* **New pages start at -14. A page made before 0.16 keeps -16** until its owner changes it: `pages/migrations/0004_keep_legacy_loudness.py` writes -16 into every audio profile that lacks the number and gives a
   page that has no audio profile row one (such a page read the default, which is now -14). `tests/test_delivery_migration.py` runs it on the real migration graph.
 * `settle(path, target, tp=-1.0, tolerance=0.8, max_rounds=3)` (ported `settle_loudness`): measure the file (`ebur128=peak=true`, decoded, true peak 4x oversampled) -> when off by more than the tolerance
   or the true peak is above the ceiling, re-encode only the SOUND with the missing gain and a peak limiter (the picture stream is copied: seconds, not a render) -> measure the candidate -> adjust the
@@ -24,9 +24,9 @@ What the owner gets, in one list:
   Never raises, never leaves a half-written file. `target=None` = peaks only.
 * Where: `production/deliveryqc.after_render`, called by `pipeline.step_assemble` right after `assemble.assemble` and BEFORE the file becomes an Asset, so the registered file, its `loudness_lufs` and the
   cover/QC all describe the delivered bytes. A preview keeps the render's own loudness (`{"skipped": "preview"}`); a page can switch the pass off (`audio.loudness_settle = false`, `{"skipped": "off"}`).
-* Result on the final Asset: `provenance["loudness"] = {before, lufs, tp, tp_before, tp_ceiling, target, tolerance, adjusted, rounds, gain_db, ok}` (and `provenance["target_lufs"]`).
+* Result on the final Asset: `provenance["loudness"] = {before, after (= lufs), tp, tp_before, tp_ceiling, target, tolerance, adjusted, rounds, gain_db, ok}` (and `provenance["target_lufs"]`).
   The quality panel's `loudness` row says target, before and rounds; the `true_peak` row says the peak against the -1 dBTP ceiling.
-* The switch enters the timeline hash only when it is OFF, and the target was already part of it: renders made before 0.15 stay current.
+* The switch enters the timeline hash only when it is OFF, and the target was already part of it: renders made before 0.16 stay current.
 
 ## 2. Sound check (`instai/render/audioqc.py`, `production/deliveryqc.py`)
 
@@ -65,7 +65,7 @@ All numbers are NMarketing's and **approximate** (the apps move their limits); e
 encode; any failure repeats the encode on the CPU and the GPU is not asked again for 10 minutes.
 
 **Shape policy (no crop, ever).** An episode is rendered in one shape today: 9:16 (`render/assemble.py`). The plan of a network says `ready` (the shape matches, or the network plays any shape: Telegram),
-`fit` or `needs_aspect`. For `needs_aspect` no file is made and the README says why, in both languages. Two ways out: when the assembly learns to render another shape natively, the plan offers
+`fit`, `needs_aspect` or `no_video` (nothing rendered yet). For `needs_aspect` no file is made and the README says why, in both languages. Two ways out: when the assembly learns to render another shape natively, the plan offers
 «re-render in that shape» (`delivery.RERENDER_ASPECTS` = the shapes it can render; today only 9:16, so the offer is not made for any network - it would be a promise nobody keeps); and, chosen per network by the
 owner (`PublishTarget.config.fit = "blur"`, the switch in the Publishing tab), **the whole frame in the middle over a blurred copy of itself** - nothing is cut away. A file is never larger than its source.
 

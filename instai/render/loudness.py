@@ -33,7 +33,7 @@ TP_CEILING_DB = -1.0
 MAX_ROUNDS = 3
 
 #: Loudness profiles: the number is what is stored on the page (`audio.target_lufs`); the key is only a name for the choice in the settings screen.
-#: New pages start at -14 (what YouTube, Shorts, Reels and TikTok play at); pages made before 0.15 keep the -16 they were saved with.
+#: New pages start at -14 (what YouTube, Shorts, Reels and TikTok play at); pages made before 0.16 keep the -16 they were saved with.
 NEW_PAGE_LUFS = -14.0
 LEGACY_LUFS = -16.0
 PROFILES: dict[str, dict] = {
@@ -130,7 +130,7 @@ def settle(path, *, target: float | None = -14.0, tp: float = TP_CEILING_DB, tol
 
     `target=None` = peaks only (a page that did not ask for loudness normalisation keeps its loudness; only a file that really clips is touched).
     Never raises and never leaves a half-written file. Returns
-    `{"lufs", "target", "adjusted", "rounds", "gain_db", "before", "tp", "tp_before", "tp_ceiling", "tolerance", "ok"}`, or `{}` when the file has no sound
+    `{"lufs" (= "after"), "target", "adjusted", "rounds", "gain_db", "before", "after", "tp", "tp_before", "tp_ceiling", "tolerance", "ok"}`, or `{}` when the file has no sound
     or cannot be measured."""
     path = Path(path)
     tried: list[Path] = []
@@ -179,6 +179,7 @@ def settle(path, *, target: float | None = -14.0, tp: float = TP_CEILING_DB, tol
                 tmp.replace(path)
                 rep.update(adjusted=True, gain_db=round(used, 1), lufs=st["lufs"], tp=st["tp"])
             rep["rounds"] = encoded
+        rep["after"] = rep["lufs"]
         rep["ok"] = bool((target is None or abs(float(target) - (rep["lufs"] or before)) <= tolerance + 0.05)
                          and (rep["tp"] is None or rep["tp"] <= float(tp) + 0.05))
         return rep

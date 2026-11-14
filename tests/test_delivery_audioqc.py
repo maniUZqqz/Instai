@@ -1,4 +1,4 @@
-"""The sound checks on a rendered mix (0.15): a doubled narration reports the echo, a clean mix reports nothing, music as loud as the voice is named by shot and track, an
+"""The sound checks on a rendered mix (0.16): a doubled narration reports the echo, a clean mix reports nothing, music as loud as the voice is named by shot and track, an
 out-of-phase mix is found. Calibrated on InstAI's own mixes: narration + side-chain-ducked music/ambience + effects (production/mixing.py, render/assemble.py);
 the numbers are in docs/BENCHMARKS.md. numpy is the one requirement; without it the checks say so and the render goes on."""
 from __future__ import annotations

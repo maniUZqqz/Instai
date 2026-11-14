@@ -106,7 +106,7 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
 
-## Delivery (0.15; docs in `docs/DELIVERY.md`, numbers in `docs/BENCHMARKS.md`, ported from NMarketing v3.02)
+## Delivery (0.16; docs in `docs/DELIVERY.md`, numbers in `docs/BENCHMARKS.md`, ported from NMarketing v3.02)
 - **Loudness** (`render/loudness.py`): `step_assemble` settles a FINAL render to the page's `audio.target_lufs` (new pages -14, old pages keep -16 through `pages/migrations/0004`) before the Asset is made; the result is kept in `provenance["loudness"]`. A new render path that makes a final file records the same dict.
 - **Sound check** (`render/audioqc.py`, needs numpy): echo, music over the voice (stems rendered with `assemble.track_filters` + `assemble.DUCK_FILTER`), phase; the rows `audio_echo` / `audio_masking` / `audio_phase` carry `message` (fa) AND `message_en` and name the shot and the track. A new QC row needs both texts.
 - **Delivery table** (`render/delivery.py`): the nine network keys; a network the episode's shape does not fit gets NO file (never a crop) unless the owner chose `fit = "blur"`. A `PublishTarget.platform` goes through `delivery.network_for`.

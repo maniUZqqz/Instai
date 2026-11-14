@@ -140,7 +140,8 @@ def is_glued(tag, extra=frozenset()) -> bool:
 
 
 def page_vocabulary(page, series=None, episode=None) -> frozenset:
-    """The page's own words: its niche, theme, name, pillars and hashtags, the series and episode titles and the character names."""
+    """The page's own words: its niche, theme, name, idea, pillars and hashtags, the series (title, premise) and episode titles and the character names, and - for a series
+    started from the idea bank - the Persian title, logline and hook of that idea."""
     texts: list = []
     try:
         ident, strat, pub = page.profile("identity"), page.profile("strategy"), page.profile("publishing")
@@ -149,7 +150,18 @@ def page_vocabulary(page, series=None, episode=None) -> frozenset:
         texts += [c.name for c in page.characters.all()]
     except Exception:  # noqa: BLE001 - a missing profile row is not an error
         pass
+    texts.append(getattr(page, "idea", ""))
     for obj in (series, episode):
         if obj is not None:
-            texts.append(getattr(obj, "title", ""))
+            texts += [getattr(obj, "title", ""), getattr(obj, "premise", ""), getattr(obj, "logline", "")]
+    if series is not None:                           # a series started from an idea of the idea bank: the idea's own Persian words
+        try:
+            from instai.ideabank import bank
+            from instai.ideabank.models import IdeaUse
+
+            for use in IdeaUse.objects.filter(series=series)[:2]:
+                idea = bank.get_idea(use.key) or {}
+                texts += [idea.get("title_fa"), idea.get("logline_fa"), idea.get("hook_fa")]
+        except Exception:  # noqa: BLE001 - the idea bank is optional context
+            pass
     return words_of(*texts)

@@ -1,4 +1,4 @@
-"""Delivery in the real pipeline (0.15), with the fake providers: a final render lands within 0.8 LU of its page's target and under -1 dBTP (new pages -14, a page that was saved with
+"""Delivery in the real pipeline (0.16), with the fake providers: a final render lands within 0.8 LU of its page's target and under -1 dBTP (new pages -14, a page that was saved with
 -16 keeps -16), the loudness numbers are kept on the final Asset and shown in the quality panel, and the sound checks name nothing on a clean episode. The old pages keep their
 target through the data migration."""
 from __future__ import annotations
@@ -108,7 +108,7 @@ def test_music_and_effects_are_mixed_and_checked_with_real_stems(api, worker, ff
 
 
 def test_the_qc_of_an_old_render_without_the_new_numbers_still_works(api, worker, ffmpeg_available):
-    """A render made before 0.15 has no `loudness` / `audio_qc` in its provenance: the panel keeps the old loose limit and the sound checks run on the file itself."""
+    """A render made before 0.16 has no `loudness` / `audio_qc` in its provenance: the panel keeps the old loose limit and the sound checks run on the file itself."""
     from instai.production import pipeline
     from instai.story.models import Episode
 

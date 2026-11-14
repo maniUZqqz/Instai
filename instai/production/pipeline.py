@@ -261,7 +261,7 @@ def timeline_hash(ep: Episode, mode: str) -> str:
     from . import mixing
 
     aud = page_of(ep).profile("audio")
-    extra = [] if aud.get("loudness_settle", True) else ["no-settle"]       # only a NON-default switch enters the hash: renders made before 0.15 stay current
+    extra = [] if aud.get("loudness_settle", True) else ["no-settle"]       # only a NON-default switch enters the hash: renders made before 0.16 stay current
     return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], aud["target_lufs"], mixing.mix_hash_parts(ep), *extra)
 
 

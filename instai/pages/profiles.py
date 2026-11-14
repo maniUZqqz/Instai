@@ -17,7 +17,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
                "subtitle": {"font": "Tahoma", "size": 64, "color": "#FFFFFF", "outline": "#000000", "position": "bottom"}},
     "audio": {"narration_engine": "auto", "narration_voice": "", "language": "fa", "music_enabled": False, "music_mood": "calm",
               "music_volume_db": -22, "sfx_enabled": False,
-              # -14 LUFS is what YouTube, Shorts, Reels and TikTok play at (new pages); pages saved before 0.15 keep the -16 they were saved with
+              # -14 LUFS is what YouTube, Shorts, Reels and TikTok play at (new pages); pages saved before 0.16 keep the -16 they were saved with
               # (pages/migrations/0004). After the render the FILE is measured and corrected to within 0.8 LU unless `loudness_settle` is off.
               "target_lufs": -14, "loudness_settle": True},
     "production": {"preset": "balanced", "episodes_per_series": 5, "episode_length_sec": 45, "preview_default": True,

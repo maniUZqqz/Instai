@@ -1,4 +1,4 @@
-"""The delivery package of a publication (0.15): one file per network the page's targets name - exactly those - the caption after its check (never rewritten), the repaired hashtags,
+"""The delivery package of a publication (0.16): one file per network the page's targets name - exactly those - the caption after its check (never rewritten), the repaired hashtags,
 the subtitles and covers when they exist, and a README / delivery.json in both languages. Nothing is ever posted. Real ffmpeg on a tiny episode."""
 from __future__ import annotations
 
@@ -122,6 +122,14 @@ def test_a_target_may_still_say_instagram_and_an_unknown_one_is_named_not_droppe
     assert "facebook" in zipfile.ZipFile(asset_storage.storage.path_for(pub.package.path)).read("README.txt").decode("utf-8")
 
 
+def test_an_episode_without_a_video_says_so_instead_of_an_unknown_shape(tmp_path, ffmpeg_available):
+    page, ep, video, pub = build(tmp_path, targets=[("ig_reel", True, "")])
+    Asset.objects.filter(pk=video.pk).delete()
+    plan = dp.plan_for(pub)
+    assert plan["source"]["asset"] is None and plan["networks"][0]["status"] == "no_video" and "ساخته نشده" in plan["networks"][0]["notes"][0]["fa"]
+    assert plan["networks"][0]["offers"] == []
+
+
 def test_a_preview_source_is_used_and_said(tmp_path, ffmpeg_available):
     page, ep, video, pub = build(tmp_path, targets=[("ig_reel", True, "")], role="preview")
     plan = dp.plan_for(pub)
@@ -169,6 +177,18 @@ def test_the_pages_own_words_repair_its_tags(tmp_path, ffmpeg_available):
     assert dp.tags_for(pub, page, ep.series, ep) == (["خرسکوچولو"], ["خرس_کوچولو"])      # the page's own niche + a character name: the glued tag is split
 
 
+def test_a_series_started_from_an_idea_knows_the_ideas_own_words(tmp_path, ffmpeg_available):
+    from instai.ideabank.models import IdeaUse
+
+    page, ep, video, pub = build(tmp_path, tags=("ساندویچتورم",), targets=[])
+    assert dp.tags_for(pub, page, ep.series, ep)[1] == ["ساندویچتورم"]
+    from instai.ideabank import bank
+
+    idea = next(i for i in bank.all_ideas() if i["title_fa"] == "تورم با یک ساندویچ")
+    IdeaUse.objects.create(key=idea["key"], series=ep.series, page_id=page.pk)                       # the idea «تورم با یک ساندویچ» of the idea bank
+    assert dp.tags_for(pub, page, ep.series, ep)[1] == ["ساندویچ_تورم"]
+
+
 def test_subtitles_and_covers_are_included_when_they_exist_and_nothing_breaks_when_they_do_not(tmp_path, ffmpeg_available):
     from PIL import Image
 
@@ -193,6 +213,31 @@ def test_subtitles_and_covers_are_included_when_they_exist_and_nothing_breaks_wh
     export(pub)
     z = zipfile.ZipFile(asset_storage.storage.path_for(pub.package.path))
     assert z.read("ig_reel/cover.png") != z.read("telegram/cover.png")
+
+
+def test_a_cover_made_by_the_cover_maker_also_ships_its_jpeg_when_that_module_exists(tmp_path, ffmpeg_available, monkeypatch):
+    import sys
+    import types
+
+    from PIL import Image
+
+    page, ep, video, pub = build(tmp_path, targets=[("ig_reel", True, "")])
+    Image.new("RGB", (64, 64), "#336699").save(tmp_path / "c.png")
+    asset_storage.register(tmp_path / "c.png", f"episodes/{ep.pk}/covers/c.png", kind="image", role="cover", page=page, episode=ep, probe=False, provenance={"tool": "instai.covers"})
+    export(pub)
+    assert "cover.png" in names(pub) and "cover.jpg" not in names(pub)                  # no cover maker installed: just the file
+    fake = types.ModuleType("instai.covers.service")
+    fake.jpeg_of_asset = lambda cover: b"JPEG-FAKE-BYTES"
+    monkeypatch.setitem(sys.modules, "instai.covers", types.ModuleType("instai.covers"))
+    monkeypatch.setitem(sys.modules, "instai.covers.service", fake)
+    sys.modules["instai.covers"].service = fake
+    export(pub)
+    n = names(pub)
+    assert {"cover.png", "cover.jpg", "ig_reel/cover.png", "ig_reel/cover.jpg"} <= n
+    assert zipfile.ZipFile(asset_storage.storage.path_for(pub.package.path)).read("cover.jpg") == b"JPEG-FAKE-BYTES"
+    fake.jpeg_of_asset = lambda cover: (_ for _ in ()).throw(RuntimeError("boom"))       # a failing cover maker never breaks the package
+    export(pub)
+    assert "cover.png" in names(pub) and "cover.jpg" not in names(pub)
 
 
 # ------------------------------------------------------------------------------------------------------------------------------ the API

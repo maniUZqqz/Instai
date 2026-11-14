@@ -1,4 +1,4 @@
-"""0.15: new pages start at -14 LUFS (what YouTube, Shorts, Reels and TikTok play at). A page made before that has an audio profile saved with the old default
+"""0.16: new pages start at -14 LUFS (what YouTube, Shorts, Reels and TikTok play at). A page made before that has an audio profile saved with the old default
 (-16), and one saved even earlier may not carry the number at all - it was filled from the default when read. This migration writes -16 into every audio
 profile that lacks it, so nothing changes silently: the page keeps -16 until its owner changes it in the settings."""
 from django.db import migrations

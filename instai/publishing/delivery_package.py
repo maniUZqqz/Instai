@@ -95,6 +95,23 @@ def cover_for(ep, key: str, pub=None) -> Asset | None:
     return (generic or covers or [None])[0]
 
 
+def cover_entries(cover: Asset, prefix: str = "", *, legacy_name: bool = False) -> list[tuple[str, Path | bytes]]:
+    """The zip entries of one cover: the file itself (`cover.png` at the top level as it always was, `<network>/cover.<ext>` in a network folder) and - when the cover maker
+    (`instai.covers`, the thumbnail work) made it - also its JPEG under the platform's size cap (`cover.jpg`). Absent cover maker = just the file; nothing is required."""
+    path = asset_storage.storage.path_for(cover.path)
+    out: list[tuple[str, Path | bytes]] = [(prefix + ("cover.png" if legacy_name else "cover" + (Path(str(cover.path)).suffix or ".png")), path)]
+    if (cover.provenance or {}).get("tool") == "instai.covers":
+        try:
+            from instai.covers import service as cover_service  # optional: the thumbnail work
+
+            jpg = cover_service.jpeg_of_asset(cover)
+            if jpg:
+                out.append((prefix + "cover.jpg", jpg))
+        except Exception as exc:  # noqa: BLE001 - a missing or failing cover maker never breaks the package
+            log.info("cover jpeg skipped: %s", exc)
+    return out
+
+
 def plan_for(pub, video: Asset | None = None, info: dict | None = None) -> dict:
     """What the package will contain, from the facts: `{source, networks[...], ignored, lint, hashtags, no_targets}`. Cheap: no probing, no encoding."""
     from .services import best_video
@@ -108,6 +125,8 @@ def plan_for(pub, video: Asset | None = None, info: dict | None = None) -> dict:
     plans = []
     for n in nets:
         item = delivery.plan_network(n["key"], info, fit=n["fit"], duration=info.get("duration"))
+        if video is None:                                   # nothing rendered yet: say that, not "unknown shape"
+            item.update(status="no_video", mode="", offers=[], notes=[{"fa": "هنوز ویدئویی برای این قسمت ساخته نشده است.", "en": "No video has been made for this episode yet."}])
         item["targets"] = n["targets"]
         item["fit"] = n["fit"]
         plans.append(item)
@@ -195,8 +214,7 @@ def build(pub, video: Asset, tmp: Path, ctx=None) -> tuple[list[tuple[str, Path 
             entries.append((arc, out))
             cover = cover_for(ep, key, pub)
             if cover:
-                ext = Path(str(cover.path)).suffix or ".png"
-                entries.append((f"{key}/cover{ext}", asset_storage.storage.path_for(cover.path)))
+                entries += cover_entries(cover, f"{key}/")
         except Exception as exc:  # noqa: BLE001 - one network failing must not lose the others
             if isinstance(exc, (JobCancelled, JobDeferred)):
                 raise
@@ -205,7 +223,7 @@ def build(pub, video: Asset, tmp: Path, ctx=None) -> tuple[list[tuple[str, Path 
             out.unlink(missing_ok=True)
     cover = cover_for(ep, "", pub)                                      # the one cover the package always had
     if cover:
-        entries.append(("cover.png", asset_storage.storage.path_for(cover.path)))
+        entries += cover_entries(cover, "", legacy_name=True)
     srt = find_srt(ep)
     if srt:
         entries.append((f"episode-{ep.number:02d}.srt", asset_storage.storage.path_for(srt.path)))

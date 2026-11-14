@@ -1,4 +1,4 @@
-"""The two delivery rows of the PC self-test (0.15): a 3 s synthetic video with speech-like sound is settled to -14 LUFS and measured again; a doubled-narration mix must report the echo
+"""The two delivery rows of the PC self-test (0.16): a 3 s synthetic video with speech-like sound is settled to -14 LUFS and measured again; a doubled-narration mix must report the echo
 and a clean mix nothing. They run on every PC (no GPU), by themselves, per version and daily like the other cheap checks."""
 from __future__ import annotations
 

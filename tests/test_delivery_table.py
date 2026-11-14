@@ -1,4 +1,4 @@
-"""The delivery table (0.15): nine networks with their size, frame rate, quality, length limit, safe-zone key and loudness target; the per-network plan (never a crop); and the
+"""The delivery table (0.16): nine networks with their size, frame rate, quality, length limit, safe-zone key and loudness target; the per-network plan (never a crop); and the
 file made for a network (size, loudness, GPU encoder with a CPU fallback). Real ffmpeg on tiny clips."""
 from __future__ import annotations
 
