@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.12.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "شروع خودکار با ویندوز، به‌روزرسانی که دیگر نمی‌شکند، و آزادکردن کارت گرافیک برای عامل NMarketing",
+      "en": "Starts by itself with Windows, an updater that no longer breaks, and the graphics card handed back to the NMarketing agent"
+    },
+    "items": [
+      {
+        "fa": "شروع خودکار: START.bat یک میان‌بُر کوچک در پوشهٔ Startup همین کاربر می‌گذارد (بدون دسترسی مدیر)؛ از این پس با ورود به ویندوز InstAI خودش اول از GitHub به‌روز می‌شود و بعد سرور و کارگر را بدون باز کردن مرورگر بالا می‌آورد. خاموش کردن: دو بار کلیک روی Autostart-Off.bat (یا INSTAI_AUTOSTART=0)؛ Autostart-On.bat برش می‌گرداند.",
+        "en": "Start at logon: START.bat puts a small shortcut in this user's Startup folder (no administrator). From now on InstAI updates itself from GitHub first when you log in to Windows and then starts the server and the worker without opening the browser. Switch it off with Autostart-Off.bat (or INSTAI_AUTOSTART=0); Autostart-On.bat brings it back."
+      },
+      {
+        "fa": "به‌روزرسانی خودکار دیگر با پوشهٔ node_modules نمی‌شکند: یک لینک نمادین به‌اشتباه در مخزن بود و روی رایانه‌ای که قبلاً npm install شده بود هر به‌روزرسانی را برای همیشه ناموفق می‌کرد. لینک برداشته شد، node_modules در هر عمقی مال رایانهٔ شماست و دست نمی‌خورد، و پوشه‌ای که جایش فایل می‌آید به‌روزرسانی را نمی‌اندازد.",
+        "en": "The automatic update no longer breaks on a node_modules folder: a symbolic link had slipped into the repository and made every update fail for good on a PC where npm install had been run. The link is gone, node_modules at any depth belongs to your PC and is never touched, and a folder where the update has a file no longer fails the update."
+      },
+      {
+        "fa": "کنار عامل NMarketing: وقتی InstAI چند لحظه کار GPU ندارد، سرورهای صدا (گفتار، افکت، موسیقی) را که خودش راه انداخته هم خاموش می‌کند تا حافظهٔ کارت گرافیک برای عامل آزاد شود؛ ComfyUI را از قبل آزاد می‌کرد. بررسی پورت‌ها و هماهنگی دو برنامه در docs/COEXISTENCE.md نوشته شده است.",
+        "en": "Next to the NMarketing agent: when InstAI has no GPU work for a moment it now also stops the voice servers (speech, effects, music) it started, so the card's memory is free for the agent; it already freed ComfyUI. The port check and how the two programs share the PC are written in docs/COEXISTENCE.md."
+      }
+    ]
+  },
+  {
     "version": "0.11.0",
     "date": "2026-11-14",
     "title": {
