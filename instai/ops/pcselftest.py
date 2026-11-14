@@ -141,7 +141,7 @@ def _ffmpeg_encode(ff: str, out: Path, codec: str, timeout: float = 90) -> tuple
            "-c:v", codec, "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(out)]
     t0 = time.time()
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, creationflags=_flags(), stdin=subprocess.DEVNULL)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, creationflags=_flags(), stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")      # never a decode error from a Windows console code page
     except (OSError, subprocess.SubprocessError) as e:
         return False, f"{type(e).__name__}: {e}", time.time() - t0
     ok = r.returncode == 0 and out.is_file() and out.stat().st_size > 1500
@@ -364,7 +364,7 @@ def check_gpu_card(work: Path) -> dict:
 
 def _nvenc_listed(ff: str) -> bool:
     try:
-        out = subprocess.run([ff, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=15, creationflags=_flags()).stdout
+        out = subprocess.run([ff, "-hide_banner", "-encoders"], capture_output=True, text=True, timeout=15, creationflags=_flags(), encoding="utf-8", errors="replace").stdout
         return "h264_nvenc" in out
     except (OSError, subprocess.SubprocessError):
         return False
