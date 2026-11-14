@@ -7,7 +7,7 @@ The rules (written down in docs/COEXISTENCE.md and enforced here):
 * the same fixed ports as NMarketing for the shared helpers (voice servers 5640/5641/5642, pocket 5620): a server that already runs is used;
 * InstAI's own port (default 8765) is taken over by `scripts/bootstrap.py` only when another program holds it (it picks the next free one);
 * the card is shared by politeness: before a GPU job InstAI waits while another program holds VRAM (gpu/arbiter.py), a model it loaded stays in
-  VRAM for minutes only (Ollama keep_alive 3m), and when InstAI has no GPU work left `release_idle()` frees ComfyUI's models so the other program
+  VRAM for minutes only (Ollama keep_alive 3m), and when InstAI has no GPU work left `release_idle()` frees ComfyUI's models and stops the voice servers it started so the other program
   gets the whole card; it reports which program holds what (`vram_report`, from nvidia-smi).
 Everything is read-only except `release_idle` (ComfyUI /free; Ollama needs no help: its keep_alive is short)."""
 from __future__ import annotations
@@ -173,19 +173,36 @@ def release_idle(*, now: float | None = None, idle_for: float | None = None) -> 
         if STATE["released_at"] and STATE["released_at"] > now - max(idle_for, 1):      # once per idle period, not every tick
             return {"freed": False, "reason": "already"}
         STATE["released_at"] = now
+    voice = _release_voice(int(idle_for))
     try:
         from instai.core import runtime
         from instai.providers.comfy.client import ComfyClient
 
         c = ComfyClient(runtime.comfyui_url())
         if not c.is_up():
-            return {"freed": False, "reason": "comfy_down"}
+            return {"freed": voice, "reason": "comfy_down", "voice": voice}
         c.free()
         log.info("no GPU work for %d s: ComfyUI's models were released for other programs", int(idle_for))
-        return {"freed": True, "reason": ""}
+        return {"freed": True, "reason": "", "voice": voice}
     except Exception as e:  # noqa: BLE001 - best effort
         log.debug("release_idle failed: %s", e)
-        return {"freed": False, "reason": "error"}
+        return {"freed": voice, "reason": "error", "voice": voice}
+
+
+def _release_voice(idle_for: int) -> bool:
+    """The speech / effects / music servers THIS worker started keep their models in VRAM until they are stopped (the idle reaper waits 15 minutes):
+    the NMarketing agent cannot stop a server it did not start, so a quiet InstAI stops its own. Never a server another program runs."""
+    try:
+        from instai.providers.audio import services
+
+        if not services.MANAGER.procs:
+            return False
+        services.unload_voice()
+        log.info("no GPU work for %d s: the voice servers started by InstAI were stopped to free the card", idle_for)
+        return True
+    except Exception as e:  # noqa: BLE001 - best effort
+        log.debug("release voice failed: %s", e)
+        return False
 
 
 # ------------------------------------------------------------------ the page's report
