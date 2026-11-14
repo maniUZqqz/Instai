@@ -148,7 +148,8 @@ def _rig_only(ch) -> None:
 def qc_check(fallbacks: list[dict]) -> dict:
     """The quality-check row (same shape as the other rows of `pipeline.run_qc`): a warning that names the count and the shots."""
     if not fallbacks:
-        return {"name": "fallbacks", "level": "ok", "value": [], "message": "همهٔ شات‌ها با همان روشی که در استوری‌بورد انتخاب شده ساخته شدند"}
+        return {"name": "fallbacks", "level": "ok", "value": [], "message": "همهٔ شات‌ها با همان روشی که در استوری‌بورد انتخاب شده ساخته شدند",
+                "message_en": "Every shot was made with the technique chosen in the storyboard"}
     n = len(fallbacks)
     by_code: dict[str, list[dict]] = {}
     for f in fallbacks:
@@ -165,5 +166,17 @@ def qc_check(fallbacks: list[dict]) -> dict:
     if "no_clip" in by_code:
         parts.append(f"{fd(len(by_code['no_clip']))} شاتِ ویدئویی بدون کلیپ")
     where = "، ".join(f"{fd(f['scene'])}٫{fd(f['index'])}" for f in sorted(fallbacks, key=lambda f: (f["scene"], f["index"])))
+    en = []
+    if "no_rig" in by_code:
+        names = sorted({f.get("character") or "" for f in by_code["no_rig"]} - {""})
+        en.append(f"{len(by_code['no_rig'])} puppet shot(s) without a rig" + (f" (character {', '.join(names)})" if names else "") + "; make the rig in Production lab > Puppet characters")
+    if "no_layers" in by_code:
+        en.append(f"{len(by_code['no_layers'])} parallax shot(s) without layers")
+    if "not_implemented" in by_code:
+        en.append(f"{len(by_code['not_implemented'])} shot(s) with a technique that is not built yet")
+    if "no_clip" in by_code:
+        en.append(f"{len(by_code['no_clip'])} video shot(s) without a clip")
+    where_en = ", ".join(f"{f['scene']}.{f['index']}" for f in sorted(fallbacks, key=lambda f: (f["scene"], f["index"])))
     return {"name": "fallbacks", "level": "warn", "value": fallbacks,
-            "message": f"{fd(n)} شات همان‌طور که در استوری‌بورد بود ساخته نشد و تصویرِ ثابت با حرکتِ دوربین شد (شاتِ {where}): " + "؛ ".join(parts)}
+            "message": f"{fd(n)} شات همان‌طور که در استوری‌بورد بود ساخته نشد و تصویرِ ثابت با حرکتِ دوربین شد (شاتِ {where}): " + "؛ ".join(parts),
+            "message_en": f"{n} shot(s) were not made as in the storyboard and became a still picture with camera motion (shot {where_en}): " + "; ".join(en)}
