@@ -18,6 +18,8 @@ FONT_DIR = Path(__file__).parent / "fonts"
 LEAD_IN = 0.15       # seconds of silence before narration starts in a shot
 TAIL = 0.35          # seconds after narration ends before the next shot
 XFADE = 0.4
+#: the side-chain that lowers the bed (music, ambience) under the narration; `render/audioqc.py` renders the stems through the same setting
+DUCK_FILTER = "sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400"
 
 
 @dataclass
@@ -170,7 +172,7 @@ def build_filter(shots: list[ShotSpec], timeline: list[dict], opts: RenderOption
         parts.append(f"[{k}:a]aresample=48000,aformat=channel_layouts=stereo,aloop=loop=-1:size=2000000000,atrim=0:{total:.3f},"
                      f"volume={opts.music_db}dB[mus]")
         parts.append(f"{voice}asplit=2[v1a][v2a]")
-        parts.append("[mus][v2a]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[duck]")
+        parts.append(f"[mus][v2a]{DUCK_FILTER}[duck]")
         parts.append("[v1a][duck]amix=inputs=2:duration=first:normalize=0[mixed]")
         voice = "[mixed]"
     if opts.tracks:
@@ -213,7 +215,7 @@ def mix_with_tracks(parts: list[str], voice: str, duck: list[str], plain: list[s
             parts.append("".join(duck) + f"amix=inputs={len(duck)}:duration=longest:normalize=0[bed]")
             bed = "[bed]"
         parts.append(f"{voice}asplit=2[vkey][vmix]")
-        parts.append(f"{bed}[vkey]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[ducked]")
+        parts.append(f"{bed}[vkey]{DUCK_FILTER}[ducked]")
         ins = ["[vmix]", "[ducked]"] + plain
     else:
         ins = [voice] + plain

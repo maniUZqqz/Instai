@@ -305,7 +305,10 @@ def start_project(key: str, data: dict) -> dict:
                 raise DomainError("validation_error", "صفحهٔ انتخاب‌شده پیدا نشد.", http_status=400, details={"page_id": ["invalid"]}, message_en="The chosen page was not found.")
             created = False
         else:
-            name = _s(data.get("page_name"), 160) or title
+            if "page_name" in data and not _s(data.get("page_name"), 160):
+                raise DomainError("validation_error", "نامِ صفحه را بنویسید (یا نامِ صفحهٔ پیشنهادی را نگه دارید).", http_status=400, details={"page_name": ["required"]},
+                                  message_en="Write the page name (or keep the suggested one).")
+            name = _s(data.get("page_name"), 160) or title            # no name sent at all: the page is named after the idea, and the answer says so
             page = services.create_page({"name": name, "format": idea["format"], "languages": [lang], "idea": pick("logline")})
             created = True
             if patch:
@@ -315,7 +318,40 @@ def start_project(key: str, data: dict) -> dict:
             series.content_rules = ["Neutral and sourced", "Label contested claims", "No propaganda"]
             series.save(update_fields=["content_rules"])
         IdeaUse.objects.create(key=key, series=series, page_id=page.pk)
-    return {"page_id": page.pk, "series_id": series.pk, "series_url": f"/series/{series.pk}", "page_created": created, "look": look}
+        seed_development(series, idea, lang)
+    return {"page_id": page.pk, "page_name": page.name, "series_id": series.pk, "series_url": f"/series/{series.pk}", "page_created": created, "look": look}
+
+
+def seed_development(series, idea: dict, lang: str) -> None:
+    """The development room must not open empty after «شروعِ پروژه از این ایده»: the first step is filled from the idea. A character brief
+    gets the idea as its text; a brainstorm board gets the idea as its first, approved card. Never overwrites what is already there."""
+    from instai.studio import services as studio
+
+    def pick(base: str) -> str:
+        a, b = idea[f"{base}_fa"], idea[f"{base}_en"]
+        return (a or b) if lang == "fa" else (b or a)
+
+    first = studio.ensure_steps(series)[0]
+    sdef = studio.step_def(series, first.key)
+    title, logline, hook = pick("title"), pick("logline"), pick("hook")
+    if first.kind == "profile" and not (first.data or {}).get("brief"):
+        brief = "\n".join(x for x in (title, logline, (f"{'جملهٔ آغاز' if lang == 'fa' else 'Opening hook'}: {hook}") if hook else "") if x)
+        studio.save_step_data(series, first.key, {"brief": brief})
+    elif first.kind == "brainstorm":
+        board = sdef["params"].get("board", first.key)
+        if not series.ideas.filter(board=board).exists():
+            card = studio.add_idea(series, board, {"title": title, "logline": logline, "why": hook}, author="human", language=lang)
+            card.status = "approved"
+            card.save(update_fields=["status", "updated_at"])
+
+
+def start_idea_of(series) -> dict | None:
+    """The bank idea a series was started from (shown at the top of its development room), or None."""
+    use = IdeaUse.objects.filter(series=series).order_by("id").first()
+    idea = get_idea(use.key) if use else None
+    if not idea:
+        return None
+    return {k: idea[k] for k in ("key", "title_fa", "title_en", "logline_fa", "logline_en", "hook_fa", "hook_en")}
 
 
 def _aspect_of(style_key: str) -> str:

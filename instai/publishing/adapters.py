@@ -133,7 +133,7 @@ ADAPTERS = {"manual": ManualExport, "instagram_graph": InstagramGraph}
 
 
 def adapter_for(target) -> PublishAdapter:
-    if target is not None and target.mode == "api" and target.platform == "instagram":
+    if target is not None and target.mode == "api" and target.platform in ("instagram", "ig_reel"):    # the API posts a Reel: the old name and the delivery key mean the same
         return InstagramGraph()
     return ManualExport()
 

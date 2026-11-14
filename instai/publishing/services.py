@@ -2,12 +2,6 @@
 Nothing is ever posted automatically; the adapter interface is here so the official Instagram Graph API can be added later."""
 from __future__ import annotations
 
-import tempfile
-import zipfile
-from pathlib import Path
-
-from django.conf import settings
-
 from instai.assets import storage as asset_storage
 from instai.assets.models import Asset
 from instai.core.errors import DomainError
@@ -26,34 +20,30 @@ def best_video(ep) -> Asset | None:
     return None
 
 
-def export_package(publication_id: int) -> dict:
+def export_package(publication_id: int, ctx=None) -> dict:
+    """The package for manual upload. Always the finished episode, the caption (read by `caption_lint`, never rewritten), the hashtags and a README; plus, for every
+    network the page's publishing targets name, that network's own file (`publishing/delivery_package.py`, docs/DELIVERY.md), the subtitles and the covers when they
+    exist. A page with no target gets the package it always got."""
+    from . import delivery_package as dp
+
     pub = Publication.objects.select_related("episode__series__page").get(pk=publication_id)
     ep = pub.episode
     video = best_video(ep)
     if not video:
-        raise DomainError("not_ready", "برای این قسمت هنوز ویدئویی ساخته نشده است.")
-    cover = pub.cover or Asset.objects.filter(episode=ep, role="cover", is_current=True).order_by("-id").first()
-    tags = " ".join(h if h.startswith("#") else "#" + h for h in (pub.hashtags or []))
-    schedule = pub.scheduled_at.strftime("%Y-%m-%d %H:%M UTC") if pub.scheduled_at else "not scheduled"
-    caption = (pub.caption or ep.title) + ("\n\n" + tags if tags else "")
-    reminder = (f"InstAI upload package\nPage: {ep.series.page.name}\nEpisode {ep.number}: {ep.title}\nSchedule: {schedule}\n"
-                f"AI label: {'yes - mark the post as AI-generated where the platform requires it' if pub.ai_label else 'no'}\n"
-                "Upload manually from the phone or the platform's own tools.\n")
+        raise DomainError("not_ready", "برای این قسمت هنوز ویدئویی ساخته نشده است.", message_en="No video has been made for this episode yet.")
     rel = f"episodes/{ep.pk}/exports/episode-{ep.number:02d}-pub{pub.pk}.zip"
-    tmp = Path(tempfile.mkdtemp(prefix="exp-", dir=settings.MEDIA_ROOT)) / "pkg.zip"
-    with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(asset_storage.storage.path_for(video.path), f"episode-{ep.number:02d}.mp4")
-        if cover:
-            z.write(asset_storage.storage.path_for(cover.path), "cover.png")
-        z.writestr("caption.txt", caption)
-        z.writestr("hashtags.txt", tags)
-        z.writestr("README.txt", reminder)
-    pkg = asset_storage.register(tmp, rel, kind="package", role="export", page=ep.series.page, episode=ep, probe=False,
-                                 provenance={"publication": pub.pk, "video_asset": video.pk})
-    import shutil
-
-    shutil.rmtree(tmp.parent, ignore_errors=True)
+    work = dp.make_workdir()
+    try:
+        entries, manifest = dp.build(pub, video, work / "files", ctx)
+        zip_path = work / "pkg.zip"
+        dp.write_zip(entries, zip_path)
+        made = [n["key"] for n in manifest["networks"] if (n.get("result") or {}).get("status") == "made"]
+        pkg = asset_storage.register(zip_path, rel, kind="package", role="export", page=ep.series.page, episode=ep, probe=False,
+                                     provenance={"publication": pub.pk, "video_asset": video.pk, "networks": made,
+                                                 "not_made": [n["key"] for n in manifest["networks"] if n["key"] not in made], "warnings": len(manifest["lint"])})
+    finally:
+        dp.cleanup(work)
     pub.package = pkg
     pub.status = "exported" if pub.status in ("draft", "failed") else pub.status
     pub.save(update_fields=["package", "status", "updated_at"])
-    return {"package_asset_id": pkg.pk, "url": pkg.url, "size_bytes": pkg.size_bytes}
+    return {"package_asset_id": pkg.pk, "url": pkg.url, "size_bytes": pkg.size_bytes, "networks": made, "warnings": len(manifest["lint"])}

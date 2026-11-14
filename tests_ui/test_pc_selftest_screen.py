@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tests_ui.test_screens import PERSIAN, SHOTS, open_page  # noqa: E402
 
-KEYS = ["database", "disk", "ffmpeg", "persian_text", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "gpu_card", "nvenc", "ollama_run", "comfyui"]
+KEYS = ["database", "disk", "ffmpeg", "persian_text", "delivery_loudness", "delivery_echo", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "gpu_card", "nvenc", "ollama_run", "comfyui"]
 GPU = ["gpu_card", "nvenc", "ollama_run", "comfyui"]
 
 
@@ -37,6 +37,7 @@ def test_the_system_screen_shows_the_pc_selftest_and_runs_it(browser, server, la
             assert row.inner_text().strip(), k
         verdicts = {k: page.get_by_test_id(f"pc-check-{k}").get_attribute("data-verdict") for k in KEYS}
         assert verdicts["database"] == "ok" and verdicts["persian_text"] == "ok", verdicts
+        assert verdicts["delivery_loudness"] == "ok" and verdicts["delivery_echo"] == "ok", verdicts          # the delivery rows (0.16) run on every PC that has numpy (requirements.txt)
         assert all(verdicts[k] == "pending" for k in GPU), f"no GPU PC here: the GPU checks wait, they do not fail ({verdicts})"
         assert "fail" not in verdicts.values(), verdicts
         state = page.get_by_test_id("pc-selftest-state")

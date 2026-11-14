@@ -19,7 +19,7 @@ from instai.publishing.models import Notification, Publication, PublishTarget
 from . import automation, scheduling
 
 LEVELS = ("manual", "assisted", "automatic")
-TARGET_CONFIG_KEYS = ("ig_user_id", "facebook_page_linked", "public_base_url", "token_env", "api_version", "graph_base", "poll_seconds")
+TARGET_CONFIG_KEYS = ("ig_user_id", "facebook_page_linked", "public_base_url", "token_env", "api_version", "graph_base", "poll_seconds", "fit")
 CONFIRM_TEXT = "I understand InstAI may post to my account"
 
 
@@ -118,7 +118,12 @@ def notifications_read(request):
 
 def target_dict(t: PublishTarget) -> dict:
     ad = adapters.adapter_for(t)
-    return {"id": t.pk, "page": t.page_id, "platform": t.platform, "handle": t.handle, "mode": t.mode, "enabled": t.enabled, "config": {k: v for k, v in (t.config or {}).items() if k in TARGET_CONFIG_KEYS},
+    from instai.render import delivery
+
+    key = delivery.network_for(t.platform)
+    net = delivery.NETWORKS.get(key or "", {})
+    return {"id": t.pk, "page": t.page_id, "platform": t.platform, "network": key, "network_fa": net.get("fa", t.platform), "network_en": net.get("en", t.platform),
+            "handle": t.handle, "mode": t.mode, "enabled": t.enabled, "config": {k: v for k, v in (t.config or {}).items() if k in TARGET_CONFIG_KEYS},
             "adapter": ad.name, "adapter_label": ad.label, "requirements": ad.requirements(t), "ready": ad.ready(t)}
 
 
@@ -136,6 +141,8 @@ def target_detail(request, pk):
         if "handle" in d:
             t.handle = str(d["handle"])[:120]
         if isinstance(d.get("config"), dict):
+            if d["config"].get("fit") not in (None, "", "blur"):
+                raise DomainError("validation_error", "گزینهٔ «قاب» فقط blur یا خالی است.", http_status=400, details={"fit": ["invalid"]}, message_en="'fit' is blur or empty.")
             t.config = {**(t.config or {}), **{k: v for k, v in d["config"].items() if k in TARGET_CONFIG_KEYS}}   # a token is never accepted here: it lives in .env
         t.save()
     return Response(target_dict(t))

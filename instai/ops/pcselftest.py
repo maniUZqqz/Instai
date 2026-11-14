@@ -192,6 +192,68 @@ def check_persian_text(work: Path) -> dict:
     return _r("ok", "متن فارسی با فونت برنامه و حرف‌چینی درست کشیده شد.", "Persian text was drawn with the program's font and proper shaping.", engine=engine, ink=ink)
 
 
+def _delivery_tools(work: Path):
+    """(numpy-based fixtures, ffmpeg path) or a ready result row: both are needed by the two delivery checks."""
+    from instai.core import runtime
+    from instai.render import audioqc
+
+    if not audioqc.available():
+        return None, None, _r("warn", "بستهٔ numpy روی این رایانه نیست؛ بررسی صدا (اکو، بلندی) کار نمی‌کند. START.bat آن را از requirements.txt نصب می‌کند.",
+                              "numpy is not installed on this PC, so the sound checks (echo, loudness) cannot run. START.bat installs it from requirements.txt.")
+    ff = runtime.ffmpeg_info()["ffmpeg"]
+    if not ff:
+        return None, None, _r("fail", "ffmpeg پیدا نشد؛ START.bat آن را خودکار در پوشهٔ tools می‌گذارد.", "ffmpeg was not found; START.bat puts it in the tools folder by itself.")
+    from instai.render import audiofixtures
+
+    return audiofixtures, ff, None
+
+
+def check_delivery_loudness(work: Path) -> dict:
+    """The delivery loudness: a 3 s synthetic video with speech-like sound is made 4 LU too quiet (-18), then settled to -14 LUFS like a final render, and measured again
+    with the platforms' meter: within +-0.8 LU of the target and under -1 dBTP (render/loudness.py, docs/DELIVERY.md)."""
+    from instai.render import loudness
+
+    fx, ff, row = _delivery_tools(work)
+    if row:
+        return row
+    wav = fx.write_wav(work / "speech.wav", fx.speechlike(3.0, seed=7))
+    mp4 = fx.synthetic_video(work / "speech.mp4", wav, ffmpeg_exe=ff, seconds=3.0, loudnorm_to=-18.0)
+    rep = loudness.settle(mp4, target=-14.0)
+    after = loudness.measure(mp4) or {}
+    if not rep or after.get("lufs") is None:
+        return _r("fail", "بلندی صدای فایل آزمایشی اندازه‌گیری نشد (ffmpeg فیلتر ebur128 را ندارد؟).", "The loudness of the test file could not be measured (does ffmpeg lack the ebur128 filter?).")
+    off, tp = abs(after["lufs"] + 14.0), after.get("tp")
+    m = dict(before=rep.get("before"), after=after["lufs"], tp=tp, rounds=rep.get("rounds"), gain_db=rep.get("gain_db"))
+    if off <= 0.8 and tp is not None and tp <= -0.95:
+        return _r("ok", f"بلندی صدا از {_fd(rep['before'])} به {_fd(after['lufs'])} LUFS رسید (هدف ‎-۱۴؛ اوج {_fd(tp)} dBTP، {_fd(rep.get('rounds', 0))} دور).",
+                  f"Loudness went from {rep['before']} to {after['lufs']} LUFS (target -14; true peak {tp} dBTP, {rep.get('rounds', 0)} round(s)).", **m)
+    return _r("fail", f"پس از اصلاح، بلندی {_fd(after['lufs'])} LUFS و اوج {_fd(tp)} dBTP ماند (باید در ±۰٫۸ از ‎-۱۴ و زیر ‎-۱ باشد).",
+              f"After the correction the loudness is {after['lufs']} LUFS and the peak {tp} dBTP (it must be within 0.8 of -14 and under -1).", **m)
+
+
+def check_delivery_echo(work: Path) -> dict:
+    """The sound check on two real files: a mix whose narration plays twice 150 ms apart must report the echo, a clean mix of the same length must report nothing."""
+    from instai.render import audioqc
+
+    fx, ff, row = _delivery_tools(work)
+    if row:
+        return row
+    clean = fx.speechlike(3.5, seed=11)
+    doubled = fx.delayed_copy(clean, 0.15, 0.9)
+    reps = {}
+    for name, x in (("clean", clean), ("doubled", doubled)):
+        wav = fx.write_wav(work / f"{name}.wav", x)
+        reps[name] = audioqc.analyze_file(fx.synthetic_video(work / f"{name}.mp4", wav, ffmpeg_exe=ff, seconds=3.5))
+    c, d = reps["clean"].get("echo") or {}, reps["doubled"].get("echo") or {}
+    m = dict(clean_strength=c.get("strength"), doubled_strength=d.get("strength"), doubled_lag=d.get("lag_s"))
+    if d.get("doubled") and abs((d.get("lag_s") or 0) - 0.15) <= 0.03 and not c.get("doubled"):
+        return _r("ok", f"گفتارِ دوبار پخش‌شده پیدا شد (فاصلهٔ {_fd(int(round(d['lag_s'] * 1000)))} میلی‌ثانیه) و مخلوط سالم چیزی گزارش نکرد.",
+                  f"The doubled narration was found ({int(round(d['lag_s'] * 1000))} ms apart) and the clean mix reported nothing.", **m)
+    if c.get("doubled"):
+        return _r("fail", "مخلوط سالم هم اکو گزارش کرد (هشدار کاذب).", "The clean mix reported an echo too (a false alarm).", **m)
+    return _r("fail", "گفتارِ عمداً دوبار پخش‌شده پیدا نشد.", "The deliberately doubled narration was not found.", **m)
+
+
 def _read_start_bat() -> str:
     try:
         return (ROOT / "START.bat").read_text(encoding="utf-8", errors="replace")
@@ -483,6 +545,8 @@ CHECKS = [
     {"key": "disk", "group": "pc", "fa": "فضای دیسک", "en": "Disk space", "fn": check_disk},
     {"key": "ffmpeg", "group": "pc", "fa": "رمزگذاری ویدئو (ffmpeg)", "en": "Video encoding (ffmpeg)", "fn": check_ffmpeg_encode},
     {"key": "persian_text", "group": "pc", "fa": "متن فارسی روی تصویر", "en": "Persian text on a picture", "fn": check_persian_text},
+    {"key": "delivery_loudness", "group": "pc", "fa": "بلندی صدای تحویل (‎-۱۴ LUFS)", "en": "Delivery loudness (-14 LUFS)", "fn": check_delivery_loudness},
+    {"key": "delivery_echo", "group": "pc", "fa": "تشخیص گفتارِ دوبار پخش‌شده (اکو)", "en": "Doubled narration (echo) detection", "fn": check_delivery_echo},
     {"key": "update_channel", "group": "pc", "fa": "به‌روزرسانی خودکار", "en": "Automatic update", "fn": check_update_channel},
     {"key": "autostart", "group": "pc", "fa": "راه‌اندازی خودکار با ویندوز", "en": "Start with Windows", "fn": check_autostart},
     {"key": "remotion_toolchain", "group": "tools", "fa": "ابزار «ویدئو با کد» (Remotion)", "en": "Code-to-video toolchain (Remotion)", "fn": check_remotion_toolchain},

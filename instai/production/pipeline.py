@@ -34,7 +34,7 @@ from instai.story import costs, services, states
 from instai.story.models import Episode, Shot
 from instai.styles import library as style_library
 
-from . import hero
+from . import deliveryqc, hero
 
 log = logging.getLogger("instai.pipeline")
 PREVIEW, FINAL = "preview", "final"
@@ -260,7 +260,9 @@ def timeline_hash(ep: Episode, mode: str) -> str:
                       s.transition, s.narration, s.technique])
     from . import mixing
 
-    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], page_of(ep).profile("audio")["target_lufs"], mixing.mix_hash_parts(ep))
+    aud = page_of(ep).profile("audio")
+    extra = [] if aud.get("loudness_settle", True) else ["no-settle"]       # only a NON-default switch enters the hash: renders made before 0.16 stay current
+    return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], aud["target_lufs"], mixing.mix_hash_parts(ep), *extra)
 
 
 # ------------------------------------------------------------------ steps (called by job handlers)
@@ -447,7 +449,7 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
     wid, _ = hero.i2v_workflow(page_of(ep))
     if not compute.workflow_available(wid):
         reason = f"no PC can run the video workflow {wid} (ComfyUI down or model files missing)"
-        ctx.log(f"video clips skipped, Ken Burns is used instead: {reason}", "warning")
+        ctx.log_t("clips_skipped", "warning", reason=reason)
         return {"generated": 0, "skipped": len(shots), "reason": reason}
     counter = {"n": 0}
 
@@ -479,8 +481,17 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
 
 
 def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
-    """ShotSpecs from current assets + notes about fallbacks (shown in QC and the job log)."""
-    specs, notes = [], []
+    """ShotSpecs from current assets + notes about fallbacks (English technical notes)."""
+    specs, notes, _fallbacks = shot_specs_full(ep, mode)
+    return specs, notes
+
+
+def shot_specs_full(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str], list[dict]]:
+    """ShotSpecs from current assets, notes, and the STRUCTURED list of shots that fall back to a still with a camera move
+    (`production.fallbacks`): the job log, the video's provenance and the quality check all read that list."""
+    from . import fallbacks as fb_mod
+
+    specs, notes, fallbacks = [], [], []
     shots = services.all_shots(ep)
     for i, s in enumerate(shots):
         kf, nar, clip = current(s, "keyframe"), current(s, "narration"), current(s, "shot_clip")
@@ -494,12 +505,10 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
                                                                                             audio="x" if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0)),
                 language=page_of(ep).language, demo_mode=image_engine() == "placeholder")
             notes += pnotes
-        if s.technique == "parallax_25d":
-            notes.append(f"shot {s.scene.index}.{s.index}: no cut-out layers yet (Phase 3), Ken Burns used instead of parallax")
-        if s.technique not in costs.IMPLEMENTED:
-            notes.append(f"shot {s.scene.index}.{s.index}: technique {s.technique} not implemented yet, Ken Burns used")
-        if s.technique == "wan_i2v" and not clip and mode == FINAL:
-            notes.append(f"shot {s.scene.index}.{s.index}: no Wan clip available, Ken Burns used")
+        fb = fb_mod.shot_fallback(s, ep, mode, have_clip=bool(clip))
+        if fb:
+            fallbacks.append(fb)
+            notes.append(fb["en"])
         last = i == len(shots) - 1
         specs.append(asm.ShotSpec(
             key=str(s.pk), duration=s.duration_sec, image=str(asset_storage.storage.path_for(kf.path)) if kf else None,
@@ -507,15 +516,19 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
             technique=s.technique, transition="cut" if last else (s.transition or "cut"),
             audio=str(asset_storage.storage.path_for(nar.path)) if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0,
             subtitle=s.narration, puppet=puppet_scene))
-    return specs, notes
+    return specs, notes, fallbacks
 
 
 def step_assemble(ctx, ep: Episode, mode: str) -> dict:
-    specs, notes = shot_specs(ep, mode)
+    specs, notes, fallbacks = shot_specs_full(ep, mode)
     if not specs:
         raise DomainError("not_ready", "قسمت هیچ شاتی ندارد.")
+    shown = {f["en"] for f in fallbacks}
+    for f in fallbacks:
+        ctx.log_bi(f["fa"], f["en"], "warning")      # both languages (the report and the job log are read by the owner)
     for n in notes:
-        ctx.log(n, "warning")
+        if n not in shown:
+            ctx.log_note(n, "warning")
     if any(s.image is None and s.video is None and not s.puppet for s in specs):
         raise ProviderError("some shots have no image yet; run the production step again", retryable=False, code="not_ready")
     opts = render_options(ep, mode)
@@ -523,7 +536,7 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
 
     opts.tracks = mixing.resolve(ep, specs, asm.plan_timeline(specs))
     if opts.tracks:
-        ctx.log(f"mixing {len(opts.tracks)} track(s): " + ", ".join(f"{t['kind']}{' (ducked)' if t['duck'] else ''}" for t in opts.tracks))
+        ctx.log_t("mixing", n=len(opts.tracks))
     work = Path(tempfile.mkdtemp(prefix="asm-", dir=settings.MEDIA_ROOT))
     try:
         clips: list[Path] = []
@@ -555,13 +568,16 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
         ctx.progress(0.6, "joining, mixing, subtitles")
         out = work / "episode.mp4"
         info = asm.assemble(specs, clips, opts, out, work / "work", ctx=ctx, on_progress=lambda f: ctx.progress(0.6 + 0.35 * f, "encoding"))
+        delivery_audio = deliveryqc.after_render(ctx, page_of(ep), mode, out, specs, info["timeline"], opts.tracks, work)   # loudness settled to the target + the sound check (never fails a render)
         stamp = _h(ctx.job.pk, mode)[:6]
         rel = f"episodes/{ep.pk}/renders/{mode}-{stamp}.mp4"
         thash = timeline_hash(ep, mode)
         video = asset_storage.register(out, rel, kind="video", role=mode, page=page_of(ep), episode=ep, input_hash=thash, loudness=True,
                                        provenance={"mode": mode, "width": opts.width, "height": opts.height, "fps": opts.fps, "job_id": ctx.job.pk,
                                                    "shots": len(specs), "techniques": sorted({s.technique for s in specs}), "notes": notes,
-                                                   "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"]})
+                                                   "fallbacks": fallbacks,
+                                                   "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"],
+                                                   "target_lufs": float(opts.target_lufs), **delivery_audio})
         cover_tmp = work / "cover.png"
         asm.extract_cover(asset_storage.storage.path_for(video.path), cover_tmp, at=min(1.0, info["duration"] / 2))
         asset_storage.register(cover_tmp, f"episodes/{ep.pk}/renders/{mode}-{stamp}-cover.png", kind="image", role="cover", page=page_of(ep), episode=ep,
@@ -581,10 +597,11 @@ def run_qc(ep: Episode, video: Asset) -> dict:
     from instai.render import qc
 
     page = page_of(ep)
-    report = qc.technical(asset_storage.storage.path_for(video.path), expected_duration=_expected_duration(ep, video),
-                          width=video.width, height=video.height, target_lufs=float(page.profile("audio")["target_lufs"]),
-                          loudness=video.loudness_lufs)
+    path = asset_storage.storage.path_for(video.path)
+    report = qc.technical(path, expected_duration=_expected_duration(ep, video), width=video.width, height=video.height,
+                          target_lufs=float(page.profile("audio")["target_lufs"]), loudness=video.loudness_lufs, settled=deliveryqc.settled_of(video))
     checks = report["checks"]
+    checks += deliveryqc.audio_rows(video, path)        # doubled voice, music over the voice, phase: each names the shot and the track
     sc = ep.script_checks or {}
     checks.append({"name": "script", "level": "ok" if sc.get("ok", True) else "warn", "value": sc.get("warnings", []),
                    "message": "فیلم‌نامه: کامل بودن، طول و سرعت خواندن" if sc.get("ok", True) else "هشدار فیلم‌نامه: " + "، ".join(sc.get("warnings", []))})
@@ -598,6 +615,10 @@ def run_qc(ep: Episode, video: Asset) -> dict:
                    "message": ("صدای غیرتجاری یا غیررسمی در این قسمت به کار رفته است: " + "، ".join(e["engine"] for e in flagged)
                                + " — برای انتشار تجاری از MOSS یا Piper (با مجوز بررسی‌شدهٔ صدا) استفاده کنید.") if flagged else
                    "موتورهای صدا: " + ("، ".join(e["engine"] for e in used) or "—")})
+    from . import fallbacks as fb_mod
+
+    recorded = (video.provenance or {}).get("fallbacks")             # what the assembly really did (older videos: ask the shots now)
+    checks.append(fb_mod.qc_check(recorded if recorded is not None else fb_mod.episode_fallbacks(ep, video.role or "preview")))
     mem = services.memory_digest(ep.series, before_episode=ep.number)
     checks.append({"name": "open_threads", "level": "info", "value": len(mem["open_threads"]),
                    "message": f"{len(mem['open_threads'])} رشته‌ی باز داستان از قسمت‌های قبل"})

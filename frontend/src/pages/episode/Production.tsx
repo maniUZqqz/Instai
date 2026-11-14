@@ -1,6 +1,7 @@
 import { api } from '../../api/client'
 import type { Episode, EpisodeEstimate, Job, PageDetail, Shot } from '../../api/types'
-import { useConfirm } from '../../components/feedback'
+import { useChoose, useConfirm } from '../../components/feedback'
+import { askAboutPuppets } from './preflight'
 import { JobView } from '../../components/domain'
 import { Badge, Button, Card, Notice, Progress } from '../../components/ui'
 import { useAction } from '../../hooks'
@@ -82,6 +83,7 @@ export function EstimateCard({ ep, page }: { ep: Episode; page: PageDetail | und
 export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; page: PageDetail | undefined; onChanged: () => void; onProduced: () => void }) {
   const { t, f, tr } = useI18n()
   const confirm = useConfirm()
+  const choose = useChoose()
   const act = useAction()
   const active = ep.jobs.filter(isActive)
   const shots: Shot[] = ep.scenes.flatMap((s) => s.shots)
@@ -95,7 +97,9 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
       const ok = await confirm({ message: t('prod.final_confirm', { g: f.duration(est.modes.final.gpu_seconds) }), confirmLabel: t('prod.make_final') })
       if (!ok) return
     }
-    const r = await act.run(() => api.post(`/episodes/${ep.id}/produce`, { mode }), { success: t('prod.started') })
+    const pf = await askAboutPuppets(ep.id, choose, t)          // a character without a puppet: offer one click instead of a silent still
+    if (!pf.go) return
+    const r = await act.run(() => api.post(`/episodes/${ep.id}/produce`, { mode, auto_rig: pf.auto_rig }), { success: t('prod.started') })
     if (r) {
       onChanged()
       onProduced()
@@ -227,13 +231,13 @@ function VideoCard({ ep }: { ep: Episode }) {
 }
 
 function QcCard({ ep }: { ep: Episode }) {
-  const { t, tr } = useI18n()
+  const { t, tr, lang } = useI18n()
   const checks = ep.qc?.checks ?? []
   if (checks.length === 0) return null
   const icon = { ok: 'check', warn: 'alert', fail: 'close', info: 'info' } as const
   const tone = { ok: 'var(--ok)', warn: 'var(--warn)', fail: 'var(--err)', info: 'var(--info)' } as const
   return (
-    <Card title={t('prod.qc_title')} actions={<Badge tone={ep.qc.ok ? 'ok' : 'err'}>{ep.qc.ok ? t('prod.qc_ok') : t('prod.qc_fail')}</Badge>}>
+    <Card title={t('prod.qc_title')} actions={<Badge tone={!ep.qc.ok ? 'err' : ep.qc.warnings ? 'warn' : 'ok'}>{!ep.qc.ok ? t('prod.qc_fail') : ep.qc.warnings ? t('prod.qc_warn', { n: ep.qc.warnings }) : t('prod.qc_ok')}</Badge>}>
       <ul className="qc-list">
         {checks.map((c, i) => (
           <li key={i}>
@@ -241,7 +245,7 @@ function QcCard({ ep }: { ep: Episode }) {
               <Icon name={icon[c.level]} />
               <span className="sr-only">{tr('qc.level_' + c.level, c.level)}</span>
             </span>
-            <span>{c.message}</span>
+            <span data-testid={`qc-${c.name}`}>{lang === 'en' && c.message_en ? c.message_en : c.message}</span>
           </li>
         ))}
       </ul>

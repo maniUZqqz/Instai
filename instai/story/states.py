@@ -48,6 +48,8 @@ def allowed_next(state: str, failed_state: str = "") -> list[str]:
         out.append(ASSEMBLY)  # still-only episodes have nothing to animate
     if state == SCRIPT_REVIEW:
         out.append(SCRIPTING)  # regenerate the script
+    if state == SCRIPTING:
+        out.append(PLANNED)    # the script job did not finish (model off, cancelled): back to where it started
     if state in REWORK_FROM or state in (APPROVED, SCHEDULED):
         lo = REWORK_TO_MIN if state in REWORK_FROM else idx(READY_FOR_APPROVAL)
         out += [s for s in ORDER[lo:i]]

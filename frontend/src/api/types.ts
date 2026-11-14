@@ -328,6 +328,8 @@ export interface QcCheck {
   level: 'ok' | 'warn' | 'fail' | 'info'
   value: unknown
   message: string
+  /** English text of the row (rows added in 0.16 carry it; older stored reports do not) */
+  message_en?: string
 }
 
 export interface Source {
@@ -371,7 +373,9 @@ export interface Episode extends EpisodeBrief {
   script_checks: Partial<ScriptChecks>
   scenes: Scene[]
   estimate: EpisodeEstimate
-  qc: { checks?: QcCheck[]; ok?: boolean; asset_id?: number; mode?: string }
+  qc: { checks?: QcCheck[]; ok?: boolean; warnings?: number; asset_id?: number; mode?: string }
+  /** shots that are made as a still with a camera move instead of their planned technique (server: production/fallbacks.py) */
+  fallbacks?: ShotFallback[]
   research: Research
   notes: string
   failed_state: string
@@ -537,6 +541,8 @@ export interface MonitorWorker {
   last_seen: string | null
   current_jobs: unknown[]
   info: Record<string, any>
+  /** automation steps of the worker's 30-second upkeep that failed last time (empty = all fine) */
+  tick_errors?: { step: string; label_fa: string; label_en: string; since: string | null; error: string }[]
 }
 export interface Monitor {
   active: Job[]
@@ -553,6 +559,10 @@ export interface JobLogLine {
   at: string
   level: string
   message: string
+  /** a coded line (instai/jobs/logtext.py): the text in each language, empty for old / free-text lines */
+  code?: string
+  text_fa?: string
+  text_en?: string
 }
 
 export interface ProviderInfo {
@@ -628,6 +638,10 @@ export interface HardwareItem {
   detail: string
   data: Record<string, any>
   hint: string
+  /** a button that fixes it: {package} = the installer of the Models page, {ollama} = pull a language model, {link} = open a page */
+  action?: { package?: string; ollama?: string; link?: string } | null
+  /** the command line / English text behind the «اطلاعات فنی» toggle (never shown by default) */
+  tech?: string
 }
 export interface Hardware {
   checked_at: string
@@ -695,3 +709,92 @@ export interface HistoryEvent {
 }
 
 export * from './studioTypes'
+
+// ---- delivery (0.16): the nine networks, the package plan of a publication and the caption check
+export interface DeliveryNetworkInfo {
+  key: string
+  fa: string
+  en: string
+  group: string
+  aspect: string
+  width: number
+  height: number
+  fps: number
+  quality: string
+  crf: number
+  audio_kbps: number
+  max_seconds: number | null
+  safe_zone: string
+  lufs: number
+  loudness_profile: string
+  any_aspect: boolean
+  approximate: boolean
+}
+export interface DeliveryNote {
+  fa: string
+  en: string
+}
+export interface DeliveryNetworkPlan {
+  key: string
+  fa: string
+  en: string
+  group: string
+  status: 'ready' | 'fit' | 'needs_aspect' | 'no_video'
+  mode: string
+  have_aspect: string | null
+  want_aspect: string
+  width: number | null
+  height: number | null
+  fps: number
+  lufs: number
+  max_seconds: number | null
+  notes: DeliveryNote[]
+  warnings: DeliveryNote[]
+  offers: string[]
+  fit: string
+  targets: number[]
+}
+export interface LintItem {
+  code: string
+  level: 'warn' | 'note'
+  message: string
+  message_en: string
+}
+export interface DeliveryPlan {
+  source: { asset: number | null; role: string | null; width: number | null; height: number | null; aspect: string | null; duration: number | null; loudness_lufs: number | null; loudness: { before?: number; tp?: number; target?: number; adjusted?: boolean } | null; preview: boolean }
+  networks: DeliveryNetworkPlan[]
+  ignored: { target: number; platform: string }[]
+  no_targets: boolean
+  lint: LintItem[]
+  hashtags: { given: string[]; repaired: string[]; changed: string[] }
+  page_lufs: number
+  rerender_aspects: string[]
+}
+export interface PageTarget {
+  id: number
+  platform: string
+  network: string | null
+  network_fa: string
+  network_en: string
+  enabled: boolean
+  fit: string
+  mode: string
+  handle: string
+}
+
+export interface ShotFallback {
+  shot: number
+  scene: number
+  index: number
+  technique: string
+  code: 'no_rig' | 'no_layers' | 'not_implemented' | 'no_clip'
+  fa: string
+  en: string
+  character?: string
+}
+export interface Preflight {
+  needs_rig: { character: number | null; name: string; shots: number }[]
+  fallbacks: ShotFallback[]
+  rigs_made: { character: number; name: string; rig: number | null }[]
+  rigs_path: string
+}
