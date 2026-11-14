@@ -851,3 +851,29 @@ def test_the_storyboard_gives_every_motion_shot_a_first_plan_that_production_rew
     # the storyboard job calls it by itself (the job result says how many): a regenerated storyboard of the same episode
     j = finish(api, worker, api.post(f"/api/episodes/{ep.pk}/generate-storyboard"))
     assert "motion_plans" in j["result"]
+
+
+def test_the_frames_really_go_to_the_owners_vision_model_through_instais_own_ollama_provider(monkeypatch):
+    """The wire format against a fake Ollama (tests/fakes.py): the vision model installed among the owner's models is chosen (qwen3:8b has no eyes), the request carries the frames as base64
+    images in the user message and the verdict schema in `format`, and the answer is read back."""
+    import base64
+
+    from instai.core import settings_store
+    from instai.motion_plan import critique
+    from instai.providers.ollama import OllamaProvider
+    from tests import fakes
+
+    with fakes.ollama_server(models=("qwen3:8b", "qwen3-vl:30b"), loaded=()) as srv:
+        real = settings_store.effective
+        monkeypatch.setattr(settings_store, "effective", lambda k, *a, **kw: srv.url if k == "ollama_url" else real(k, *a, **kw))
+        prov = critique.vision_provider()
+        assert isinstance(prov, OllamaProvider) and prov.model == "qwen3-vl:30b"
+        spec = small_plan()
+        shots = make_measure_fake(spec)(spec)
+        res = critique.ask(prov, spec, shots)
+        body = [r for r in srv.requests if r["path"] == "/api/chat"][-1]["body"]
+    assert body["model"] == "qwen3-vl:30b" and body["format"]["required"] == ["verdict"] and body["stream"] is True
+    user = body["messages"][-1]
+    assert user["role"] == "user" and len(user["images"]) == len(shots) and "PLAN:" in user["content"] and "scene" in user["content"]
+    assert base64.b64decode(user["images"][0])[:3] == b"\xff\xd8\xff", "a JPEG frame"
+    assert res["verdict"] == "ok" and res["issues"] == []
