@@ -1,5 +1,39 @@
 [
   {
+    "version": "0.16.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "تحویل حرفه‌ای: بلندیِ صدا روی ۱۴- LUFS، بازرسیِ صدا، اندازه و بستهٔ هر شبکه و بازبینیِ کپشن",
+      "en": "Professional delivery: loudness at -14 LUFS, a sound check, the size and package of every network and a caption check"
+    },
+    "items": [
+      {
+        "fa": "بلندیِ صدا بعد از هر ساختِ نهایی با همان کورمتری که یوتیوب و ریلز دارند اندازه‌گیری و تا ±۰٫۸ واحد به هدف می‌رسد و اوجِ صدا زیر ۱- dBTP می‌ماند؛ فقط صدا دوباره کدگذاری می‌شود و تصویر دست‌نخورده است. صفحه‌های تازه روی ۱۴- LUFS می‌ایستند و صفحه‌های قدیمی همان ۱۶- می‌مانند (مهاجرتِ داده). نتیجه (قبل و بعد، دورها، اوج) روی خودِ فایل ثبت می‌شود و در «بررسی کیفیت» دیده می‌شود؛ بلندی را در «تنظیمات، صدا» انتخاب می‌کنید.",
+        "en": "After every final render the loudness is measured with the same meter YouTube and Reels use and brought to within ±0.8 units of the target, with the true peak kept below -1 dBTP; only the audio is re-encoded, the picture is untouched. New pages settle at -14 LUFS and old pages keep their -16 (a data migration). The result (before and after, rounds, peak) is stored on the file itself and shown in the quality check; the loudness is chosen in Settings, Audio."
+      },
+      {
+        "fa": "سه عیبِ صدا از روی خودِ فایل پیدا می‌شود و نامِ شات و ترک را می‌گوید: گفتارِ دوبار پخش‌شده (اکو)، موسیقی یا جلوهٔ هم‌بلندِ گفتار (روی استِم‌های خودِ قسمت سنجیده می‌شود) و فازِ برعکس. روی گفتارِ واقعیِ TTS و ساخت‌های آزمایشی کالیبره شد و روی ساختِ آزمایشی هشدارِ کاذب نمی‌دهد.",
+        "en": "Three audio faults are found from the file itself and named by shot and track: a doubled voice (echo), music or an effect as loud as the speech (measured on the episode's own stems) and a reversed phase. Calibrated on real TTS narration and test renders, and it raises no false alarm on the test render."
+      },
+      {
+        "fa": "جدولِ ۹ شبکه (ریلز، استوری، پست ۴:۵، مربع، یوتیوب افقی، شورتس، تیک‌تاک، تلگرام، آپارات) با اندازه، فریم، کیفیت، طولِ مجاز، حاشیهٔ امن و بلندیِ صدا (همه «تقریبی»). با کارتی که NVENC را بپذیرد از کارت گرافیک و وگرنه از پردازنده؛ هرگز برش نمی‌خورد: اگر شکلِ قسمت (۹:۱۶) با شبکه نخواند فایلی ساخته نمی‌شود و دلیلش به فارسی و انگلیسی در README می‌آید، یا برای همان شبکه «قابِ کامل با کناره‌های محو» را روشن می‌کنید.",
+        "en": "A table of nine networks (Reels, Stories, 4:5 post, square, YouTube landscape, Shorts, TikTok, Telegram, Aparat) with size, frame rate, quality, allowed length, safe margin and loudness (all «approximate»). Encoding uses the graphics card when it accepts NVENC and the CPU otherwise; nothing is ever cropped: when the episode's shape (9:16) does not fit a network no file is made and the README says why in both languages, or you switch on «whole frame with blurred sides» for that network."
+      },
+      {
+        "fa": "بستهٔ انتشار برای هر شبکه‌ای که صفحه هدف گرفته یک پوشه با فایلِ همان اندازه و بلندی دارد، به‌علاوهٔ فایلِ اصلی، کپشن، هشتگ، README و delivery.json؛ زیرنویسِ SRT و کاورِ هر شبکه اگر دیگر کارها ساخته باشند خودکار می‌آیند. چیزی منتشر نمی‌شود.",
+        "en": "The publishing package has one folder per network the page targets, with a file at that network's size and loudness, plus the original file, the caption, the hashtags, a README and delivery.json; the SRT subtitles and each network's cover come along automatically when they were made. Nothing is posted."
+      },
+      {
+        "fa": "کپشن فقط بازبینی می‌شود و هرگز بازنویسی نمی‌شود: عددِ ناقص، جملهٔ تکراری، دستورِ تصویر در متن، ایموجیِ زیاد، جملهٔ ناتمام و هشتگِ چسبیده؛ هشتگِ چسبیده فقط داخلِ بسته اصلاح می‌شود.",
+        "en": "The caption is only checked, never rewritten: a broken number, a repeated sentence, an image command in the text, too many emoji, an unfinished sentence and glued hashtags; a glued hashtag is repaired only inside the package."
+      },
+      {
+        "fa": "در رابط: تنظیمات صدا، تبِ انتشار (شبکه‌های صفحه، کارتِ تحویل و بررسیِ کپشن زیرِ هر مورد)، پنلِ کیفیت (متنِ انگلیسی هم) و دو ردیفِ تازه در آزمونِ خودکارِ رایانه (بلندیِ ۱۴- و اکو) که خودشان اجرا می‌شوند. نیازِ تازه: بستهٔ numpy که START.bat خودش نصب می‌کند. ساختِ قسمت فعلاً فقط ۹:۱۶ است؛ «ساختِ دوباره در نسبتِ دیگر» وجود ندارد و پیشنهاد داده نمی‌شود.",
+        "en": "In the interface: the audio settings, the Publishing tab (the page's networks and, under each item, the delivery card and the caption check), the quality panel (with English text) and two new rows in the PC's automatic self-test (-14 loudness and echo) that run by themselves. New requirement: the numpy package, which START.bat installs by itself. An episode is rendered in 9:16 only for now; «render again in another shape» does not exist and is not offered."
+      }
+    ]
+  },
+  {
     "version": "0.15.0",
     "date": "2026-11-14",
     "title": {
