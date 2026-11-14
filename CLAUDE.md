@@ -98,3 +98,10 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 
 ## Autostart (0.12.0)
 - `scripts/autostart.py` (stdlib; `--ensure` from START.bat step 2c, `--on`, `--off`, `--status`) keeps ONE Startup-folder shortcut to `scripts/START-AUTO.bat` in the current user's folder; off switches: `data\autostart.off`, `INSTAI_AUTOSTART=0`. `Autostart-On.bat` / `Autostart-Off.bat` are the double-click versions. Console text stays ASCII. Never put a symlink in the repository (a ZIP update would write it as a file); `tests/test_autostart.py` checks. `release_idle` also stops the voice servers InstAI started.
+
+## Open-issue fixes (0.13.0; reasons in `docs/DECISIONS.md`, "Open-issue fixes")
+- **A server field label is read with `pick(row, 'label')`** (`label_fa` / `label_en`), never `pick(row)` (that reads `fa` / `en`); a stage / column without both labels fails `tests/test_ui_words.py`.
+- **A number in a Persian sentence goes through `n()` / `f.num` in the UI and `selftest._fd` in Python**; model names in «...» keep Latin digits.
+- **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
+- **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
+- `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).

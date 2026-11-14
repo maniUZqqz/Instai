@@ -25,6 +25,7 @@ export interface RmKit {
   animation_fa: string
   animation_en: string
   family: string
+  motif?: string
   realism: string
   fps_feel: number
   palette: { background: string; primary: string; secondary: string; accent: string; shadow: string; highlight: string }
@@ -49,6 +50,9 @@ export interface RmRenders {
     url: string
     kind: string
     seconds: number | null
+    render_seconds?: number | null
+    duration_sec?: number | null
+    fps?: number | null
     width: number | null
     height: number | null
     frames: number | null

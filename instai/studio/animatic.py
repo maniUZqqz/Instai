@@ -91,6 +91,7 @@ def build(ctx, ep: Episode) -> dict:
         asset = asset_storage.register(final, rel, kind="video", role="animatic", page=page, episode=ep, input_hash=h,
                                        provenance={"workflow": "animatic@1", "mode": "preview", "job_id": ctx.job.pk, "shots": len(specs), "notes": notes,
                                                    "scratch_audio": scratch, "stills": stills, "tts_engine": settings_store.effective("tts_engine"),
+                                                   "shape_hash": preprod.animatic_shape_hash(ep),
                                                    "expected_duration": info["duration"]})
     finally:
         shutil.rmtree(work, ignore_errors=True)

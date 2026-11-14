@@ -172,14 +172,21 @@ def release_idle(*, now: float | None = None, idle_for: float | None = None) -> 
     with _LOCK:
         if STATE["released_at"] and STATE["released_at"] > now - max(idle_for, 1):      # once per idle period, not every tick
             return {"freed": False, "reason": "already"}
-        STATE["released_at"] = now
-    voice = _release_voice(int(idle_for))
+    voice = False
     try:
         from instai.core import runtime
         from instai.providers.comfy.client import ComfyClient
 
         c = ComfyClient(runtime.comfyui_url())
-        if not c.is_up():
+        up = c.is_up()
+        if up and c.queue_busy():
+            # InstAI's own job table says "quiet", but ComfyUI is shared with the NMarketing agent: freeing its models now would throw away what that program's next
+            # step needs (a slowdown, review of 0.10.0). Not marked as done, so the next tick asks again.
+            return {"freed": False, "reason": "comfy_busy"}
+        with _LOCK:
+            STATE["released_at"] = now
+        voice = _release_voice(int(idle_for))
+        if not up:
             return {"freed": voice, "reason": "comfy_down", "voice": voice}
         c.free()
         log.info("no GPU work for %d s: ComfyUI's models were released for other programs", int(idle_for))

@@ -136,3 +136,91 @@ def test_the_style_search_finds_the_owners_own_wording(browser, server, lang):
         assert not problems, problems
     finally:
         ctx.close()
+
+
+@pytest.mark.parametrize("lang", ["fa"])
+def test_the_style_search_ignores_brackets_around_a_pasted_name(browser, server, lang):
+    """The verifier of 0.12.0 pasted 'Chrome 22K (chrome metallic type)' into the box and got nothing."""
+    ctx, page, problems = visit(browser, server, "desktop", "/library", lang)
+    try:
+        page.locator(".style-card").first.wait_for(timeout=15000)
+        page.get_by_role("searchbox").first.fill("Chrome 22K (chrome metallic type)")
+        page.wait_for_function("() => document.querySelectorAll('.style-card').length >= 1 && document.querySelectorAll('.style-card').length < 5", timeout=8000)
+        assert page.locator(".style-card").count() >= 1
+        assert not problems, problems
+    finally:
+        ctx.close()
+
+
+def _open_editor(page, stage_title: str):
+    card = page.locator(".ladder-stage", has_text=stage_title).first
+    card.wait_for(timeout=15000)
+    card.get_by_role("button", name=re.compile("ویرایش")).first.click()
+    return card
+
+
+@pytest.mark.parametrize("size", ["desktop", "phone"])
+def test_the_ladder_editors_label_every_field_and_every_column(browser, server, world, size):
+    """Review of 0.11.0: the table editors of the ladder had no column headers ('#' and empty cells) and the inputs had empty aria-labels, because the labels were read with
+    the wrong key. Every header, field label and input name must be text, in Persian."""
+    ctx, page, problems = visit(browser, server, size, f"/episodes/{world['episode']}#ladder")
+    try:
+        card = _open_editor(page, "فهرست نماها")
+        card.get_by_role("button", name=re.compile("ردیف تازه")).first.click()
+        card.locator("table th").first.wait_for(timeout=8000)
+        heads = [h.strip() for h in card.locator("table th").all_inner_texts()]
+        assert heads[0] == "#" and heads[-1] == "" and all(heads[1:-1]), f"a column has no header: {heads}"
+        assert {"صحنه", "اندازه", "زاویه", "حرکت", "اکشن", "ثانیه", "گذار"} <= set(heads), heads
+        inputs = card.locator("table input:not([type=checkbox]), table textarea, table select")
+        assert inputs.count() >= 7
+        names = [inputs.nth(i).get_attribute("aria-label") or "" for i in range(inputs.count())]
+        assert all(n.strip() for n in names), f"an input has no name: {names}"
+        # the sound design table has narrow number boxes: '-28' (dB) must be readable
+        sound = _open_editor(page, "طراحی صدا")
+        sound.get_by_role("button", name=re.compile("ردیف تازه")).first.click()
+        num = sound.locator("table input[type=number]").first
+        num.fill("-28")
+        assert num.evaluate("e => e.scrollWidth <= e.clientWidth + 1"), "the number box clips its value"
+        assert not problems, problems
+    finally:
+        ctx.close()
+
+
+@pytest.mark.parametrize("size", ["desktop", "phone"])
+def test_the_series_ladder_labels_its_text_fields_and_counts_in_persian_digits(browser, server, world, size):
+    ctx, page, problems = visit(browser, server, size, f"/series/{world['series']}#ladder")
+    try:
+        card = _open_editor(page, "لاگ‌لاین")
+        labels = [t.strip() for t in card.locator("label").all_inner_texts()]
+        assert len([t for t in labels if t]) >= 3 and {"وعدهٔ اصلی", "چه چیزی در خطر است"} <= set(labels), f"the logline editor has no labels: {labels}"
+        counts = page.locator("main .badge", has_text=re.compile(r"^(تأییدشده|پیش‌نویس|کهنه|خالی)\s"))
+        counts.first.wait_for(timeout=8000)
+        assert counts.count() == 4, "the four counts of the ladder header"
+        badges = page.locator(".ladder-stage .badge, [data-selftest] .badge").all_inner_texts() + counts.all_inner_texts()
+        for badge in badges:
+            assert not re.search(r"[0-9]", badge), f"a Latin digit in a Persian badge: {badge!r}"
+        selftest = page.locator("[data-selftest]")
+        if selftest.count():
+            text = selftest.first.inner_text()
+            assert not ("همه‌چیز سالم" in text and "منتظر" in text), "the self-test must not say 'all sound' while checks are still waiting"
+        assert not problems, problems
+    finally:
+        ctx.close()
+
+
+def test_a_character_role_and_a_post_title_are_never_raw_keys(browser, server, world):
+    ctx, page, problems = visit(browser, server, "desktop", f"/pages/{world['page']}/characters")
+    try:
+        card = page.locator(".card", has_text="رامین").first
+        card.wait_for(timeout=15000)
+        assert "hero" not in card.locator("h2").first.inner_text(), "the role is named in Persian"
+        ctx2, page2, problems2 = visit(browser, server, "desktop", f"/choice/{world['story']}")
+        try:
+            page2.get_by_text(re.compile("پست ۱")).first.wait_for(timeout=15000)
+            titles = page2.locator("main h2").all_inner_texts()
+            assert not any(re.search(r"پست\s*۱\s*·\s*[a-z]\d*\s*$", t) for t in titles), f"a post title ends with its internal id: {titles}"
+        finally:
+            ctx2.close()
+        assert not problems, problems
+    finally:
+        ctx.close()

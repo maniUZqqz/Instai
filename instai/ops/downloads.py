@@ -152,7 +152,7 @@ def curated(packages: dict | None = None, items: list | None = None, status: dic
                           "installed": bool(d.get("installed")), "reused": bool(d.get("reused")), "where": d.get("where", "") if d.get("installed") else ""})
         commercial = c.get("commercial", "unknown")
         out.append({"id": pid, "title": p.get("title", pid), "group": c.get("group", "image"), "order": int(c.get("order") or 99), "commercial": commercial,
-                    "needs_confirm": commercial != "yes", "licence": p.get("licence", ""), "licence_url": c.get("licence_url", ""), "vram": c.get("vram", ""),
+                    "needs_confirm": commercial != "yes", "licence": p.get("licence", ""), "licence_url": c.get("licence_url", ""), "vram": c.get("vram", ""), "vram_fa": c.get("vram_fa") or c.get("vram", ""),
                     "why": c.get("why") or {}, "note": c.get("note") or {}, "checked": c.get("checked", ""), "files": files, "needs": c.get("needs") or [],
                     "size": sum(f["size"] for f in files), "missing_size": sum(f["size"] for f in files if not f["installed"]),
                     "installed": sum(1 for f in files if f["installed"]), "reused": sum(1 for f in files if f["reused"]),

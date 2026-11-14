@@ -82,9 +82,16 @@ def live_storyboard(series, ep):
 
 
 def live_animatic(series, ep):
+    """The animatic is a timing check: it is current while the shots, their words and lengths are the ones it was built from. Real keyframes arriving after production
+    (placeholders -> pictures) do NOT make it stale here - the owner used to be asked for an extra approval that refreshed nothing (review of 0.11.0); the Pre-production
+    tab still offers a rebuild with the real pictures (`newer_pictures`)."""
     info = preprod.animatic_info(ep)
-    return {"hash": preprod.animatic_hash(ep) if info["status"] != "missing" else "", "data": {"status": info["status"], "asset": info.get("asset")},
-            "ready": info["status"] == "fresh", "approved_elsewhere": "animatic" in preprod.approvals(ep)}
+    asset = preprod.animatic_asset(ep) if info["status"] != "missing" else None
+    shape = preprod.animatic_shape_hash(ep) if asset else ""
+    built = str(((asset.provenance or {}).get("shape_hash") or "")) if asset else ""
+    current = info["status"] == "fresh" or (bool(built) and built == shape)
+    data = {"status": "fresh" if current else info["status"], "asset": info.get("asset"), "newer_pictures": bool(current and info["status"] == "stale")}
+    return {"hash": shape, "data": data, "ready": current, "approved_elsewhere": "animatic" in preprod.approvals(ep)}
 
 
 def live_design(series, ep):

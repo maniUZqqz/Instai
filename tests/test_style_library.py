@@ -100,6 +100,27 @@ def test_the_owners_caption_typed_exactly_finds_its_style():
     assert "toy_brick_3d" in [r["key"] for r in library.filter_styles(lib, q="lego like")] and "toy_brick_3d" in [r["key"] for r in library.filter_styles(lib, q="Lego bricks")]
 
 
+def test_a_full_name_pasted_with_its_brackets_and_quotes_still_finds_its_style():
+    """The verifier of 0.12.0 pasted 'Chrome 22K (chrome metallic type)' from the owner's list and got nothing: the '(' stuck to the word. Brackets, quotes and commas
+    around a word never change what it means."""
+    lib = rows()
+    for q in ("Chrome 22K (chrome metallic type)", "«Chrome 22K»", "(Chrome 22K)", "Chrome 22K, chrome", "\"Lego-like bricks\"", "(Pixel Art)", "«Glassmorphism»"):
+        assert library.filter_styles(lib, q=q), f"nothing found for {q!r}"
+    assert "chrome_metal_type" in [r["key"] for r in library.filter_styles(lib, q="Chrome 22K (chrome metallic type)")]
+    assert library.filter_styles(lib, q="(zzzz not a style)") == []
+
+
+def test_the_browser_side_search_ignores_the_same_punctuation_as_the_server():
+    """The Library and the pickers filter in the browser (`frontend/src/library.ts` fold): the set of ignored characters must be the server's."""
+    from pathlib import Path
+
+    ts = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "library.ts").read_text(encoding="utf-8")
+    line = next(l for l in ts.splitlines() if l.startswith("const PUNCTUATION"))
+    for ch in "()[]{}<>«»\"“”‘’,;:!?،؛؟/\\|":
+        assert ch in line or "\\u%04x" % ord(ch) in line or ("\\" + ch) in line, f"{ch!r} is ignored by the server's search but not by the browser's"
+    assert ".replace(PUNCTUATION, ' ')" in ts
+
+
 def _tokens(text: str) -> set[str]:
     """Lower-case word stems: 'Cel-shading' -> {cel, shading}; 'Particles' -> {particle}; 'colour' and 'color' agree."""
     words = re.findall(r"[a-z0-9.]+", text.lower().replace("colour", "color"))
@@ -231,6 +252,22 @@ def test_the_series_own_pick_wins_over_the_pages_look_and_defaults_its_theme(api
     p = api.get(f"/api/library/compose?page={page['id']}").json()
     assert p["style"] == "modern_tv_anime" and not p["look"]["own"]
     assert api.get("/api/library/compose?series=99999").status_code == 404
+
+
+def test_a_series_look_with_an_unknown_style_is_refused_not_stored(api):
+    """Review of 0.11.0: an unknown style key became the series look and every generator then got an empty style prompt. The development room's look is checked the same way
+    as the ladder's art-style stage (`library.check_look`)."""
+    page, series, ep = make_project(api)
+    url = f"/api/series/{series.pk}/development"
+    r = api.patch(url, {"look": {"style_key": "film_noir"}}, format="json")
+    assert r.status_code == 400 and "film_noir" in r.json()["error"]["message"]
+    assert api.patch(url, {"look": {"style_key": "noir_bw", "theme_key": "no_such_theme"}}, format="json").status_code == 400
+    series.refresh_from_db()
+    assert not series.look, "nothing was stored"
+    assert api.patch(url, {"look": {"style_key": "anime_soft"}}, format="json").status_code == 200       # a legacy name becomes its current key
+    series.refresh_from_db()
+    assert series.look == {"style_key": library.resolve_key("style", "anime_soft")} and library.compose_for_series(series)["positive"]
+    assert api.patch(url, {"look": {}}, format="json").status_code == 200 and not type(series).objects.get(pk=series.pk).look, "an empty look = inherit the page's"
 
 
 def test_changing_the_look_makes_the_keyframes_and_clips_out_of_date(api):

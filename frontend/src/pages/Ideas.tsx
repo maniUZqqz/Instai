@@ -91,7 +91,7 @@ export default function IdeasPage() {
             <div className="stack-sm">
               <div className="field">
                 <label htmlFor="idea-q" className="sr-only">{t('ideas.search')}</label>
-                <input id="idea-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('ideas.search')} />
+                <input id="idea-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('ideas.search_short')} title={t('ideas.search')} />
               </div>
               <div className="filter-chips" role="group" aria-label={t('ideas.categories')}>
                 <button type="button" className={'filter-chip' + (category === '' ? ' on' : '')} aria-pressed={category === ''} onClick={() => setCategory('')}>

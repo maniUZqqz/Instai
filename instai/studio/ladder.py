@@ -190,6 +190,17 @@ def normalize_data(key: str, data: dict) -> dict:
     return out
 
 
+def _checked_look(data: dict, *, need_style: bool) -> dict:
+    """The art-style stage chooses the look of the whole series, so it must name a style (and colour theme / realism) that the library really has (`library.check_look`).
+    A draft may still be saved without a style while the owner is choosing; approving needs one."""
+    from instai.styles import library
+
+    out = library.check_look(data)
+    if need_style and not str(out.get("style_key") or "").strip():
+        raise _bad("not_ready", "سبک تصویری هنوز انتخاب نشده است.", "No art style is chosen yet.", style_key=["required"])
+    return out
+
+
 @transaction.atomic
 def save_version(series, ep, key: str, data: dict, *, author: str = "human", note: str = "", provenance: dict | None = None) -> StageVersion:
     """Add a version. A change to an approved stage withdraws the approval."""
@@ -197,6 +208,8 @@ def save_version(series, ep, key: str, data: dict, *, author: str = "human", not
     if st["source"] == "bridge":
         raise _bad("conflict", "این مرحله از جای دیگری ساخته می‌شود و اینجا ویرایش نمی‌شود.", "This stage is made elsewhere and cannot be edited here.")
     clean = normalize_data(key, data)
+    if key == "art_style":
+        clean = _checked_look(clean, need_style=False)
     d = doc(series, ep, key, create=True)
     last = latest(d)
     if last is not None and last.content_hash == bridge.h(clean) and author != "ai":
@@ -231,8 +244,11 @@ def approve(series, ep, key: str, number: int | None = None, *, auto: bool = Fal
                    blocked_by=row["blocked_by"])
     d = doc(series, ep, key, create=True)
     num = int(number or d.current_version)
-    if version(d, num) is None:
+    ver = version(d, num)
+    if ver is None:
         raise DomainError("not_found", http_status=404)
+    if key == "art_style":
+        _checked_look(ver.data or {}, need_style=True)               # a style-less (or since-deleted) look is not something to approve
     if st["source"] == "bridge" and num != d.current_version:
         raise _bad("conflict", "فقط نسخهٔ جاری یک مرحلهٔ پیوندی را می‌شود تأیید کرد.", "Only the current version of a bridged stage can be approved.")
     d.approved_version, d.approved_inputs = num, _approved_inputs(series, ep, st)

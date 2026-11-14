@@ -137,6 +137,27 @@ def test_model_sheet_is_drawn(tmp_path):
     assert colours and len(colours) > 20
 
 
+def test_a_persian_model_sheet_names_its_roles_colours_and_expressions_in_persian(tmp_path, monkeypatch):
+    """Review of 0.11.0: the sheet of a Persian series had English labels ('neutral', 'happy', 'limbs · blue', 'MODEL SHEET')."""
+    from instai.render import fa_text
+
+    seen: list[str] = []
+    real = fa_text.draw_text
+
+    def spy(d, xy, text, *a, **k):
+        seen.append(text)
+        return real(d, xy, text, *a, **k)
+
+    monkeypatch.setattr(fa_text, "draw_text", spy)
+    compose.model_sheet(S.normalize(HERO), tmp_path / "fa.png", tmp_path / "w", title="رامین", language="fa")
+    text = " | ".join(seen)
+    assert "MODEL SHEET" not in text and "neutral" not in seen and "happy" not in seen and "limbs" not in text and "Front view" not in text
+    assert "خنثی" in seen and "شاد" in seen and any(t.startswith("دست و پا · ") for t in seen) and "برگهٔ مدل" in seen
+    seen.clear()
+    compose.model_sheet(S.normalize(HERO), tmp_path / "en.png", tmp_path / "w2", title="Ramin", language="en")
+    assert "MODEL SHEET" in seen and "neutral" in seen and any(t.startswith("limbs · ") for t in seen), "the English sheet is unchanged"
+
+
 @pytest.mark.slow
 def test_stick_clip_renders_with_the_puppet_pipeline(tmp_path, ffmpeg_available):
     scene = {"aspect": "9:16", "width": 270, "height": 480, "background": "corridor",

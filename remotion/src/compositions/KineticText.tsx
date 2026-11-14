@@ -71,7 +71,7 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
   const lines = props.lines?.length ? props.lines : ['']
   const tl = kineticTimeline(lines, m)
   const color = readableOn(p.background, [p.highlight, '#FFFFFF'])
-  const accent = accentOn(p.background, p.accent)
+  const accent = accentOn(p.background, p.accent, 4.5)          // the starred words are text: a pale accent on a light page is pulled toward the text colour
   let idx = 0
   tl.starts.forEach((s, i) => {
     if (frame >= s) idx = i

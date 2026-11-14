@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "remotion"
 COMPOSITIONS = ("TitleCard", "KineticText", "Explainer", "LowerThird")      # remotion/src/catalog.ts (a test compares the two lists)
 SIZES = {"landscape": (1920, 1080), "vertical": (1080, 1920), "square": (1080, 1080)}
-SHARED_FILES = ("src/kit/theme.ts", "src/kit/motion.ts", "src/kit/Stage.tsx", "src/catalog.ts", "render.mjs")
+SHARED_FILES = ("src/kit/theme.ts", "src/kit/motion.ts", "src/kit/Stage.tsx", "src/kit/Look.tsx", "src/catalog.ts", "render.mjs")
 _MOD = None
 
 

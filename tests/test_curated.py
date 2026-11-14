@@ -114,6 +114,9 @@ def test_catalog_lists_the_library_with_groups_licence_flags_and_mirrors(api):
     assert cur["piper-fa-voices"]["files"][0]["folder"].startswith("InstAI\\models\\piper"), "the voice folder is shown as InstAI\\models\\piper"
     # the add-a-package box of the old UI must not list curated packages twice
     assert all(p["curated"] for p in r.json()["packages"] if p["id"] in BRIEF)
+    # review of 0.11.0: the memory note was English-only on the Persian page; every note has a Persian reading next to the English one
+    noted = [c for c in cur.values() if c["vram"]]
+    assert len(noted) >= 10 and all(re.search(r"[؀-ۿ]", c["vram_fa"]) and not re.search(r"[A-Za-z]{4,}", c["vram_fa"].replace("ComfyUI", "").replace("SDXL", "").replace("FLUX", "").replace("VAE", "").replace("CPU", "").replace("fp16", "").replace("fp8", "")) for c in noted), [c["id"] for c in noted]
 
 
 def test_a_non_commercial_package_is_queued_only_after_the_licence_confirmation(api):
