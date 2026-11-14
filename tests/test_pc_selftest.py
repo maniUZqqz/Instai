@@ -424,3 +424,21 @@ def test_the_job_kind_has_a_plain_name_and_the_handler_is_registered():
     registry.load_handlers()
     assert registry.default_resource("system.selftest", {"gpu": True}) == "gpu" and registry.default_resource("system.selftest", {"gpu": False}) == "cpu"
     assert describe.KIND_TEXT["system.selftest"][0].startswith("آزمون خودکار")
+
+
+def test_the_checks_that_load_a_model_wait_for_a_quiet_card(monkeypatch):
+    from instai.core import hardware, runtime
+    from instai.providers import ollama_fit
+    from instai.providers.comfy import launcher
+
+    monkeypatch.setattr(runtime, "ffmpeg_info", lambda: {"ffmpeg": "ffmpeg", "version": "7", "features": {}})
+    monkeypatch.setattr(ollama_fit, "loaded", lambda url, t=1.5: [])
+    monkeypatch.setattr(launcher, "_up", lambda url: True)
+    monkeypatch.setattr(hardware, "gpu_status", lambda: {**GPU, "utilization": 93})
+    busy = st.ready_keys()
+    assert "gpu_card" in busy and not any(k in busy for k in ("nvenc", "ollama_run", "comfyui")), busy      # somebody works hard on the card: only the harmless look waits no longer
+    monkeypatch.setattr(hardware, "gpu_status", lambda: {**GPU, "utilization": 4})
+    quiet = st.ready_keys()
+    assert all(k in quiet for k in GPU_KEYS), quiet
+    monkeypatch.setattr(hardware, "gpu_status", lambda: None)
+    assert not any(k in st.ready_keys() for k in GPU_KEYS)

@@ -23,6 +23,7 @@
 
 ## When it runs by itself (`auto_queue`, called from the automation tick about every 5 minutes)
 
+* the checks that load a model or an encoder (`nvenc`, `ollama_run`, `comfyui`) also wait until nobody works hard on the card (under 40 % GPU utilization), so they never push another model in front of the NMarketing agent's job; the button "Run now" ignores that;
 * never ran, or still waiting: as soon as its OWN requirement is there (at once when it was not ready at its last attempt, otherwise not more often than every 15 minutes);
 * a result of an older version: the cheap checks at once, the tool / GPU checks after 6 hours;
 * a warning or a failure: again after an hour (the owner may have fixed it);

@@ -8,8 +8,9 @@ with the real font, one still rendered through Remotion, a few tokens from the r
   skip     does not apply to this PC (not Windows)    pending  it WAITS for something (the GPU PC is off, Ollama is not running, Remotion is still installing) and runs by itself the moment it can
 
 * The cheap checks (database, disk, ffmpeg, Persian text, the update channel, autostart) run once for every new version and again every day.
-* The tool checks (Remotion) and the GPU checks (the card, NVENC, the Ollama model on the GPU, ComfyUI on the GPU) run as soon as THEIR OWN requirement is there; a check
-  that waited is not repeated more often than every 15 minutes, a check that ran is not repeated by itself for a week (the cheap ones: a day).
+* The tool checks (Remotion) and the GPU checks (the card, NVENC, the Ollama model on the GPU, ComfyUI on the GPU) run as soon as THEIR OWN requirement is there (the ones that
+  load a model or an encoder also wait until nobody works hard on the card: under 40 % utilization); a check that waited is not repeated more often than every 15 minutes, a
+  check that ran is not repeated by itself for a week (the cheap ones: a day).
 * The report is `data/selftest/pc.json` and is shown on the System screen; a failing check is a result, never a crashed job. It writes nothing to the owner's database and
   publishes nothing. Off with `INSTAI_PC_SELFTEST_AUTO=0` or the setting `pc_selftest_auto`.
 
@@ -432,31 +433,43 @@ def check_comfyui(work: Path) -> dict:
 
 # ------------------------------------------------------------------------------------------------------------------------------ readiness (when may a waiting check run?)
 
+QUIET_UTIL = 40                         # % GPU utilization under which the card counts as quiet
+
+
 def _gpu_present() -> bool:
     from instai.core import hardware
 
     return hardware.gpu_status() is not None
 
 
+def _gpu_quiet() -> bool:
+    """A card with a GPU, and one nobody is working hard on right now (the NMarketing agent's job, a render): the automatic checks that load a model or an encoder wait for a quiet
+    moment instead of pushing another model in front of somebody's work. (The button «Run now» ignores this: the owner decided.)"""
+    from instai.core import hardware
+
+    g = hardware.gpu_status()
+    return g is not None and (g.get("utilization") or 0) < QUIET_UTIL
+
+
 def _ollama_ready() -> bool:
     from instai.core import runtime
     from instai.providers import ollama_fit
 
-    return bool(_gpu_present() and ollama_fit.loaded(runtime.ollama_url(), 1.5) is not None)
+    return bool(_gpu_quiet() and ollama_fit.loaded(runtime.ollama_url(), 1.5) is not None)
 
 
 def _comfy_ready() -> bool:
     from instai.core import runtime
     from instai.providers.comfy import launcher
 
-    return bool(_gpu_present() and (launcher._up(runtime.comfyui_url()) or launcher.selected()))
+    return bool(_gpu_quiet() and (launcher._up(runtime.comfyui_url()) or launcher.selected()))
 
 
 def _nvenc_ready() -> bool:
     from instai.core import runtime
 
     ff = runtime.ffmpeg_info()["ffmpeg"]
-    return bool(_gpu_present() and ff)
+    return bool(_gpu_quiet() and ff)
 
 
 def _remotion_ready() -> bool:

@@ -26,7 +26,7 @@ export function PcSelfTestCard() {
   const groups: { key: Row['group']; fa: string; en: string; hint_fa: string; hint_en: string }[] = [
     { key: 'pc', fa: 'پایه', en: 'Basics', hint_fa: 'روی هر رایانه‌ای اجرا می‌شود.', hint_en: 'Runs on any PC.' },
     { key: 'tools', fa: 'ابزار ویدئو با کد', en: 'Code-to-video tools', hint_fa: 'بعد از نصب خودکار Node.js و مرورگر.', hint_en: 'After Node.js and the browser are installed by themselves.' },
-    { key: 'gpu', fa: 'کارت گرافیک و مدل‌ها', en: 'Graphics card and models', hint_fa: 'وقتی رایانهٔ GPUدار روشن و Ollama / ComfyUI آماده باشد.', hint_en: 'When the GPU PC is on and Ollama / ComfyUI are ready.' },
+    { key: 'gpu', fa: 'کارت گرافیک و مدل‌ها', en: 'Graphics card and models', hint_fa: 'وقتی رایانهٔ GPUدار روشن، Ollama / ComfyUI آماده و کارت بی‌کار باشد.', hint_en: 'When the GPU PC is on, Ollama / ComfyUI are ready and the card is quiet.' },
   ]
   return (
     <section className="card stack-sm" aria-label={L('آزمون خودکار این رایانه', 'Automatic self-test of this PC')} data-testid="pc-selftest">
