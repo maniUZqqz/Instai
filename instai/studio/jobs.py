@@ -467,9 +467,7 @@ def design_image_job(ctx):
             # the same route as the keyframes: the GPU router (arbiter, ComfyUI start-up, GPU check). The old code called a function that no
             # longer exists, so a design sheet could never be rendered by ComfyUI.
             wid = str(settings_store.effective("image_workflow"))
-            if not compute.workflow_available(wid):
-                raise ProviderError("ComfyUI is not available (or the image workflow is not ready on any PC)", retryable=False, code="not_ready",
-                                    fa="ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست). صفحهٔ «مدل‌ها» دلیلش را می‌گوید.")
+            compute.require_workflow(wid)                 # the GPU PC is off / ComfyUI not up: the design-sheet job WAITS and resumes by itself (never fails)
             spec = get_workflow(wid)
             prompt = ", ".join(x for x in (sheet.prompt, comp["positive"]) if x)
             inputs = {"prompt": prompt, "negative_prompt": ", ".join(x for x in (sheet.negative, comp["negative"]) if x), "width": w, "height": h, "seed": seed,

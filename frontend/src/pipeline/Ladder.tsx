@@ -6,7 +6,8 @@ import { useConfirm } from '../components/feedback'
 import { AreaField, Badge, Button, Card, ErrorState, Loading, Notice, NumberField, SelectField, StringListField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery } from '../hooks'
 import { ConsistencyBoard } from './Identity'
-import { ErrorLine, JobLine, STAGE_TONE, usePL } from './kit'
+import { useLibrary, nm, vocab } from '../library'
+import { ErrorLine, JobLine, STAGE_TONE, usePL, word } from './kit'
 
 interface Col { key: string; label_fa: string; label_en: string; type: string; options?: string[] }
 interface FieldSpec { key: string; label_fa: string; label_en: string; type: string; columns?: Col[] }
@@ -177,7 +178,7 @@ function StageCard({ s, base, id, scope, stages, onChanged, setPayload }: { s: S
 }
 
 function CharacterModels({ s }: { s: Stage }) {
-  const { L } = usePL()
+  const { L, lang } = usePL()
   const rows = (s.data?.characters ?? []) as { id: number; name: string; status: string; version: number; source: string; anchor: string; palette: { hex: string; role: string }[] }[]
   if (!rows.length) return <Notice tone="info">{L('هنوز شخصیتی نیست. در تب «شخصیت‌ها»ی صفحه بسازید و هویتشان را قفل کنید.', 'No characters yet. Add them in the page\'s Characters tab and lock their identity.')}</Notice>
   return (
@@ -185,7 +186,7 @@ function CharacterModels({ s }: { s: Stage }) {
       {rows.map((r) => (
         <div key={r.id} className="row between small">
           <span className="strong">{r.name}</span>
-          <span className="row nw">{r.palette.slice(0, 6).map((p, i) => <i key={i} title={p.role} style={{ width: 14, height: 14, borderRadius: 4, background: p.hex, display: 'inline-block', border: '1px solid #8886' }} />)}
+          <span className="row nw">{r.palette.slice(0, 6).map((p, i) => <i key={i} title={word(lang, p.role)} style={{ width: 14, height: 14, borderRadius: 4, background: p.hex, display: 'inline-block', border: '1px solid #8886' }} />)}
             <Badge tone={r.status === 'locked' ? 'ok' : r.status === 'draft' ? 'warn' : 'neutral'}>{r.status === 'locked' ? L('قفل‌شده', 'Locked') : r.status === 'draft' ? L('پیش‌نویس', 'Draft') : L('بدون هویت', 'No identity')}</Badge></span>
         </div>
       ))}
@@ -225,24 +226,38 @@ function Versions({ s, base, setPayload }: { s: Stage; base: string; setPayload:
   )
 }
 
+/** The art style of the series as the owner reads it: the style's name, the realism level and the colour theme - never the internal keys. */
+function StyleLine({ data }: { data: Data }) {
+  const { L, lang } = usePL()
+  const lib = useLibrary()
+  const key = String(data.style_key ?? '')
+  const st = lib.style(key)
+  const th = lib.theme(String(data.theme_key ?? ''))
+  const parts = [st ? nm(st, lang) : key, vocab(lib.data?.realism, String(data.realism ?? ''), lang), th ? nm(th, lang) : ''].filter(Boolean)
+  return key ? <div data-testid="ladder-style-line"><b className="small">{L('سبک هنری', 'Art style')}</b><div>{parts.join(' · ')}</div></div> : null
+}
+
 function StageView({ s }: { s: Stage }) {
-  const { L, pick } = usePL()
+  const { L, pick, lang } = usePL()
   const data = s.data
   if (!data) return <div className="small muted">{L('هنوز خروجی ندارد.', 'No output yet.')}</div>
   if (s.fields.length === 0) {
     return <pre className="small ltr" style={{ whiteSpace: 'pre-wrap', maxHeight: 220, overflow: 'auto' }}>{JSON.stringify(data, null, 1).slice(0, 2500)}</pre>
   }
+  const hasStyle = s.fields.some((f) => f.type === 'style')
   return (
     <div className="stack-sm">
       {s.fields.map((f) => {
         const v = data[f.key]
+        if (f.type === 'style') return <StyleLine key={f.key} data={data} />
+        if (hasStyle && (f.key === 'realism' || f.key === 'theme_key')) return null          // shown inside the style line, by name
         if (f.type === 'rows') {
           const rows = (v ?? []) as Data[]
           return (
             <div key={f.key} className="stack-sm"><b className="small">{pick(f as any)}</b>
               <div style={{ overflowX: 'auto' }}>
                 <table className="table small"><thead><tr>{f.columns!.map((c) => <th key={c.key}>{pick(c as any)}</th>)}</tr></thead>
-                  <tbody>{rows.map((r, i) => <tr key={i}>{f.columns!.map((c) => <td key={c.key}>{c.type === 'bool' ? (r[c.key] ? '✓' : '') : String(r[c.key] ?? '')}</td>)}</tr>)}</tbody></table>
+                  <tbody>{rows.map((r, i) => <tr key={i}>{f.columns!.map((c) => <td key={c.key}>{c.type === 'bool' ? (r[c.key] ? '✓' : '') : c.type === 'choice' ? word(lang, String(r[c.key] ?? '')) : String(r[c.key] ?? '')}</td>)}</tr>)}</tbody></table>
               </div>
             </div>
           )
@@ -273,7 +288,7 @@ function StageFields({ s, data, onChange }: { s: Stage; data: Data; onChange: (d
 }
 
 function RowsEditor({ label, cols, rows, onChange }: { label: string; cols: Col[]; rows: Data[]; onChange: (r: Data[]) => void }) {
-  const { L, pick } = usePL()
+  const { L, pick, lang } = usePL()
   const setCell = (i: number, k: string, v: unknown) => onChange(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
   const blank = () => Object.fromEntries(cols.map((c) => [c.key, c.type === 'number' ? null : c.type === 'bool' ? false : '']))
   return (
@@ -288,7 +303,7 @@ function RowsEditor({ label, cols, rows, onChange }: { label: string; cols: Col[
                 <td>{i + 1}</td>
                 {cols.map((c) => (
                   <td key={c.key} style={{ minWidth: c.type === 'long' ? 220 : c.type === 'number' ? 80 : 120 }}>
-                    {c.type === 'choice' ? <SelectField label="" aria-label={pick(c as any)} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} options={[{ value: '', label: '—' }, ...(c.options ?? []).map((o) => ({ value: o, label: o }))]} />
+                    {c.type === 'choice' ? <SelectField label="" aria-label={pick(c as any)} value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} options={[{ value: '', label: '—' }, ...(c.options ?? []).map((o) => ({ value: o, label: word(lang, o) }))]} />
                       : c.type === 'number' ? <NumberField label="" aria-label={pick(c as any)} value={r[c.key] ?? null} onChange={(v) => setCell(i, c.key, v)} />
                       : c.type === 'bool' ? <input type="checkbox" aria-label={pick(c as any)} checked={!!r[c.key]} onChange={(e) => setCell(i, c.key, e.target.checked)} />
                       : c.type === 'long' ? <AreaField label="" aria-label={pick(c as any)} compact value={String(r[c.key] ?? '')} onChange={(v) => setCell(i, c.key, v)} />

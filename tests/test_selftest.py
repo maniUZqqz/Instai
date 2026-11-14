@@ -33,6 +33,17 @@ def by_key(rep):
     return {r["key"]: r for r in rep["checks"]}
 
 
+def _age_report(seconds: int):
+    """Pretend the last attempt of every check was `seconds` ago."""
+    from datetime import datetime, timedelta, timezone
+
+    rep = selftest.load_report()
+    for r in rep["checks"]:
+        if r.get("at"):
+            r["at"] = (datetime.fromisoformat(r["at"]) - timedelta(seconds=seconds)).isoformat(timespec="seconds")
+    selftest.save_report(rep)
+
+
 def done(job):
     return SimpleNamespace(status_code=202, json=lambda: {"job": {"id": job.pk}})
 
@@ -55,7 +66,9 @@ def test_gpu_checks_skip_cleanly_when_nothing_is_installed_and_pass_with_the_fak
     assert rows["multiref_identity"]["verdict"] == "skip" and "Qwen-Image-Edit" in rows["multiref_identity"]["reason_en"]
     assert rows["multiref_identity"]["metrics"]["workflow"] == "qwen_image_edit_multiref"
     assert rows["vision"]["verdict"] == "skip" and "qwen3-vl" in rows["vision"]["reason_fa"]
-    assert rep["ok"] and rep["gpu_stamp"] == selftest.stamp() and rep["gpu_run_at"]
+    assert rep["ok"] and rep["gpu_run_at"]
+    assert rep["gpu_stamp"] is None, "two GPU checks were skipped: the report must not claim that the GPU side was tested for this version"
+    assert rows["text_model"]["stamp"] == selftest.stamp() and rows["multiref_identity"]["ready"] is False and rows["vision"]["ready"] is False
 
 
 def test_the_multi_reference_check_judges_the_real_picture(monkeypatch, tmp_path):
@@ -133,12 +146,23 @@ def test_it_queues_itself_once_per_version_and_again_when_the_gpu_side_is_ready(
     assert selftest.auto_queue(force=True) is None                           # one at a time
     finish(api, worker, done(j))
     assert selftest.auto_queue(force=True) is None                           # tested for this version; nothing GPU-capable yet
-    monkeypatch.setattr(selftest, "gpu_ready", lambda: True)
+    everything = ["text_model", "multiref_identity", "vision"]
+    monkeypatch.setattr(selftest, "gpu_ready_keys", lambda: list(everything))
     g = selftest.auto_queue(force=True)
-    assert g is not None and g.payload["gpu"] is True
+    assert g is not None and g.payload["gpu"] is True and g.payload["only"] == everything
     finish(api, worker, done(g))
-    assert selftest.load_report()["gpu_stamp"] == selftest.stamp() and selftest.auto_queue(force=True) is None
+    rep = selftest.load_report()
+    assert by_key(rep)["text_model"]["verdict"] == "ok" and by_key(rep)["multiref_identity"]["verdict"] == "skip"
+    assert rep["gpu_stamp"] is None                                          # a check was skipped: the GPU side is NOT done for this version
+    assert selftest.auto_queue(force=True) is None                           # ...but a skip with its requirement there is not hammered (it waits 15 minutes)
+    _age_report(selftest.GPU_SKIP_RETRY_S + 60)
+    g2 = selftest.auto_queue(force=True)
+    assert g2 is not None and g2.payload["only"] == ["multiref_identity", "vision"]       # only the skipped ones; the text model is not asked again
+    Job.objects.filter(pk=g2.pk).update(status=Job.SUCCEEDED)
+    monkeypatch.setattr(selftest, "gpu_ready_keys", lambda: [])
+    assert selftest.auto_queue(force=True) is None
     # new content (a changed story text) changes the stamp, so the CPU checks run again by themselves
+    monkeypatch.setattr(selftest, "gpu_ready_keys", lambda: [])
     old = story_templates.PRISON["posts"][0]["text"]
     story_templates.PRISON["posts"][0]["text"] = old + " "
     try:
@@ -152,3 +176,43 @@ def test_it_queues_itself_once_per_version_and_again_when_the_gpu_side_is_ready(
         assert selftest.auto_queue(force=True) is None                       # the owner can switch it off
     finally:
         story_templates.PRISON["posts"][0]["text"] = old
+
+
+def test_a_skipped_gpu_check_runs_by_itself_when_its_own_requirement_appears(api, worker, monkeypatch):
+    """The review's scenario: a GPU run while the PC is off (or the Qwen offer is not accepted yet) skips checks; when the requirement is there later the check must
+    start by itself - without waiting a week - and the checks that already ran must not run again."""
+    selftest.run(ctx(), gpu=True)                                            # nothing installed: text (fake provider) ok, the Qwen and vision checks skip
+    rep = selftest.load_report()
+    assert rep["gpu_stamp"] is None and by_key(rep)["multiref_identity"]["verdict"] == "skip"
+    monkeypatch.setattr(selftest, "gpu_ready_keys", lambda: ["text_model"])
+    assert selftest.auto_queue(force=True) is None                           # only the text model could run and it has a result: nothing to do
+    monkeypatch.setattr(selftest, "gpu_ready_keys", lambda: ["text_model", "multiref_identity"])       # the Qwen workflow appears (the owner accepted the offer)
+    j = selftest.auto_queue(force=True)
+    assert j is not None and j.payload["gpu"] is True and j.payload["only"] == ["multiref_identity"]
+    # the vision model appears later too: it joins the skipped Qwen check, the text model (already done) is left alone
+    assert selftest.gpu_due(selftest.load_report(), selftest.stamp(), ["text_model", "multiref_identity", "vision"]) == ["multiref_identity", "vision"]
+
+
+def test_gpu_due_rules_per_check():
+    from datetime import datetime, timedelta, timezone
+
+    cur = selftest.stamp()
+    now = datetime.now(timezone.utc)
+
+    def at(s):
+        return (now - timedelta(seconds=s)).isoformat(timespec="seconds")
+
+    row = lambda key, verdict, age, **kw: {"key": key, "group": "gpu", "verdict": verdict, "at": at(age), "stamp": kw.pop("stamp", cur), **kw}
+    allready = ["text_model", "multiref_identity", "vision"]
+    rep = {"gpu_stamp": None, "checks": [row("text_model", "ok", 60), row("multiref_identity", "skip", 60, ready=False), row("vision", "skip", 60, ready=True)]}
+    assert selftest.gpu_due(rep, cur, allready) == ["multiref_identity"]     # situation changed since the skip: at once; skipped while ready: not for 15 minutes
+    rep["checks"][2]["at"] = at(selftest.GPU_SKIP_RETRY_S + 5)
+    assert selftest.gpu_due(rep, cur, allready) == ["multiref_identity", "vision"]
+    rep = {"checks": [row("text_model", "ok", selftest.GPU_RETRY_S + 5, stamp="0.0.1-old")]}
+    assert selftest.gpu_due(rep, cur, ["text_model"]) == ["text_model"]       # a result of an older version is made again after six hours
+    rep = {"checks": [row("text_model", "ok", selftest.GPU_RETRY_S + 5)]}
+    assert selftest.gpu_due(rep, cur, ["text_model"]) == []                   # a result of this version waits a week
+    rep = {"checks": [row("text_model", "ok", selftest.GPU_REFRESH_S + 5)]}
+    assert selftest.gpu_due(rep, cur, ["text_model"]) == ["text_model"]
+    assert selftest.gpu_due({"checks": []}, cur, ["vision"]) == ["vision"]    # never ran
+    assert selftest.gpu_due({"checks": []}, cur, []) == []                    # not ready: nothing, whatever the report says

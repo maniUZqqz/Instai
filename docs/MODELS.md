@@ -72,7 +72,13 @@ name in any sub-folder and letter case, plus known aliases (e.g. `FLUX.1 [dev] F
 | gpt-oss:20b (Ollama) | text | Apache-2.0 (per brief list) | unknown | NOT verified | 20B offloads to RAM | Slow on 12 GB. |
 | Dorna / partai dorna-llama3 (Persian) | text | Llama 3 community licence (derivative) | conditional | NOT verified | 8B Q4 | Persian-specialised; check the licence of the exact build. |
 
-## Optional downloads (offered on the Models page, downloaded only after the owner confirms)
+## Optional downloads (offered on the Models page, downloaded only after the owner confirms - except the automatic ones)
+
+**Exception (0.11.0, `instai/ops/auto_offers.py`): `qwen_edit`** (Qwen-Image-Edit 2509 + Qwen2.5-VL text encoder + VAE + Lightning LoRA, about 31 GB, Apache-2.0) is fetched BY ITSELF: the owner's brief is
+"nothing left for me to do once the GPU PC is on", and consistent AI-drawn characters need it. Guards: only offers listed in `auto_offers.AUTO` (Apache/MIT-type licences; never a non-commercial one), only in the
+night window of the Downloads page (default 02:00-07:00 local), only when the ComfyUI drive keeps 25 GB free after the download, never in demo mode, a cancelled job means "no" for good, a failed one is retried after
+12 hours, `INSTAI_AUTO_OFFERS=0` or the setting `auto_offers` switches it off. The Models page shows the state under the offer (`offer["auto"]`). The two destination paths of this package in `manifests/image.json`
+(`models\text_encoders`, `models\vae`) had lost a backslash in 0.9.0 (a TAB and a vertical tab in the path); `tests/test_auto_offers.py` now checks every manifest path.
 
 The list lives in `manifests/*.json` (packages with an `offer` block). Before anything is fetched the page shows the name, the size still
 to download, the licence (with a link) and why it is better; the API refuses a download without `confirm: true`. Files the ComfyUI InstAI

@@ -17,7 +17,7 @@ ALIASES: dict[str, list[str]] = {
     "flat_vector_motion": ["flat vector", "vector", "flat design", "وکتور", "فلت"],
     "minimal_bw_essay": ["dan koe", "dankoe", "essay video", "minimalist", "black and white", "دن کو", "مینیمال", "سیاه سفید", "ویدیو مقاله"],
     "cgi_motion_graphics": ["cgi motion", "cgi", "3d motion graphics", "سی جی آی", "موشن سه بعدی"],
-    "toy_brick_3d": ["lego", "lego style", "bricks", "brick film", "لگو", "آجر اسباب بازی", "بلوک"],
+    "toy_brick_3d": ["lego", "lego style", "lego-like bricks", "bricks", "brick film", "لگو", "آجر اسباب بازی", "بلوک"],
     "fast_3d_explainer": ["zackd", "zack d", "zackd films", "zack d films", "3d explainer", "زک دی", "توضیح سه بعدی"],
     "modern_tv_anime": ["anime", "انیمه"],
     "painterly_pastoral": ["ghibli", "studio ghibli", "miyazaki style", "ژیبلی", "استودیو ژیبلی", "میازاکی"],

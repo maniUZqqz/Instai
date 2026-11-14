@@ -400,3 +400,13 @@ def parallel_devices(kind: str, payload: dict, needs: list[str] | None = None, v
 def workflow_available(workflow_id: str) -> bool:
     """Can ANY device (this PC or an online worker) run this ComfyUI workflow right now (nodes + model files present)?"""
     return bool(candidates("comfy.graph", {"workflow": workflow_id}, needs=[f"comfy:{workflow_id}"], vram_mb=0))
+
+
+def require_workflow(workflow_id: str) -> None:
+    """Make a job WAIT (never fail) while no PC can run this ComfyUI workflow: the GPU PC is off, ComfyUI is not up yet or the model files are still being fetched.
+
+    The job goes back to the queue with a Persian reason (jobs/queue.py WAIT_CODES, code `comfy_down`), keeps its place, gives the attempt back and resumes by itself
+    when a PC can run the workflow. Use this instead of raising a non-retryable `not_ready` for "the service is not there yet"."""
+    if not workflow_available(workflow_id):
+        raise ProviderError(f"ComfyUI is not available (or the workflow {workflow_id} is not ready on any PC)", retryable=True, code="comfy_down", wait="comfy_down",
+                            fa="ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست)؛ کار منتظر می‌ماند و با آماده شدنش خودکار ادامه می‌یابد.")

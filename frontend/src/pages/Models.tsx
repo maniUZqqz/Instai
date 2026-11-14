@@ -94,6 +94,7 @@ interface Offer {
   missing_size: number
   needs: { id: string; title: string; complete: boolean; missing_size: number; licence: string }[]
   restart_comfyui: boolean
+  auto?: { state: string; free_gb?: number; need_gb?: number; window?: string; job?: number }
 }
 interface ModelsFound {
   scanned_at: string
@@ -496,6 +497,11 @@ function OffersCard({ m, onFinished }: { m: ModelsFound; onFinished: () => void 
               <div className="small"><span className="muted">{t('mdl.licence')}:</span> <bdi>{o.licence}</bdi>{o.licence_url && <> · <ExtLink href={o.licence_url}>{t('mdl.licence_link')}</ExtLink></>}</div>
               {o.vram && <div className="small"><span className="muted">VRAM:</span> <bdi>{o.vram}</bdi></div>}
               <div className="small"><span className="muted">{t('mdl.size_total')}:</span> {f.bytes(o.size)} · <span className="muted">{t('mdl.size_download')}:</span> {f.bytes(o.missing_size)}</div>
+              {o.auto && o.auto.state !== 'manual' && o.auto.state !== 'complete' && (
+                <Notice tone={o.auto.state === 'low_disk' || o.auto.state === 'failed_recently' ? 'warn' : 'info'}>
+                  {t('mdl.auto_' + o.auto.state, { free: f.num(o.auto.free_gb ?? 0, 1), need: f.num(o.auto.need_gb ?? 0, 1), win: o.auto.window || '' })}
+                </Notice>
+              )}
               {o.needs.length > 0 && (
                 <div className="small"><span className="muted">{t('mdl.needs')}:</span> {o.needs.map((n) => `${n.title.split(' (')[0]}${n.complete ? ' ✓' : ''}`).join('، ')}</div>
               )}

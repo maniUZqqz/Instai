@@ -105,8 +105,7 @@ def ai_base(ctx, story, node: dict, size: tuple[int, int], out: Path) -> dict:
     plan = identity.plan_for_characters(chars, base, hero.reference_workflow)
     wid, inputs, files, note = (plan.workflow, plan.inputs, plan.files, plan.note) if plan else ("", base, {}, "")
     wid = wid or str(settings_store.effective("image_workflow"))
-    if not compute.workflow_available(wid):
-        raise ProviderError("ComfyUI در دسترس نیست (یا گردش‌کار تصویر آماده نیست).", retryable=False, code="not_ready")
+    compute.require_workflow(wid)                    # the GPU PC is off / ComfyUI not up: the render job WAITS and resumes by itself (never fails)
     spec = get_workflow(wid)
     res = compute.run_task(ctx, "comfy.graph", {"graph": spec.build(inputs), "workflow": wid, "timeout": 1800, "expected": spec.expected_seconds}, inputs=files)
     try:

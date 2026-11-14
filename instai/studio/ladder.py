@@ -127,7 +127,9 @@ def _sync_version(series, ep, st: dict, lv: dict) -> StageDoc:
 
 def _add_version(d: StageDoc, st: dict, data: dict, author: str, note: str, inputs: dict, content_hash: str, provenance: dict) -> StageVersion:
     n = d.current_version + 1
-    v = StageVersion.objects.create(doc=d, number=n, data=data, author=author, note=note[:300], inputs=inputs, content_hash=content_hash or bridge.h(data), provenance=provenance)
+    content_hash = content_hash or bridge.h(data)
+    v = StageVersion.objects.create(doc=d, number=n, data=bridge.json_safe(data), author=author, note=note[:300], inputs=bridge.json_safe(inputs), content_hash=content_hash,
+                                    provenance=bridge.json_safe(provenance))
     d.current_version = n
     d.save(update_fields=["current_version", "updated_at"])
     return v

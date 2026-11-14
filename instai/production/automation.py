@@ -253,6 +253,12 @@ def tick(now: datetime | None = None) -> list[dict]:
                 notify("automation", f"خطا در خودکارسازی {_label(ep)}", body=str(e)[:300], level="error", link=_link(ep), page=page, episode=ep, key=f"autoerr:{ep.pk}:{type(e).__name__}")
     done += process_due_publications(now)
     try:
+        from instai.ops import auto_offers
+
+        auto_offers.auto_queue()                # the models that the owner's brief depends on (Qwen-Image-Edit) are fetched by themselves in the night window, when there is room
+    except Exception:  # noqa: BLE001 - a download decision must never disturb the automation
+        log.debug("automatic offers failed", exc_info=True)
+    try:
         from instai.studio import selftest
 
         selftest.auto_queue()                   # the studio pipeline tests itself: CPU checks per new version, GPU checks as soon as the machine can do them

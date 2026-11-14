@@ -54,8 +54,11 @@ Nothing has to be pressed once the GPU PC is on: the studio tests itself. The re
 | `multiref_identity` | ComfyUI + the `qwen_edit` package | two stick sheets in, a 832x1472 picture out (kept as `multiref-sample.png`), both characters' colour keys visible (else a warning) |
 | `vision` | an Ollama vision model | the same character in another pose scores higher than a different character |
 
-* CPU checks run once per new version / content (the stamp hashes the version, the ready-made stories and seasons and the ladder catalogue). GPU checks run as soon as `gpu_ready()` (a text model answers or the multi-reference workflow
-  is available), at most every six hours, again after every new stamp and at least weekly. A check whose models are missing is `skip` with the reason (never `ok`); a check that raises is `fail`, never a crashed run.
+* CPU checks run once per new version / content (the stamp hashes the version, the ready-made stories and seasons and the ladder catalogue). GPU checks are judged ONE BY ONE (`gpu_ready_keys()` / `gpu_due()`, 0.11.0):
+  a check runs as soon as its OWN requirement is there (a text model answers / the Qwen workflow can run / a vision model is installed). One that never ran or was skipped (PC off, the Qwen download not finished) runs
+  by itself the moment it can - at once when its requirement was missing at its last attempt, not more often than every 15 minutes when it skipped although it was ready - and the checks that already ran are not repeated;
+  a result of an older version is made again after six hours, a result of this version after a week. `gpu_stamp` in the report is set only when EVERY GPU check really ran for this version. A check whose models are missing
+  is `skip` with the reason (never `ok`); a check that raises is `fail`, never a crashed run.
 * Off with `INSTAI_STUDIO_SELFTEST_AUTO=0` or the setting `studio_selftest_auto`. The test suite never gets surprise jobs (`auto_queue` returns None under `INSTAI_TESTING` unless forced).
 
 The manual notes that follow are what the earlier round wrote for the same checks (job payloads and pass conditions by hand).

@@ -4,8 +4,11 @@ real text model, the multi-reference identity workflow and the vision check).
 The owner asked that nothing be left for him to do once the GPU PC is on: every feature must start working AND be tested by itself. So:
 
 * CPU checks need nothing but Python and run once for every new version (or when a ready-made story / season changes): `auto_queue()` is called from the automation tick.
-* GPU checks run by themselves as soon as the machine can do them (an Ollama model answers / ComfyUI has the workflow and its model files), at most once every six hours,
-  at low priority, and again after every new version. A check whose models are not installed is "skipped" with the reason and what to do - never reported as "ok".
+* GPU checks run by themselves as soon as THEIR OWN requirement is there (an Ollama model answers / ComfyUI has the Qwen workflow and its model files / a vision model is
+  installed), at low priority. Every check is judged on its own (`gpu_due`): one that was skipped - no model, the PC was off, the Qwen offer was not accepted yet - runs
+  as soon as it can, without waiting for a timer and without making the other checks repeat; a result of an older version is made again after six hours, a result of this
+  version after a week. A check whose models are not installed is "skipped" with the reason and what to do - never reported as "ok", and `gpu_stamp` is set only when
+  every GPU check really ran.
 * Every result is kept in `data/selftest/studio.json` and shown on the Studio ladder screen ("Automatic self-test"); a failing check is a result, never a crashed job.
 
 Switch off with `INSTAI_STUDIO_SELFTEST_AUTO=0` or the setting `studio_selftest_auto`. Nothing here writes to the owner's database or publishes anything.
@@ -32,9 +35,11 @@ log = logging.getLogger("instai.selftest")
 describe.KIND_TEXT.update({"studio.selftest": ("آزمون خودکار استودیو", "Automatic studio self-test")})
 
 AUTO_EVERY_S = 300
-GPU_RETRY_S = 6 * 3600
-GPU_REFRESH_S = 7 * 24 * 3600
+GPU_RETRY_S = 6 * 3600                  # a result from an older version is made again after this long
+GPU_REFRESH_S = 7 * 24 * 3600           # a result of this version is made again after this long
+GPU_SKIP_RETRY_S = 15 * 60              # a check that skipped although its own requirement was there is not hammered
 _LAST_AUTO = [0.0]
+CONCLUSIVE = ("ok", "warn", "fail")     # the check really ran; "skip" / "pending" mean it still has to
 
 
 def report_path() -> Path:
@@ -338,6 +343,8 @@ def run(ctx=None, *, gpu: bool = False, only: list[str] | None = None) -> dict:
     work_root = Path(tempfile.mkdtemp(prefix="selftest-"))
     rows: list[dict] = []
     started = datetime.now(timezone.utc)
+    cur = stamp()
+    ready_now = set(gpu_ready_keys()) if gpu else set()      # what each GPU check had to work with when it started (a skip with its requirement there is not retried at once)
     try:
         todo = [c for c in CHECKS if (not only or c["key"] in only)]
         for k, c in enumerate(todo):
@@ -358,7 +365,8 @@ def run(ctx=None, *, gpu: bool = False, only: list[str] | None = None) -> dict:
             except Exception as e:  # noqa: BLE001 - a broken check is a result
                 log.exception("self-test %s failed", c["key"])
                 res = _r("fail", f"آزمون با خطا تمام شد: {type(e).__name__}: {str(e)[:160]}", f"The check ended with an error: {type(e).__name__}: {str(e)[:160]}")
-            rows.append({"key": c["key"], "group": c["group"], "fa": c["fa"], "en": c["en"], **res, "seconds": round(time.time() - t0, 1), "at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+            rows.append({"key": c["key"], "group": c["group"], "fa": c["fa"], "en": c["en"], **res, "seconds": round(time.time() - t0, 1), "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                         "stamp": cur, **({"ready": c["key"] in ready_now} if c["group"] == "gpu" else {})})
         if only:                                           # keep the rows of the checks that were not asked for
             rows += [r for r in old.get("checks", []) if r["key"] not in {x["key"] for x in rows}]
             order = {c["key"]: i for i, c in enumerate(CHECKS)}
@@ -366,8 +374,11 @@ def run(ctx=None, *, gpu: bool = False, only: list[str] | None = None) -> dict:
     finally:
         shutil.rmtree(work_root, ignore_errors=True)
     summary = {v: sum(1 for r in rows if r["verdict"] == v) for v in ("ok", "warn", "fail", "skip", "pending")}
-    rep = {"stamp": stamp(), "version": read_version(), "started_at": started.isoformat(timespec="seconds"), "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-           "gpu_run_at": datetime.now(timezone.utc).isoformat(timespec="seconds") if gpu else old.get("gpu_run_at"), "gpu_stamp": stamp() if gpu else old.get("gpu_stamp"),
+    # `gpu_stamp` says "every GPU check has really run for this version": a check that was skipped (no model, PC off) keeps it from being set, so that the automatic
+    # start (auto_queue) still has work to do for the skipped ones as soon as their own requirement is there.
+    gpu_done = all(r["verdict"] in CONCLUSIVE and r.get("stamp") == cur for r in rows if r["group"] == "gpu")
+    rep = {"stamp": cur, "version": read_version(), "started_at": started.isoformat(timespec="seconds"), "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+           "gpu_run_at": datetime.now(timezone.utc).isoformat(timespec="seconds") if gpu else old.get("gpu_run_at"), "gpu_stamp": cur if gpu_done else None,
            "checks": rows, "summary": summary, "ok": summary["fail"] == 0}
     save_report(rep)
     return rep
@@ -381,20 +392,75 @@ def selftest_job(ctx):
 
 # ------------------------------------------------------------------------------------------------------------------------------ automatic start
 
-def gpu_ready() -> bool:
-    """Can a GPU check do something useful right now? A text model answers, or ComfyUI can run the multi-reference workflow."""
-    try:
-        up, models = _ollama_ok()
-        if up and models:
-            return True
-    except Exception:  # noqa: BLE001
-        pass
-    try:
-        from instai.gpu import compute
+def _text_ready() -> bool:
+    up, models = _ollama_ok()
+    return bool(up and models)
 
-        return bool(compute.workflow_available("qwen_image_edit_multiref"))
-    except Exception:  # noqa: BLE001
-        return False
+
+def _multiref_ready() -> bool:
+    from instai.gpu import compute
+
+    return bool(compute.workflow_available("qwen_image_edit_multiref"))
+
+
+def _vision_ready() -> bool:
+    from instai.core import settings_store
+    from instai.identity import check
+
+    return bool(check._vision_model(str(settings_store.effective("ollama_url"))))
+
+
+_READY = {"text_model": _text_ready, "multiref_identity": _multiref_ready, "vision": _vision_ready}
+
+
+def gpu_ready_keys() -> list[str]:
+    """The GPU checks that have what they need right now, each judged by its OWN requirement: a text model answers / the Qwen workflow can run / a vision model is installed.
+    (One check being unable to run - e.g. the Qwen offer not accepted yet - must not hold back the others, and must not make the others run again and again.)"""
+    out = []
+    for key, fn in _READY.items():
+        try:
+            if fn():
+                out.append(key)
+        except Exception:  # noqa: BLE001 - a look at a service must never disturb the automation tick
+            pass
+    return out
+
+
+def gpu_ready() -> bool:
+    """Can any GPU check do something useful right now?"""
+    return bool(gpu_ready_keys())
+
+
+def _age_s(at: str | None, now: datetime) -> float:
+    try:
+        return (now - datetime.fromisoformat(at)).total_seconds() if at else 10 ** 9
+    except (TypeError, ValueError):
+        return 10 ** 9
+
+
+def gpu_due(rep: dict, cur: str, ready: list[str]) -> list[str]:
+    """Which of the READY GPU checks should run now, from the kept report (the per-check rule, not one global timestamp):
+    * never ran, or skipped (the model / PC was missing): as soon as it is ready - at once when it was NOT ready at its last attempt (the situation changed), and not
+      more often than every GPU_SKIP_RETRY_S when it skipped although it was ready;
+    * has a result of an older version: again after GPU_RETRY_S (so several updates in a day do not repeat the heavy models);
+    * has a result of this version: again after GPU_REFRESH_S."""
+    rows = {r["key"]: r for r in rep.get("checks", [])}
+    now = datetime.now(timezone.utc)
+    due: list[str] = []
+    for c in CHECKS:
+        if c["group"] != "gpu" or c["key"] not in ready:
+            continue
+        r = rows.get(c["key"]) or {}
+        age = _age_s(r.get("at"), now)
+        if r.get("verdict", "pending") not in CONCLUSIVE:
+            go = (not r.get("ready")) or age > GPU_SKIP_RETRY_S
+        elif (r.get("stamp") or rep.get("gpu_stamp")) != cur:
+            go = age > GPU_RETRY_S
+        else:
+            go = age > GPU_REFRESH_S
+        if go:
+            due.append(c["key"])
+    return due
 
 
 def auto_queue(force: bool = False):
@@ -416,9 +482,8 @@ def auto_queue(force: bool = False):
     cur = stamp()
     if rep.get("stamp") != cur:
         return queue.enqueue("studio.selftest", {"gpu": False, "auto": True}, title="آزمون خودکار استودیو (بدون GPU)", priority=-10)
-    last_gpu = rep.get("gpu_run_at")
-    age = (datetime.now(timezone.utc) - datetime.fromisoformat(last_gpu)).total_seconds() if last_gpu else 10 ** 9
-    if (rep.get("gpu_stamp") != cur and age > GPU_RETRY_S) or age > GPU_REFRESH_S:
-        if gpu_ready():
-            return queue.enqueue("studio.selftest", {"gpu": True, "auto": True}, title="آزمون خودکار استودیو (با GPU)", priority=-10)
+    ready = gpu_ready_keys()
+    due = gpu_due(rep, cur, ready) if ready else []
+    if due:
+        return queue.enqueue("studio.selftest", {"gpu": True, "auto": True, "only": due}, title="آزمون خودکار استودیو (با GPU)", priority=-10)
     return None

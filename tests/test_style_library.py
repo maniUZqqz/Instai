@@ -89,6 +89,17 @@ def test_the_owners_whole_list_is_searchable_by_the_names_he_uses():
     assert library.filter_styles(lib, q="zzzz-not-a-style") == []
 
 
+def test_the_owners_caption_typed_exactly_finds_its_style():
+    """Review of 0.9.0: "Lego-like bricks" (the caption shown on the style, and the owner's own wording) found nothing because 'like' had to hit too. Every caption must find
+    its own style when typed exactly, with or without the filler words, and so must the owner's whole list."""
+    lib = rows()
+    for key, caption in aliases.KNOWN_AS.items():
+        for q in (caption, caption.lower(), caption.replace("-", " ")):
+            assert key in [r["key"] for r in library.filter_styles(lib, q=q)], (key, q)
+    assert [r["key"] for r in library.filter_styles(lib, q="Lego-like bricks")] == ["toy_brick_3d"]
+    assert "toy_brick_3d" in [r["key"] for r in library.filter_styles(lib, q="lego like")] and "toy_brick_3d" in [r["key"] for r in library.filter_styles(lib, q="Lego bricks")]
+
+
 def _tokens(text: str) -> set[str]:
     """Lower-case word stems: 'Cel-shading' -> {cel, shading}; 'Particles' -> {particle}; 'colour' and 'color' agree."""
     words = re.findall(r"[a-z0-9.]+", text.lower().replace("colour", "color"))
@@ -138,6 +149,7 @@ def test_filters_by_group_suitability_and_realism_through_the_api(api):
     assert r and all("character" in s["suitability"] and s["group"] == "anime_toon" for s in r)
     r = api.get("/api/library/style?q=lego").json()
     assert [s["key"] for s in r] == ["toy_brick_3d"]
+    assert [s["key"] for s in api.get("/api/library/style?q=Lego-like%20bricks").json()] == ["toy_brick_3d"]
     assert api.get("/api/library/style?realism=realistic").json()
     # the list is grouped in the owner's order
     order = [g["key"] for g in lib["groups"]]

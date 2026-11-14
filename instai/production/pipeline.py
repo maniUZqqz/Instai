@@ -300,9 +300,7 @@ def step_keyframes(ctx, ep: Episode, mode: str) -> dict:
         from instai.gpu import compute
         from instai.providers.comfy.workflows import get_workflow
 
-        if not compute.workflow_available(wid):
-            raise ProviderError("ComfyUI در دسترس نیست (یا گردش‌کار تصویر روی هیچ‌یک از رایانه‌ها آماده نیست). آن را اجرا کنید (یا در تنظیمات حالت آزمایشی را روشن کنید).",
-                                retryable=False, code="not_ready")
+        compute.require_workflow(wid)                 # the GPU PC is off / ComfyUI not up: the keyframe job WAITS and resumes by itself (never fails)
 
     def make(shot: Shot) -> int:
         _shot_live(ctx, shots, shot)

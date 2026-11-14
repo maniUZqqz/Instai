@@ -105,17 +105,25 @@ def palette(spec: dict) -> list[dict]:
     return out
 
 
+def _a(word: str) -> str:
+    """The English indefinite article for the word that follows ("an amber beanie", "a blue cap")."""
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+
 def anchor_text(spec: dict) -> str:
     """The English identity descriptor of the character: the same words every time, for every prompt that must show this character."""
     s = normalize(spec)
-    bits = [f"a {colour_name(s['limb_colour'])}-limbed stick figure with a {colour_name(s['head_fill'])} {s['head_style']} head, thick {colour_name(s['outline'])} outlines,"
+    limb, head = colour_name(s["limb_colour"]), colour_name(s["head_fill"])
+    bits = [f"{_a(limb)} {limb}-limbed stick figure with {_a(head)} {head} {s['head_style']} head, thick {colour_name(s['outline'])} outlines,"
             f" {'dot' if s['eye_style'] == 'dots' else s['eye_style']} eyes"]
     if s["hat"] != "none":
-        bits.append(f"a {colour_name(s['hat_colour'])} {s['hat']}")
+        hat = colour_name(s["hat_colour"])
+        bits.append(f"{_a(hat)} {hat} {s['hat']}")
     if s["hair"] != "none":
         bits.append(f"{colour_name(s['hair_colour'])} {s['hair']} hair")
     if s["neck"] != "none":
-        bits.append(f"a {colour_name(s['neck_colour'])} {s['neck']}")
+        neck = colour_name(s["neck_colour"])
+        bits.append(f"{_a(neck)} {neck} {s['neck']}")
     if s["extra"] != "none":
         bits.append(f"{s['extra']}")
     return ", ".join(bits)

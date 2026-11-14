@@ -204,12 +204,19 @@ def offers(pkg: dict | None = None) -> list[dict]:
             missing = iid in (pkg.get(it.get("package", ""), {}).get("missing_ids") or [])
             needs.append({"id": iid, "title": it.get("title", iid), "complete": not missing, "missing_size": int(it.get("size") or 0) if missing else 0,
                           "licence": packages.get(it.get("package", ""), {}).get("licence", "")})
-        out.append({"id": pid, "name": o.get("name") or p.get("title"), "group": o.get("group", ""), "title": p.get("title", ""),
+        row = {"id": pid, "name": o.get("name") or p.get("title"), "group": o.get("group", ""), "title": p.get("title", ""),
                     "why": o.get("why") or {}, "licence": p.get("licence", ""), "licence_url": o.get("licence_url", ""),
                     "commercial": o.get("commercial", "unknown"), "vram": o.get("vram", ""), "workflow": o.get("workflow", ""),
                     "note": o.get("note") or {}, "complete": bool(st.get("complete")), "size": int(st.get("size") or 0),
                     "missing_size": int(st.get("missing_size") or 0) + sum(n["missing_size"] for n in needs if not n["complete"]),
-                    "needs": needs, "restart_comfyui": bool(o.get("restart_comfyui"))})
+                    "needs": needs, "restart_comfyui": bool(o.get("restart_comfyui"))}
+        try:                                          # is it fetched by itself (night window, enough disk)? see ops/auto_offers.py
+            from instai.ops import auto_offers
+
+            row["auto"] = auto_offers.status(row)
+        except Exception:  # noqa: BLE001 - the Models page must show the offer even when the queue cannot be asked
+            row["auto"] = {"state": "manual"}
+        out.append(row)
     return out
 
 
