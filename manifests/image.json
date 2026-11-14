@@ -139,7 +139,7 @@
    "urls": [
     "{HF}/Comfy-Org/Qwen-Image_ComfyUI/resolve/1f12b17be14c89b026c51a91d67c32f84bb047bc/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors"
    ],
-   "dest": "{COMFYUI}\\models\text_encoders\\qwen_2.5_vl_7b_fp8_scaled.safetensors",
+   "dest": "{COMFYUI}\\models\\text_encoders\\qwen_2.5_vl_7b_fp8_scaled.safetensors",
    "size": 9384670680,
    "sha256": "cb5636d852a0ea6a9075ab1bef496c0db7aef13c02350571e388aea959c5c0b4",
    "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"
@@ -152,7 +152,7 @@
    "urls": [
     "{HF}/Comfy-Org/Qwen-Image_ComfyUI/resolve/1f12b17be14c89b026c51a91d67c32f84bb047bc/split_files/vae/qwen_image_vae.safetensors"
    ],
-   "dest": "{COMFYUI}\\models\u000bae\\qwen_image_vae.safetensors",
+   "dest": "{COMFYUI}\\models\\vae\\qwen_image_vae.safetensors",
    "size": 253806246,
    "sha256": "a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
    "source": "Hugging Face API read 2026-11-13 (pinned commit; size and sha256 of the LFS object)"

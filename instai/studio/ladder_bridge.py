@@ -16,6 +16,23 @@ def h(data) -> str:
     return hashlib.sha1(json.dumps(data, sort_keys=True, ensure_ascii=False, default=str).encode()).hexdigest()[:20]
 
 
+def json_safe(data):
+    """A copy of `data` that a JSONField can store: datetimes become ISO strings, anything else unknown becomes its text.
+
+    The live snapshots reuse the dicts of the older screens (design sheets, the animatic asset) and those carry datetimes; one of them
+    in a version crashed the whole ladder with a 500 ("Object of type datetime is not JSON serializable")."""
+    from django.core.serializers.json import DjangoJSONEncoder
+
+    class _Encoder(DjangoJSONEncoder):
+        def default(self, o):
+            try:
+                return super().default(o)
+            except TypeError:
+                return str(o)
+
+    return json.loads(json.dumps(data, cls=_Encoder, ensure_ascii=False))
+
+
 def _state_idx(ep) -> int:
     return states.idx(ep.state) if ep.state in states.ORDER else -1
 
@@ -121,7 +138,11 @@ LIVE = {"bible": live_bible, "character_models": live_character_models, "script"
 
 def live(key: str, series, ep) -> dict | None:
     fn = LIVE.get(key)
-    return fn(series, ep) if fn else None
+    if not fn:
+        return None
+    out = fn(series, ep)
+    out["data"] = json_safe(out["data"])                 # snapshots are stored as versions: nothing in them may be a datetime or a model object
+    return out
 
 
 # ------------------------------------------------------------------ derived stages

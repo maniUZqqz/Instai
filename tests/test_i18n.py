@@ -122,6 +122,8 @@ ENUMS = {
     "job.kind.": ["styles.preview", "ideas.generate", "studio.source_search", "studio.ideas", "studio.idea_refine", "studio.idea_merge", "studio.research", "studio.map", "studio.timeline", "studio.profile",
                   "studio.bible", "studio.design", "studio.design_image", "studio.casting", "studio.translate", "studio.animatic", "story.strategy", "story.plan", "story.script",
                   "story.storyboard", "story.research", "story.continuity"],
+    "mdl.auto_": ["ready", "queued", "declined", "failed_recently", "low_disk", "no_comfyui", "off"],
+    "mdl.offer_group.": ["anime_video", "anime_image", "identity"],
     "error.code.": ["validation_error", "not_found", "conflict", "not_ready", "invalid_transition", "llm_invalid_output", "provider_unavailable"],
 }
 
@@ -138,3 +140,13 @@ def test_english_texts_are_not_persian_and_persian_texts_are_not_english_only():
     bad_en = [k for k, v in en.items() if persian.search(v) and not k.startswith(("lang.", "wiz.lang"))]
     # an English value may mention a Persian word on purpose (the language name); anything else is a copy-paste slip
     assert [k for k in bad_en if not re.search(r"فارسی|Persian", en[k])] == [], f"Persian text inside the English dictionary: {bad_en[:20]}"
+
+
+def test_every_comfyui_workflow_has_a_name_in_both_languages():
+    """The Models page lists each feature by its workflow id and looks the name up as `mdl.use.<id>`; a workflow without one showed its raw id as the title
+    (`qwen_image_edit_multiref` in 0.9.0)."""
+    from instai.providers.comfy.workflows import WORKFLOWS
+
+    fa, en = dictionaries()
+    missing = [k for wid in WORKFLOWS for k in (f"mdl.use.{wid}",) if k not in fa or k not in en]
+    assert missing == [], missing

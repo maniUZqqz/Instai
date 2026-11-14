@@ -82,7 +82,7 @@ export function styleImage(s: Pick<StylePreset, 'thumbnail_url' | 'preview_url'>
 }
 
 // Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server.
-const FILLER = new Set(['style', 'styles', 'look', 'looks', 'سبک', 'استایل'])
+const FILLER = new Set(['style', 'styles', 'look', 'looks', 'like', 'سبک', 'استایل'])
 export function fold(text: string): string {
   return (text || '')
     .toLowerCase()
@@ -97,7 +97,7 @@ export function styleMatches(s: StylePreset, q: string): boolean {
   let words = fold(q).split(/\s+/).filter(Boolean)
   words = words.filter((w) => !FILLER.has(w)).length ? words.filter((w) => !FILLER.has(w)) : words
   if (!words.length) return true
-  const hay = fold([s.name_fa, s.name_en, s.description_fa, s.description_en, ...(s.tags ?? []), ...(s.search_terms ?? []), s.key.replace(/_/g, ' ')].join(' '))
+  const hay = fold([s.name_fa, s.name_en, s.description_fa, s.description_en, ...(s.tags ?? []), ...(s.search_terms ?? []), s.key.replace(/_/g, ' '), s.known_as ?? ''].join(' '))
   return words.every((w) => hay.includes(w))
 }
 

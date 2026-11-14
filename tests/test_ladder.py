@@ -182,3 +182,69 @@ def test_the_ladder_gate_keeps_an_episode_out_of_production_until_pre_production
     page.set_profile("production", {"studio_mode": False, "ladder_gate": True})
     pipeline.start(ep, "preview")                                        # without studio mode nothing is asked (the default behaviour is unchanged)
     assert ladder.preproduction_blockers(series, ep)[0] == "logline"
+
+
+def _walk_to_the_storyboard(api, page, series, ep):
+    """Approve every stage in front of the animatic and the design stage (the normal order of the studio)."""
+    from instai.studio.models import SeriesBible
+
+    for key, data in (("logline", {"logline": "یک جمله"}), ("treatment", {"synopsis": ["x"], "acts": [{"name": "a", "summary": "b"}]}),
+                      ("art_style", {"style_key": "modern_tv_anime", "realism": "anime", "theme_key": "", "notes": ""})):
+        ladder.save_version(series, None, key, data)
+        ladder.approve(series, None, key)
+    SeriesBible.objects.create(series=series, data={"premise": "p", "logline": "l"}, status="approved")
+    for c in page.characters.all():                                      # the identities are made and locked (the stick kit needs no GPU)
+        assert api.post(f"/api/characters/{c.pk}/identity/stick", {"spec": {}}, format="json").status_code == 200
+        assert api.post(f"/api/characters/{c.pk}/identity/lock", {}, format="json").status_code == 200
+    ladder.save_version(series, ep, "beat_sheet", {"beats": [{"name": "hook", "summary": "x", "seconds": 3, "purpose": "p"}]})
+    ladder.approve(series, ep, "beat_sheet")
+    ladder.approve(series, ep, "script")
+    ladder.save_version(series, ep, "dialogue", {"lines": [{"speaker": "", "text": "x", "emotion": "", "subtext": "", "pause_after": 0}]})
+    ladder.approve(series, ep, "dialogue")
+    ladder.save_version(series, ep, "shot_list", {"shots": [{"scene": 1, "size": "MS", "angle": "eye-level", "movement": "static", "action": "x", "seconds": 3, "transition": "cut"}]})
+    ladder.approve(series, ep, "shot_list")
+    ladder.approve(series, ep, "storyboard")
+
+
+def test_the_ladder_survives_design_sheets_and_an_animatic_which_carry_datetimes(api, worker):
+    """Regression (review of 0.9.0): the live snapshots of the design sheets and the animatic hold datetimes (updated_at / created_at). Writing them into a version raised
+    'Object of type datetime is not JSON serializable': the ladder was HTTP 500, approving the animatic or the design too, and the layout job failed - for every episode that
+    had design sheets or an animatic, which is the normal pre-production flow."""
+    from instai.assets.models import Asset
+    from instai.studio import preprod
+
+    page, series, ep = make_world()
+    _walk_to_the_storyboard(api, page, series, ep)
+    mine = api.post(f"/api/episodes/{ep.pk}/studio/design-sheets", {"kind": "prop", "subject": "red scarf", "prompt": "a red scarf"}, format="json")
+    assert mine.status_code in (200, 201), mine.content
+    Asset.objects.create(kind="video", role="animatic", path="episodes/x/animatic.mp4", episode=ep, input_hash=preprod.animatic_hash(ep), duration_sec=10)
+    r = api.get(f"/api/episodes/{ep.pk}/ladder")
+    assert r.status_code == 200, r.content
+    by = {s["key"]: s for s in r.json()["stages"]}
+    assert len(by) == 21 and by["design"]["version"] == 1 and by["animatic"]["version"] == 1
+    assert isinstance(by["design"]["data"]["sheets"][0]["updated_at"], str) and isinstance(by["animatic"]["data"]["asset"]["created_at"], str)   # stored as text
+    for key in ("animatic", "design"):                                    # approving them was a 500 too
+        r = api.post(f"/api/episodes/{ep.pk}/ladder/{key}/approve", {}, format="json")
+        assert r.status_code == 200, (key, r.content)
+    by = {s["key"]: s for s in api.get(f"/api/episodes/{ep.pk}/ladder").json()["stages"]}
+    assert by["animatic"]["status"] == "approved" and by["design"]["status"] == "approved"
+    j = finish(api, worker, api.post(f"/api/episodes/{ep.pk}/ladder/layout/generate", {}, format="json"))      # the stage after them: the job that failed
+    assert j["result"]["stage"] == "layout"
+    assert api.post(f"/api/episodes/{ep.pk}/ladder/layout/approve", {}, format="json").status_code == 200
+    # a design sheet edited later makes a new snapshot (and the approval stale) - again without a crash
+    before = {s["key"]: s for s in api.get(f"/api/episodes/{ep.pk}/ladder").json()["stages"]}["design"]["version"]
+    sheet = ep.design_sheets.first()
+    api.patch(f"/api/design-sheets/{sheet.pk}", {"prompt": "a blue scarf"}, format="json")
+    row = {s["key"]: s for s in api.get(f"/api/episodes/{ep.pk}/ladder").json()["stages"]}["design"]
+    assert row["status"] == "stale" and row["version"] == before + 1
+
+
+def test_json_safe_makes_any_snapshot_storable():
+    import datetime as dt
+    from decimal import Decimal
+
+    from instai.studio import ladder_bridge as bridge
+
+    out = bridge.json_safe({"at": dt.datetime(2026, 11, 13, 9, 55, tzinfo=dt.timezone.utc), "d": dt.date(2026, 11, 13), "n": Decimal("1.5"), "obj": object, "fa": "سلام", "rows": [{"t": dt.time(1, 2)}]})
+    assert out["at"].startswith("2026-11-13T09:55") and out["d"] == "2026-11-13" and out["fa"] == "سلام" and isinstance(out["obj"], str) and out["rows"][0]["t"] == "01:02:00"
+    assert bridge.json_safe({"a": [1, {"b": None}]}) == {"a": [1, {"b": None}]}

@@ -6,7 +6,7 @@ import { useConfirm } from '../components/feedback'
 import { AreaField, Badge, Button, Card, Empty, ErrorState, Link, Loading, Notice, NumberField, PageHead, SelectField, SwitchField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useWs } from '../pages/workspace/Workspace'
-import { ErrorLine, JobLine, usePL } from './kit'
+import { ErrorLine, JobLine, usePL, word } from './kit'
 import { TemplateGallery } from './Templates'
 
 interface Choice { label: string; to: string; loop?: boolean }
@@ -105,7 +105,7 @@ export function ChoiceListTab() {
 
 /** The editor of one choice story: plan, graph map, post editor, review (rules), play-through, pictures and the posting package. */
 export default function ChoiceEditor() {
-  const { L, n } = usePL()
+  const { L, n, lang } = usePL()
   const { id } = useParams()
   const confirm = useConfirm()
   const q = useQuery<Story>(`/choice-stories/${id}`)
@@ -183,7 +183,7 @@ export default function ChoiceEditor() {
                 </div>))}
               {rep.data && (
                 <div className="small muted">
-                  {L('مسیرهای ممکن: ', 'Possible routes: ')}{n(rep.data.validation.stats.paths)} · {L('کوتاه‌ترین: ', 'shortest: ')}{n(rep.data.validation.stats.shortest_path)} {L('پست', 'posts')} · {L('بلندترین: ', 'longest: ')}{n(rep.data.validation.stats.longest_path)} · {L('پایان‌ها: ', 'endings: ')}{Object.entries(rep.data.validation.stats.endings ?? {}).map(([k, c]) => `${k} ${c}`).join('، ')}
+                  {L('مسیرهای ممکن: ', 'Possible routes: ')}{n(rep.data.validation.stats.paths)} · {L('کوتاه‌ترین: ', 'shortest: ')}{n(rep.data.validation.stats.shortest_path)} {L('پست', 'posts')} · {L('بلندترین: ', 'longest: ')}{n(rep.data.validation.stats.longest_path)} · {L('پایان‌ها: ', 'endings: ')}{Object.entries(rep.data.validation.stats.endings ?? {}).map(([k, c]) => `${word(lang, k)} ${n(c as number)}`).join('، ')}
                 </div>)}
               <div className="row">
                 {story.status !== 'approved' ? <Button variant="primary" icon="check" busy={act.busy} disabled={!v?.ok} onClick={() => post('/approve')}>{L('تأیید نمودار', 'Approve the graph')}</Button>
@@ -266,7 +266,7 @@ function PostEditor({ story, node, nodes, opts, issues, op, busy, img, setImg, c
             <SelectField label={L('نوع پایان', 'Ending type')} value={d.ending} onChange={(v) => setD({ ...d, ending: v, kind: v ? 'ending' : d.kind === 'ending' ? 'story' : d.kind })} options={[{ value: '', label: L('(پایان نیست)', '(not an ending)') }, { value: 'good', label: L('خوب', 'Good') }, { value: 'bad', label: L('بد', 'Bad') }, { value: 'secret', label: L('مخفی', 'Secret') }, { value: 'neutral', label: L('خنثی', 'Neutral') }]} />
             <SelectField label={L('پس‌زمینه', 'Background')} value={d.scene.location ?? ''} onChange={(v) => sc('location', v)} options={[{ value: '', label: L('(خودکار)', '(automatic)') }, ...(opts?.backgrounds ?? []).map((b) => ({ value: b.key, label: lang === 'fa' ? b.fa : b.en }))]} />
             <SelectField label={L('ژست', 'Pose')} value={d.scene.pose ?? ''} onChange={(v) => sc('pose', v)} options={[{ value: '', label: L('(از متن)', '(from the text)') }, ...(opts?.poses ?? []).map((p) => ({ value: p.key, label: lang === 'fa' ? p.fa : p.en }))]} />
-            <SelectField label={L('حالت چهره', 'Expression')} value={d.scene.expression ?? ''} onChange={(v) => sc('expression', v)} options={[{ value: '', label: L('(از متن)', '(from the text)') }, ...(opts?.expressions ?? []).map((x) => ({ value: x, label: x }))]} />
+            <SelectField label={L('حالت چهره', 'Expression')} value={d.scene.expression ?? ''} onChange={(v) => sc('expression', v)} options={[{ value: '', label: L('(از متن)', '(from the text)') }, ...(opts?.expressions ?? []).map((x) => ({ value: x, label: word(lang, x) }))]} />
           </div>
           {cast.length > 0 && (
             <div className="stack-sm">
@@ -325,7 +325,7 @@ function ChoiceRow({ c, targets, onSave, onRemove, maxLabel }: { c: Choice; targ
 }
 
 function PlayThrough({ nodes }: { nodes: Node[] }) {
-  const { L, n } = usePL()
+  const { L, n, lang } = usePL()
   const start = nodes.find((x) => x.kind === 'start') ?? nodes[0]
   const [trail, setTrail] = useState<string[]>([start.id])
   useEffect(() => { setTrail([start.id]) }, [start.id])
@@ -337,7 +337,7 @@ function PlayThrough({ nodes }: { nodes: Node[] }) {
       <div className="stack-sm">
         <div className="row"><Badge tone="primary">{L('پست', 'Post')} {n(cur.number)}</Badge><b>{cur.title}</b></div>
         <p>{cur.text}</p>
-        {cur.kind === 'ending' ? <Notice tone={cur.ending === 'good' ? 'ok' : cur.ending === 'bad' ? 'err' : 'info'}>{L('پایان ', 'Ending ')}{cur.ending}</Notice> : (
+        {cur.kind === 'ending' ? <Notice tone={cur.ending === 'good' ? 'ok' : cur.ending === 'bad' ? 'err' : 'info'}>{L('پایان ', 'Ending ')}{word(lang, cur.ending)}</Notice> : (
           <div className="row" style={{ flexWrap: 'wrap' }}>{cur.choices.map((c, i) => <Button key={i} onClick={() => setTrail([...trail, c.to])}>{c.label} ← {L('پست', 'post')} {n(by[c.to]?.number)}</Button>)}</div>
         )}
         <div className="row"><Button size="sm" variant="ghost" onClick={() => setTrail([start.id])}>{L('از اول', 'Restart')}</Button>{trail.length > 1 && <Button size="sm" variant="ghost" onClick={() => setTrail(trail.slice(0, -1))}>{L('یک قدم عقب', 'Back')}</Button>}

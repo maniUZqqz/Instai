@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import { AreaField, Badge, Button, Card, ErrorState, Loading, Notice, NumberField, SelectField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery } from '../hooks'
-import { ErrorLine, JobLine, usePL } from './kit'
+import { ErrorLine, JobLine, usePL, word } from './kit'
 
 interface Strategy { key: string; available: boolean; reason: string; title_fa: string; title_en: string; how_fa: string; how_en: string; gpu: boolean; licence: string }
 interface Ref { id: number; kind: string; label: string; approved: boolean; url: string | null }
@@ -28,7 +28,7 @@ const tx = (m: Record<string, [string, string]>, k: string): [string, string] =>
 
 /** The identity of one character: stick-figure editor, identity words, colour key, model sheets, strategy and the lock. */
 export function IdentityCard({ characterId, onChanged }: { characterId: number; onChanged?: () => void }) {
-  const { L, pick } = usePL()
+  const { L, pick, lang, f } = usePL()
   const q = useQuery<Ident>(`/characters/${characterId}/identity`)
   const opts = useQuery<Opts>('/identity/options')
   const act = useAction()
@@ -90,7 +90,7 @@ export function IdentityCard({ characterId, onChanged }: { characterId: number; 
           <div className="stack-sm">
             <b className="small">{L('کلید رنگ', 'Colour key')}</b>
             <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-              {lock.palette.map((p, i) => <span key={i} className="row nw small"><i style={{ width: 18, height: 18, borderRadius: 5, background: p.hex, border: '1px solid #8886', display: 'inline-block' }} /> {p.role} <code className="ltr">{p.hex}</code></span>)}
+              {lock.palette.map((p, i) => <span key={i} className="row nw small"><i style={{ width: 18, height: 18, borderRadius: 5, background: p.hex, border: '1px solid #8886', display: 'inline-block' }} /> {word(lang, p.role, f.num)} <code className="ltr">{p.hex}</code></span>)}
               {lock.palette.length === 0 && <span className="small muted">{L('خالی', 'Empty')}</span>}
             </div>
             <Button size="sm" variant="ghost" disabled={locked || !lock.refs.sheet} busy={act.busy} onClick={() => call('/palette', { apply: true })}>{L('استخراج رنگ‌ها از برگهٔ مدل', 'Extract the colours from the model sheet')}</Button>
@@ -134,7 +134,7 @@ export function IdentityCard({ characterId, onChanged }: { characterId: number; 
         <Card soft title={L('بررسی‌های اخیر ثبات', 'Recent consistency checks')}>
           {d.recent_checks.slice(0, 6).map((c) => (
             <div key={c.id} className="row between small"><span>{L('نما', 'Shot')} {c.shot ?? '—'}</span><span className="row nw"><Badge tone={c.ok ? 'ok' : 'err'}>{c.ok ? L('درست', 'OK') : L('ناهماهنگ', 'Drifts')}</Badge>
-              {c.notes.map((n, i) => <span key={i} className="muted">{L(...tx(CODE, n.code))}{n.name ? ` (${n.name})` : ''}</span>)}</span></div>))}
+              {c.notes.map((n, i) => <span key={i} className="muted">{L(...tx(CODE, n.code))}{n.name ? ` (${word(lang, n.name)})` : ''}</span>)}</span></div>))}
         </Card>
       )}
       <ErrorLine text={act.error || anchorJob.startError || sheetJob.startError} />
@@ -168,7 +168,7 @@ function StickEditor({ characterId, opts, start, onSaved }: { characterId: numbe
       <div className="grid2">
         <div className="stack-sm">
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            {CH.map(([k, fa, en]) => <SelectField key={k} label={L(fa, en)} value={String(spec[k] ?? '')} onChange={(v) => set(k, v)} options={(o.choices[k] ?? []).map((x) => ({ value: x, label: x }))} />)}
+            {CH.map(([k, fa, en]) => <SelectField key={k} label={L(fa, en)} value={String(spec[k] ?? '')} onChange={(v) => set(k, v)} options={(o.choices[k] ?? []).map((x) => ({ value: x, label: word(lang, x) }))} />)}
           </div>
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {COL.map(([k, fa, en]) => (
@@ -178,7 +178,7 @@ function StickEditor({ characterId, opts, start, onSaved }: { characterId: numbe
           <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>{o.limb_colours.map((c) => <button key={c} type="button" aria-label={c} onClick={() => set('limb_colour', c)} style={{ width: 26, height: 26, borderRadius: 7, background: c, border: '2px solid #fff6', cursor: 'pointer' }} />)}</div>
           <div className="row">
             <SelectField label={L('ژست', 'Pose')} value={pose} onChange={setPose} options={o.poses.map((p) => ({ value: p.key, label: lang === 'fa' ? p.fa : p.en }))} />
-            <SelectField label={L('حالت چهره', 'Expression')} value={expr} onChange={setExpr} options={o.expressions.map((x) => ({ value: x, label: x }))} />
+            <SelectField label={L('حالت چهره', 'Expression')} value={expr} onChange={setExpr} options={o.expressions.map((x) => ({ value: x, label: word(lang, x) }))} />
             <SelectField label={L('پس‌زمینهٔ پیش‌نمایش', 'Preview background')} value={bg} onChange={setBg} options={o.backgrounds.map((b) => ({ value: b.key, label: lang === 'fa' ? b.fa : b.en }))} />
           </div>
           <p className="small muted ltr">{anchor}</p>

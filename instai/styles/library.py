@@ -282,7 +282,7 @@ def _fold(text: str) -> str:
     return t.translate(str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789"))
 
 
-_FILLER = {"style", "styles", "look", "looks", "سبک", "استایل"}     # "Dan Koe style", "PS2 style": the word "style" is not part of any name
+_FILLER = {"style", "styles", "look", "looks", "like", "سبک", "استایل"}     # "Dan Koe style", "PS2 style", "Lego-like bricks": these words are not part of any name
 
 
 def matches(entry: dict, q: str) -> bool:
@@ -292,7 +292,8 @@ def matches(entry: dict, q: str) -> bool:
     if not words:
         return True
     hay = _fold(" ".join([entry.get("name_fa", ""), entry.get("name_en", ""), entry.get("description_fa", ""), entry.get("description_en", ""),
-                          " ".join(entry.get("tags") or []), " ".join(entry.get("search_terms") or []), entry.get("key", "").replace("_", " ")]))
+                          " ".join(entry.get("tags") or []), " ".join(entry.get("search_terms") or []), entry.get("key", "").replace("_", " "),
+                          entry.get("known_as", "")]))       # the owner's own name for the look ("Lego-like bricks") finds it exactly as he wrote it
     return all(w in hay for w in words)
 
 

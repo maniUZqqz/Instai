@@ -86,8 +86,7 @@ def sheets(ctx):
             make_placeholder(tmp, 1536, 896, f"{c.name} {label}", seed=f"{c.pk}-{kind}")
             prov = {"engine": "placeholder", "note": "demo mode: placeholder, not an AI image"}
         else:
-            if not compute.workflow_available(wid):
-                raise ProviderError("ComfyUI در دسترس نیست (یا گردش‌کار تصویر آماده نیست).", retryable=False, code="not_ready")
+            compute.require_workflow(wid)                 # the GPU PC is off / ComfyUI not up: the job WAITS and resumes by itself (never fails)
             spec = get_workflow(wid)
             inputs = {"prompt": prompt, "negative_prompt": neg, "width": 1536, "height": 896, "seed": lock.seed or None, "steps": 28}
             res = compute.run_task(ctx, "comfy.graph", {"graph": spec.build(inputs), "workflow": wid, "timeout": 1800, "expected": spec.expected_seconds})
