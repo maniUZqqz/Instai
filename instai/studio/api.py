@@ -134,7 +134,17 @@ def development_payload(series: Series) -> dict:
         "bible": services.bible_dict(series), "source": series.source or {}, "look": _look(series),
         "languages": series.languages or page.languages or ["fa"], "dev_status": series.dev_status, "dev_approved_at": series.dev_approved_at,
         "automation_level": page.automation_level, "running_jobs": JobSerializer(running, many=True).data, "has_plan": series.episodes.exists(),
+        "start_idea": _start_idea(series),
     }
+
+
+def _start_idea(series: Series) -> dict | None:
+    from instai.ideabank import bank
+
+    try:
+        return bank.start_idea_of(series)
+    except Exception:  # noqa: BLE001 - a missing idea card must never break the development room
+        return None
 
 
 @api_view(["GET", "PATCH"])
