@@ -12,6 +12,10 @@
         "en": "The episode Studio ladder: as soon as an episode had design sheets or an animatic the ladder tab showed an internal error, and approving the animatic or design and making the layout were impossible. Fixed; all 21 stages now go forward to delivery and a full test walks that path."
       },
       {
+        "fa": "پلهٔ استودیو روی رایانه‌ای که ComfyUI ندارد هم تا تحویل جلو می‌رود: اگر برای نمایی کلیپ مدل ساخته نشد و ساخت قسمت با حرکت دوربین روی تصویر تمام شد، مرحلهٔ «انیمیشن» همان را می‌پذیرد و دیگر ترکیب‌بندی، تدوین، اصلاح رنگ و تحویل بسته نمی‌ماند.",
+        "en": "The Studio ladder also reaches delivery on a PC without ComfyUI: when a shot got no model clip and the episode was built with camera moves on the picture instead, the «Animation» stage accepts that and compositing, edit, colour grade and delivery are no longer stuck behind it."
+      },
+      {
         "fa": "کارهای GPU دیگر شکست نمی‌خورند، منتظر می‌مانند: ساخت تصویر پست‌های داستان انتخابی با هوش مصنوعی، برگهٔ مدل شخصیت، تصویر برگه‌های طراحی و کلیدفریم‌ها وقتی ComfyUI یا رایانهٔ GPU خاموش است در صف می‌مانند و با روشن شدن خودشان ادامه می‌یابند؛ لازم نیست دوباره دکمه را بزنید.",
         "en": "GPU jobs no longer fail, they wait: AI pictures of choice-story posts, character model sheets, design-sheet pictures and keyframes stay in the queue while ComfyUI or the GPU PC is off and continue by themselves when it comes on; no need to press the button again."
       },
