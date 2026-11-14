@@ -53,7 +53,7 @@ function Computers({ nodes }: { nodes: NodeBrief[] }) {
 }
 
 export function JobLogsModal({ job, onClose }: { job: { id: number; title: string }; onClose: () => void }) {
-  const { t, f } = useI18n()
+  const { t, f, lang } = useI18n()
   const [lines, setLines] = useState<JobLogLine[]>([])
   const last = useRef(0)
   useEffect(() => {
@@ -82,7 +82,7 @@ export function JobLogsModal({ job, onClose }: { job: { id: number; title: strin
       <div className="log-view mono" role="log" tabIndex={0} aria-label={t('mon.logs')}>
         {lines.length === 0 ? <span style={{ opacity: 0.7 }}>{t('mon.logs_empty')}</span> : lines.map((l) => (
           <div key={l.id} className={'log-line lvl-' + l.level}>
-            <span style={{ opacity: 0.6 }}>{f.time(l.at)}</span> {l.message}
+            <span style={{ opacity: 0.6 }}>{f.time(l.at)}</span> {(lang === "en" ? l.text_en : l.text_fa) || l.message}
           </div>
         ))}
       </div>
@@ -190,7 +190,7 @@ type Tab = 'active' | 'done' | 'problem'
 
 /** «صفِ پردازش»: every job that waits or runs, with the reason it waits. Waiting is not failing. */
 export default function QueuePage() {
-  const { t, lang } = useI18n()
+  const { t, lang, f } = useI18n()
   useTitle(t('ops.q.title'))
   const q = useQuery<QueueData>('/queue', { interval: 3000 })
   const [tab, setTab] = useState<Tab>('active')
@@ -227,9 +227,9 @@ export default function QueuePage() {
                   value={tab}
                   onChange={setTab}
                   tabs={[
-                    { key: 'active', label: t('ops.q.tab_active'), badge: <Badge tone="info">{d.active.length}</Badge> },
-                    { key: 'done', label: t('ops.q.tab_done'), badge: <Badge>{done.length}</Badge> },
-                    { key: 'problem', label: t('ops.q.tab_problem'), badge: <Badge tone={problem.length ? 'err' : 'neutral'}>{problem.length}</Badge> },
+                    { key: 'active', label: t('ops.q.tab_active'), badge: <Badge tone="info">{f.num(d.active.length)}</Badge> },
+                    { key: 'done', label: t('ops.q.tab_done'), badge: <Badge>{f.num(done.length)}</Badge> },
+                    { key: 'problem', label: t('ops.q.tab_problem'), badge: <Badge tone={problem.length ? 'err' : 'neutral'}>{f.num(problem.length)}</Badge> },
                   ]}
                 />
                 {tab === 'active' && (d.active.length === 0 ? <Empty icon="check" title={t('ops.q.empty')} /> : <Table rows={d.active} onChanged={q.reload} onLogs={onLogs} />)}

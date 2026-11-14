@@ -373,7 +373,9 @@ export interface Episode extends EpisodeBrief {
   script_checks: Partial<ScriptChecks>
   scenes: Scene[]
   estimate: EpisodeEstimate
-  qc: { checks?: QcCheck[]; ok?: boolean; asset_id?: number; mode?: string }
+  qc: { checks?: QcCheck[]; ok?: boolean; warnings?: number; asset_id?: number; mode?: string }
+  /** shots that are made as a still with a camera move instead of their planned technique (server: production/fallbacks.py) */
+  fallbacks?: ShotFallback[]
   research: Research
   notes: string
   failed_state: string
@@ -539,6 +541,8 @@ export interface MonitorWorker {
   last_seen: string | null
   current_jobs: unknown[]
   info: Record<string, any>
+  /** automation steps of the worker's 30-second upkeep that failed last time (empty = all fine) */
+  tick_errors?: { step: string; label_fa: string; label_en: string; since: string | null; error: string }[]
 }
 export interface Monitor {
   active: Job[]
@@ -555,6 +559,10 @@ export interface JobLogLine {
   at: string
   level: string
   message: string
+  /** a coded line (instai/jobs/logtext.py): the text in each language, empty for old / free-text lines */
+  code?: string
+  text_fa?: string
+  text_en?: string
 }
 
 export interface ProviderInfo {
@@ -630,6 +638,10 @@ export interface HardwareItem {
   detail: string
   data: Record<string, any>
   hint: string
+  /** a button that fixes it: {package} = the installer of the Models page, {ollama} = pull a language model, {link} = open a page */
+  action?: { package?: string; ollama?: string; link?: string } | null
+  /** the command line / English text behind the «اطلاعات فنی» toggle (never shown by default) */
+  tech?: string
 }
 export interface Hardware {
   checked_at: string
@@ -768,4 +780,21 @@ export interface PageTarget {
   fit: string
   mode: string
   handle: string
+}
+
+export interface ShotFallback {
+  shot: number
+  scene: number
+  index: number
+  technique: string
+  code: 'no_rig' | 'no_layers' | 'not_implemented' | 'no_clip'
+  fa: string
+  en: string
+  character?: string
+}
+export interface Preflight {
+  needs_rig: { character: number | null; name: string; shots: number }[]
+  fallbacks: ShotFallback[]
+  rigs_made: { character: number; name: string; rig: number | null }[]
+  rigs_path: string
 }

@@ -114,7 +114,7 @@ def _bench_image(ctx, run, lease) -> Path | None:
                 launcher.ensure_running(cancelled=lambda: _cancelled(ctx))
                 info = hardware.comfy_object_info(force=True)
         except Exception as e:  # noqa: BLE001 - recorded as the skip reason below
-            ctx.log(f"ComfyUI could not be started: {e}", "warning")
+            ctx.log_t("comfy_not_started", "warning", detail=str(e))
     if info is None:
         _record(run, "image", wid, "skipped", message="ComfyUI not found (not running at " + runtime.comfyui_url() + ")")
         return None

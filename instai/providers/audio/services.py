@@ -139,8 +139,7 @@ class ServiceManager:
             return [sys.executable, *base, "--fake"]
         py = Path(p["python"])
         if not py.is_file():
-            raise RuntimeError(f"{spec['label']} is not installed (missing {', '.join(missing(key)[:2])}); see the Models page or run "
-                               f"Download-Models.bat --only {spec['package']}")
+            raise RuntimeError(f"{spec['label']} is not installed (missing {', '.join(missing(key)[:2])}); install the package \"{spec['package']}\" from the Models page")
         return [str(py), *base]
 
     def start(self, key: str) -> None:
@@ -180,7 +179,7 @@ class ServiceManager:
             try:
                 self.start(key)
             except RuntimeError as e:
-                raise ProviderError(str(e), retryable=False, code="not_ready") from e
+                raise ProviderError(str(e), retryable=False, code="not_ready", fa=f"{SERVICES[key]['label']} نصب نیست؛ از صفحهٔ «مدل‌ها» یا «دانلودها» نصبش کنید.") from e
         end = time.time() + timeout
         while time.time() < end:
             h = health(key)
@@ -188,14 +187,14 @@ class ServiceManager:
                 self.last_use[key] = time.time()
                 return service_url(key)
             if h["status"] == "error":
-                raise ProviderError(f"{SERVICES[key]['label']} could not load its model: {h['error']}", retryable=False, code="not_ready")
+                raise ProviderError(f"{SERVICES[key]['label']} could not load its model: {h['error']}", retryable=False, code="not_ready", fa=f"{SERVICES[key]['label']} مدلش را بارگذاری نکرد.")
             if h["status"] == "down" and key in self.procs and not self.running(key):
-                raise ProviderError(f"{SERVICES[key]['label']} stopped while starting (see data/logs/voice-{key}.log)", retryable=True)
+                raise ProviderError(f"{SERVICES[key]['label']} stopped while starting (see data/logs/voice-{key}.log)", retryable=True, fa=f"{SERVICES[key]['label']} هنگامِ روشن شدن بسته شد؛ دوباره امتحان می‌شود.")
             if ctx is not None:
                 ctx.waiting(f"loading {SERVICES[key]['label']} ...")
                 ctx.check()
             time.sleep(1.0 if fake_mode() else 3.0)
-        raise ProviderError(f"{SERVICES[key]['label']} did not become ready in {int(timeout)} s", retryable=True)
+        raise ProviderError(f"{SERVICES[key]['label']} did not become ready in {int(timeout)} s", retryable=True, fa=f"{SERVICES[key]['label']} به‌موقع آماده نشد؛ دوباره امتحان می‌شود.")
 
     def reap_idle(self, idle_s: float = 900) -> None:
         for key in list(self.procs):

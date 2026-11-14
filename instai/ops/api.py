@@ -2,6 +2,8 @@
 
   GET  /api/version                      {name, version, commit}               (the badge in the corner of every screen)
   GET  /api/version/changelog            {current, entries: [{version, date, title, items}]}
+  GET  /api/update/status                {available, current, latest, checked_at, error, running_jobs, applying}  (?refresh=1 asks GitHub now)
+  POST /api/update/apply                 {force?}  stop, update and start again when a newer version exists (a detached helper)
   GET  /api/queue                        summary + computers + active jobs + recent jobs (the "Processing queue" page)
   GET  /api/queue/summary                the numbers of the header counter (cheap)
   GET  /api/reports/compute              the report: computers, uptime, jobs per kind, durations, queue wait, errors explained, downloads
@@ -30,7 +32,7 @@ from instai.jobs import schedule
 from instai.jobs.api import JobSerializer, job_response
 from instai.jobs.models import Job
 
-from . import downloads, queue_view, report
+from . import downloads, queue_view, report, update
 
 
 @api_view(["GET"])
@@ -41,6 +43,18 @@ def version_view(request):
 @api_view(["GET"])
 def changelog_view(request):
     return Response({"name": ver.NAME, "current": ver.read_version(), "entries": ver.changelog()})
+
+
+# ------------------------------------------------------------------ is there a newer InstAI?
+
+@api_view(["GET"])
+def update_status(request):
+    return Response(update.check(force=request.query_params.get("refresh") == "1"))
+
+
+@api_view(["POST"])
+def update_apply(request):
+    return Response(update.apply(force=bool(request.data.get("force"))), status=202)
 
 
 # ------------------------------------------------------------------ the queue page
@@ -176,6 +190,8 @@ def ops_config(request):
 urlpatterns = [
     path("version", version_view),
     path("version/changelog", changelog_view),
+    path("update/status", update_status),
+    path("update/apply", update_apply),
     path("queue", queue_page),
     path("queue/summary", queue_summary),
     path("reports/compute", compute_report),

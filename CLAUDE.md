@@ -113,3 +113,11 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Package** (`publishing/delivery_package.py`): one folder per targeted network; the caption is never rewritten, hashtags are repaired only inside the package. SRT and covers are looked up by asset (`find_srt`, `cover_for`), never required.
 - **Self-test rows** `delivery_loudness`, `delivery_echo` in `ops/pcselftest.py` (group pc, every PC).
 - UI: `components/DeliveryCard.tsx` (networks card + delivery/check card), the audio form in `ProfilesTab.tsx`, `message_en` in the quality panel; keys `dl.*` in `i18n/packs/delivery.ts`.
+
+## Audit round «ia_core» (0.15.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
+- **Never roll an episode back with `services.transition` from a job's `except`**: use `services.release_scripting` (compare-and-set, never raises) and let the original exception reach the worker.
+- **A new technique that may not be rendered as planned** goes into `production/fallbacks.shot_fallback` (fa + en text); never write a fallback note by hand. `GET/POST /episodes/<id>/preflight` and `auto_rig` on produce make the stick-figure puppet.
+- **A new automation step of the worker** = one entry in `worker.tick_steps()` + a label in `TICK_LABELS` (fa + en); it must not rely on the steps before it.
+- **A new catalogue text (package, model, licence, workflow, installer item)** needs its Persian twin in `core/fa_catalog_data.py` (`tests/test_core_audit_catalog.py` checks); a hint on the System page = Persian sentence + `action` (a button) + the command in `tech`. Never put `pip install`, `Download-Models.bat --only ...` or a Windows path in a Persian sentence.
+- **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
+- **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).

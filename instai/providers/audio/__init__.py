@@ -98,9 +98,9 @@ class MossSFX(AudioGenerator):
                                                   "steps": kw.get("steps"), "cfg_scale": kw.get("cfg_scale"),
                                                   "negative_prompt": kw.get("negative_prompt") or ""}, timeout=1800)
         except requests.RequestException as e:
-            raise ProviderError(f"MOSS-SoundEffect request failed: {type(e).__name__}") from e
+            raise ProviderError(f"MOSS-SoundEffect request failed: {type(e).__name__}", fa="سرورِ جلوه‌های صوتی پاسخ نداد؛ کمی بعد دوباره امتحان می‌شود.") from e
         if r.status_code != 200 or not out_path.exists():
-            raise ProviderError(f"MOSS-SoundEffect failed (HTTP {r.status_code}): {r.text[:160]}", retryable=r.status_code >= 500)
+            raise ProviderError(f"MOSS-SoundEffect failed (HTTP {r.status_code}): {r.text[:160]}", retryable=r.status_code >= 500, fa="ساختِ جلوهٔ صوتی ناموفق بود.")
         services.MANAGER.last_use["sfx"] = time.time()
         return AudioResult(out_path, seconds, self.id, time.time() - t0, self.licence)
 
@@ -125,7 +125,7 @@ class AceStepMusic(AudioGenerator):
         j = r.json()
         if isinstance(j, dict) and "data" in j and ("code" in j or "error" in j):
             if j.get("code") not in (None, 200) or j.get("error"):
-                raise ProviderError(f"ACE-Step: {j.get('error') or 'code ' + str(j.get('code'))}")
+                raise ProviderError(f"ACE-Step: {j.get('error') or 'code ' + str(j.get('code'))}", fa="ساختِ موسیقی ناموفق بود.")
             return j.get("data")
         return j
 
@@ -144,7 +144,7 @@ class AceStepMusic(AudioGenerator):
             task = self._call(url, "POST", "/release_task", body)
             task_id = (task or {}).get("task_id") if isinstance(task, dict) else None
             if not task_id:
-                raise ProviderError(f"ACE-Step did not accept the task: {str(task)[:200]}")
+                raise ProviderError(f"ACE-Step did not accept the task: {str(task)[:200]}", fa="ساختِ موسیقی را سرورِ ACE-Step نپذیرفت.")
             end = time.time() + 1800
             while time.time() < end:
                 rows = self._call(url, "POST", "/query_result", {"task_id_list": [task_id]}) or []
@@ -155,22 +155,22 @@ class AceStepMusic(AudioGenerator):
                     items = json.loads(items) if isinstance(items, str) else (items or [])
                     file_url = (items[0] or {}).get("file") if items else None
                     if not file_url:
-                        raise ProviderError("ACE-Step finished without a file")
+                        raise ProviderError("ACE-Step finished without a file", fa="ساختِ موسیقی بدونِ فایل تمام شد.")
                     data = requests.get(url + file_url if file_url.startswith("/") else file_url, timeout=600)
                     if data.status_code != 200 or len(data.content) < 64:
-                        raise ProviderError("ACE-Step returned no audio file")
+                        raise ProviderError("ACE-Step returned no audio file", fa="ساختِ موسیقی فایلِ صوتی نداد.")
                     out_path.parent.mkdir(parents=True, exist_ok=True)
                     out_path.write_bytes(data.content)
                     services.MANAGER.last_use["music"] = time.time()
                     return AudioResult(out_path, seconds, self.id, time.time() - t0, self.licence)
                 if status == 2:
-                    raise ProviderError(f"ACE-Step failed: {str(row.get('result') or row)[:200]}")
+                    raise ProviderError(f"ACE-Step failed: {str(row.get('result') or row)[:200]}", fa="ساختِ موسیقی ناموفق بود.")
                 if ctx is not None:
                     ctx.check()
                 time.sleep(0.5 if services.fake_mode() else 2.0)
         except requests.RequestException as e:
-            raise ProviderError(f"ACE-Step request failed: {type(e).__name__}") from e
-        raise ProviderError("ACE-Step did not finish in time")
+            raise ProviderError(f"ACE-Step request failed: {type(e).__name__}", fa="سرورِ موسیقی پاسخ نداد؛ کمی بعد دوباره امتحان می‌شود.") from e
+        raise ProviderError("ACE-Step did not finish in time", fa="ساختِ موسیقی بیش از حد طول کشید.")
 
 
 def get_generator(kind: str) -> AudioGenerator:

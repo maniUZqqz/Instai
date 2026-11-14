@@ -4,7 +4,7 @@ import type { Development, DevStepState } from '../../api/types'
 import { useToast } from '../../components/feedback'
 import { Icon } from '../../components/Icon'
 import { StylePicker, type Look } from '../../components/StylePicker'
-import { Badge, Button, Card, CheckField, ErrorState, Loading, Notice } from '../../components/ui'
+import { Badge, Button, Card, CheckField, ErrorState, LinkButton, Loading, Notice } from '../../components/ui'
 import { useAction, useQuery, useStored } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { nm, useTemplates } from '../../library'
@@ -58,6 +58,15 @@ export default function Develop({ seriesId }: { seriesId: number }) {
       </div>
       {look && <LookCard dev={dev} setDev={(d) => q.setData(d)} onClose={() => setLook(false)} />}
       {dev.dev_status === 'approved' && <Notice tone="ok">{t('dev.approved_banner')}</Notice>}
+      {dev.start_idea && (
+        <Card title={t('dev.start_idea')} soft actions={<LinkButton size="sm" to={`/ideas?q=${encodeURIComponent((lang === "fa" ? dev.start_idea.title_fa : dev.start_idea.title_en) || dev.start_idea.title_fa || dev.start_idea.title_en)}`}>{t('dev.start_idea_open')}</LinkButton>}>
+          <div className="stack-sm">
+            <strong>{(lang === 'fa' ? dev.start_idea.title_fa || dev.start_idea.title_en : dev.start_idea.title_en || dev.start_idea.title_fa)}</strong>
+            <p>{lang === 'fa' ? dev.start_idea.logline_fa || dev.start_idea.logline_en : dev.start_idea.logline_en || dev.start_idea.logline_fa}</p>
+            <blockquote className="idea-hook"><span className="small muted">{t('ideas.hook')}</span><br />{lang === 'fa' ? dev.start_idea.hook_fa || dev.start_idea.hook_en : dev.start_idea.hook_en || dev.start_idea.hook_fa}</blockquote>
+          </div>
+        </Card>
+      )}
       <div className="dev-room">
         <nav className="dev-stepper" aria-label={t('dev.steps')}>
           <ol>
