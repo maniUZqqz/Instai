@@ -83,8 +83,11 @@ export function styleImage(s: Pick<StylePreset, 'thumbnail_url' | 'preview_url'>
 
 // Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server.
 const FILLER = new Set(['style', 'styles', 'look', 'looks', 'like', 'سبک', 'استایل'])
+// Brackets, quotes and commas around a pasted name ("Chrome 22K (chrome metallic type)", «Pixel Art») are no part of any word; the same set as `_PUNCTUATION` in instai/styles/library.py.
+const PUNCTUATION = /[()[\]{}<>«»"“”‘’,;:!?،؛؟/\\|]/g
 export function fold(text: string): string {
   return (text || '')
+    .replace(PUNCTUATION, ' ')
     .toLowerCase()
     .replace(/\u064a/g, '\u06cc')
     .replace(/\u0643/g, '\u06a9')

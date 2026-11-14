@@ -105,7 +105,7 @@ def test_library_gallery_filters_duplicate_and_tabs(browser, server, size, lang)
         page.wait_for_function("() => document.querySelectorAll('.theme-card').length >= 16", timeout=15000)      # not a fixed 200 ms: a cold app needs longer
         assert page.locator(".theme-card").count() >= 16
         page.get_by_role("tab", name=exact(tx("lib.tab_templates", lang))).click()
-        page.wait_for_timeout(300)
+        page.wait_for_function("() => document.querySelectorAll('main .card').length >= 4", timeout=15000)      # the templates come from a fetch, slow over a tunnel
         assert page.locator("main .card").count() >= 4, "the four built-in templates are listed"
         main = page.locator("main").inner_text()
         if lang == "en" and stray_persian(main):
