@@ -77,7 +77,7 @@ def build_scene(shot, ep, *, narration: Asset | None, keyframe: Asset | None, du
     notes: list[str] = []
     rig, draft = rig_for_shot(shot, ep)
     if rig is None:
-        return None, [f"shot {shot.scene.index}.{shot.index}: no character rig yet (Characters > Rigs), Ken Burns used instead of the puppet"]
+        return None, []     # the fall back to a still is reported (Persian) by production.fallbacks, not here
     if draft:
         notes.append(f"shot {shot.scene.index}.{shot.index}: the rig is not approved yet (draft rig used)")
     root = Path(settings.MEDIA_ROOT)

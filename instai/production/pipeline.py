@@ -447,7 +447,7 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
     wid, _ = hero.i2v_workflow(page_of(ep))
     if not compute.workflow_available(wid):
         reason = f"no PC can run the video workflow {wid} (ComfyUI down or model files missing)"
-        ctx.log(f"video clips skipped, Ken Burns is used instead: {reason}", "warning")
+        ctx.log_t("clips_skipped", "warning", reason=reason)
         return {"generated": 0, "skipped": len(shots), "reason": reason}
     counter = {"n": 0}
 
@@ -479,8 +479,17 @@ def step_clips(ctx, ep: Episode, mode: str) -> dict:
 
 
 def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
-    """ShotSpecs from current assets + notes about fallbacks (shown in QC and the job log)."""
-    specs, notes = [], []
+    """ShotSpecs from current assets + notes about fallbacks (English technical notes)."""
+    specs, notes, _fallbacks = shot_specs_full(ep, mode)
+    return specs, notes
+
+
+def shot_specs_full(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str], list[dict]]:
+    """ShotSpecs from current assets, notes, and the STRUCTURED list of shots that fall back to a still with a camera move
+    (`production.fallbacks`): the job log, the video's provenance and the quality check all read that list."""
+    from . import fallbacks as fb_mod
+
+    specs, notes, fallbacks = [], [], []
     shots = services.all_shots(ep)
     for i, s in enumerate(shots):
         kf, nar, clip = current(s, "keyframe"), current(s, "narration"), current(s, "shot_clip")
@@ -494,12 +503,10 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
                                                                                             audio="x" if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0)),
                 language=page_of(ep).language, demo_mode=image_engine() == "placeholder")
             notes += pnotes
-        if s.technique == "parallax_25d":
-            notes.append(f"shot {s.scene.index}.{s.index}: no cut-out layers yet (Phase 3), Ken Burns used instead of parallax")
-        if s.technique not in costs.IMPLEMENTED:
-            notes.append(f"shot {s.scene.index}.{s.index}: technique {s.technique} not implemented yet, Ken Burns used")
-        if s.technique == "wan_i2v" and not clip and mode == FINAL:
-            notes.append(f"shot {s.scene.index}.{s.index}: no Wan clip available, Ken Burns used")
+        fb = fb_mod.shot_fallback(s, ep, mode, have_clip=bool(clip))
+        if fb:
+            fallbacks.append(fb)
+            notes.append(fb["en"])
         last = i == len(shots) - 1
         specs.append(asm.ShotSpec(
             key=str(s.pk), duration=s.duration_sec, image=str(asset_storage.storage.path_for(kf.path)) if kf else None,
@@ -507,15 +514,19 @@ def shot_specs(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[str]]:
             technique=s.technique, transition="cut" if last else (s.transition or "cut"),
             audio=str(asset_storage.storage.path_for(nar.path)) if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0,
             subtitle=s.narration, puppet=puppet_scene))
-    return specs, notes
+    return specs, notes, fallbacks
 
 
 def step_assemble(ctx, ep: Episode, mode: str) -> dict:
-    specs, notes = shot_specs(ep, mode)
+    specs, notes, fallbacks = shot_specs_full(ep, mode)
     if not specs:
         raise DomainError("not_ready", "قسمت هیچ شاتی ندارد.")
+    shown = {f["en"] for f in fallbacks}
+    for f in fallbacks:
+        ctx.log_bi(f["fa"], f["en"], "warning")      # both languages (the report and the job log are read by the owner)
     for n in notes:
-        ctx.log(n, "warning")
+        if n not in shown:
+            ctx.log_note(n, "warning")
     if any(s.image is None and s.video is None and not s.puppet for s in specs):
         raise ProviderError("some shots have no image yet; run the production step again", retryable=False, code="not_ready")
     opts = render_options(ep, mode)
@@ -523,7 +534,7 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
 
     opts.tracks = mixing.resolve(ep, specs, asm.plan_timeline(specs))
     if opts.tracks:
-        ctx.log(f"mixing {len(opts.tracks)} track(s): " + ", ".join(f"{t['kind']}{' (ducked)' if t['duck'] else ''}" for t in opts.tracks))
+        ctx.log_t("mixing", n=len(opts.tracks))
     work = Path(tempfile.mkdtemp(prefix="asm-", dir=settings.MEDIA_ROOT))
     try:
         clips: list[Path] = []
@@ -561,6 +572,7 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
         video = asset_storage.register(out, rel, kind="video", role=mode, page=page_of(ep), episode=ep, input_hash=thash, loudness=True,
                                        provenance={"mode": mode, "width": opts.width, "height": opts.height, "fps": opts.fps, "job_id": ctx.job.pk,
                                                    "shots": len(specs), "techniques": sorted({s.technique for s in specs}), "notes": notes,
+                                                   "fallbacks": fallbacks,
                                                    "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"]})
         cover_tmp = work / "cover.png"
         asm.extract_cover(asset_storage.storage.path_for(video.path), cover_tmp, at=min(1.0, info["duration"] / 2))
@@ -598,6 +610,10 @@ def run_qc(ep: Episode, video: Asset) -> dict:
                    "message": ("صدای غیرتجاری یا غیررسمی در این قسمت به کار رفته است: " + "، ".join(e["engine"] for e in flagged)
                                + " — برای انتشار تجاری از MOSS یا Piper (با مجوز بررسی‌شدهٔ صدا) استفاده کنید.") if flagged else
                    "موتورهای صدا: " + ("، ".join(e["engine"] for e in used) or "—")})
+    from . import fallbacks as fb_mod
+
+    recorded = (video.provenance or {}).get("fallbacks")             # what the assembly really did (older videos: ask the shots now)
+    checks.append(fb_mod.qc_check(recorded if recorded is not None else fb_mod.episode_fallbacks(ep, video.role or "preview")))
     mem = services.memory_digest(ep.series, before_episode=ep.number)
     checks.append({"name": "open_threads", "level": "info", "value": len(mem["open_threads"]),
                    "message": f"{len(mem['open_threads'])} رشته‌ی باز داستان از قسمت‌های قبل"})

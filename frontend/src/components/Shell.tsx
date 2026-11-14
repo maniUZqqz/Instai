@@ -10,6 +10,7 @@ import { Link, NavLink, Progress, Button } from './ui'
 import { LabNavLink } from '../lab/LabNavLink'
 import { NotificationBell } from '../lab/NotificationBell'
 import { QueueBadge } from '../ops/QueueBadge'
+import { UpdateBadge } from '../ops/UpdateBadge'
 
 // ---------------------------------------------------------------- app-wide facts (demo mode)
 interface AppCtx {
@@ -181,6 +182,7 @@ export function Shell() {
           <header className="topbar">
             <Button className="menu-btn" variant="ghost" iconOnly icon={open ? 'close' : 'menu'} aria-label={t('shell.menu')} aria-expanded={open} onClick={() => setOpen((o) => !o)} />
             <div className="spacer" />
+            <UpdateBadge />
             <QueueBadge />
             <JobIndicator />
             <NotificationBell />

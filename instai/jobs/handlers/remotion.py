@@ -128,7 +128,7 @@ def render(ctx):
             ctx.live(phase=ev.get("phase"))
         elif kind == "composition":
             state["comp"] = ev
-            ctx.log(f"composition {ev['id']}: {ev['width']}x{ev['height']} at {ev['fps']} fps, {ev['frames']} frames", "info")
+            ctx.log_t("composition", id=ev['id'], width=ev['width'], height=ev['height'], fps=ev['fps'], frames=ev['frames'])
         elif kind == "progress":
             ctx.live(phase="rendering", step=ev.get("rendered"), steps=ev.get("frames"))
             ctx.progress(0.2 + 0.78 * float(ev.get("progress") or 0), f"{ev.get('rendered')} / {ev.get('frames')}")

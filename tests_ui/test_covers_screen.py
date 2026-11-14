@@ -1,4 +1,4 @@
-"""The cover maker in a real browser (0.15.0): /covers and the «Cover» tab of Publishing, in Persian (RTL) and English (LTR), desktop and phone. The page loads, the format and layout pickers
+"""The cover maker in a real browser (0.16.0): /covers and the «Cover» tab of Publishing, in Persian (RTL) and English (LTR), desktop and phone. The page loads, the format and layout pickers
 are complete, the preview is a real picture with the safe-area guides, ideas can be suggested and applied, a cover with three A/B versions is made and followed to the end, a version is chosen,
 the history offers «edit again», nothing scrolls sideways and nothing logs an error. The server of these tests has no GPU and no model: the ideas come from the fake text provider, the cover from the CPU."""
 from __future__ import annotations

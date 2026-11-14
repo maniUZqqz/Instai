@@ -105,8 +105,16 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
+## Audit round «ia_core» (0.15.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
+- **Never roll an episode back with `services.transition` from a job's `except`**: use `services.release_scripting` (compare-and-set, never raises) and let the original exception reach the worker.
+- **A new technique that may not be rendered as planned** goes into `production/fallbacks.shot_fallback` (fa + en text); never write a fallback note by hand. `GET/POST /episodes/<id>/preflight` and `auto_rig` on produce make the stick-figure puppet.
+- **A new automation step of the worker** = one entry in `worker.tick_steps()` + a label in `TICK_LABELS` (fa + en); it must not rely on the steps before it.
+- **A new catalogue text (package, model, licence, workflow, installer item)** needs its Persian twin in `core/fa_catalog_data.py` (`tests/test_core_audit_catalog.py` checks); a hint on the System page = Persian sentence + `action` (a button) + the command in `tech`. Never put `pip install`, `Download-Models.bat --only ...` or a Windows path in a Persian sentence.
+- **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
+- **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
 
-## Cover maker (0.15.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
+
+## Cover maker (0.16.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
 - `instai/covers/engine/` is the NMarketing thumbnail engine ported (pure Pillow + numpy, no Django, no NMarketing import: a `SOURCE:` note names the file it came from). A new layout = a function of a `Ctx` + a `StyleDef` row (`styles.py` / `styles_instai.py`) + its concept and background prompt in `hooks.py` + a note in `archetypes.py`; `tests/test_covers_engine.py` renders EVERY layout in EVERY format in both languages.
 - **Persian text goes through `typo._shape` / `typo._kw` (libraqm when it works, else `fa_text`)**; use `typo.basic_layout()` in tests to force the built-in path. A font must have drawable glyphs at the Arabic presentation-form code points (Estedad does not): add one only after `tests/test_covers_text.py` passes for it.
 - A cover is a `Cover` design with 1-6 versions; the job `covers.make` makes them on the CPU and - for an AI background - waits for ComfyUI (`compute.require_workflow`, a WAIT) after the cover is already usable. Versions are `Asset(role="other")`; `service.use_cover` registers the chosen one as `role="cover"` (what `publishing.export_package` ships).

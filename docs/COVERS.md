@@ -1,4 +1,4 @@
-# Cover maker (0.15.0)
+# Cover maker (0.16.0)
 
 Covers for episodes, series, seasons and the channel: YouTube, Aparat, Telegram, Instagram (4:5 and square), Reels / Shorts, a channel banner, a series poster and a season card.
 Persian first (the owner reads Persian only), English mirrored (`page.language` decides). Screen: **/covers** (sidebar «کاورساز») and the **Cover** tab of Publishing (a publication has a
