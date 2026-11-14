@@ -248,3 +248,23 @@ def test_json_safe_makes_any_snapshot_storable():
     out = bridge.json_safe({"at": dt.datetime(2026, 11, 13, 9, 55, tzinfo=dt.timezone.utc), "d": dt.date(2026, 11, 13), "n": Decimal("1.5"), "obj": object, "fa": "سلام", "rows": [{"t": dt.time(1, 2)}]})
     assert out["at"].startswith("2026-11-13T09:55") and out["d"] == "2026-11-13" and out["fa"] == "سلام" and isinstance(out["obj"], str) and out["rows"][0]["t"] == "01:02:00"
     assert bridge.json_safe({"a": [1, {"b": None}]}) == {"a": [1, {"b": None}]}
+
+
+def test_animation_is_ready_when_production_finished_with_the_ken_burns_fallback_for_a_missing_clip():
+    """On a PC without ComfyUI a shot that asks for a model clip gets none and production assembles the episode with the fallback. The ladder must not stay stuck at
+    "animation" (and compositing, edit, grade, delivery behind it) for work that is done; before any production run it is still "empty"."""
+    from instai.assets.models import Asset
+    from instai.story import services as story_services
+    from instai.story.models import Shot
+
+    page, series, ep = make_world()
+    shots = story_services.all_shots(ep)
+    Shot.objects.filter(pk=shots[0].pk).update(technique="wan_i2v")
+    assert ladder.rows(series, ep)["animation"]["status"] == "empty"                       # nothing produced yet: the clip is still to come
+    Asset.objects.create(kind="video", role="preview", path="episodes/x/preview.mp4", episode=ep, is_current=True, duration_sec=8)
+    row = ladder.rows(series, ep)["animation"]
+    assert row["status"] == "draft" and row["ready"] is True
+    data = ladder.latest(ladder.doc(series, ep, "animation")).data
+    assert data["video_shots"] == 1 and data["fallback_shots"] == 1 and data["shots"][0]["fallback"] is True      # the screen can say that the fallback was used
+    Asset.objects.create(kind="video", role="shot_clip", path="episodes/x/clip.mp4", episode=ep, shot_id=shots[0].pk, is_current=True, duration_sec=3)
+    assert ladder.latest(ladder.doc(series, ep, "animation")).number >= 1 and ladder.rows(series, ep)["animation"]["version"] >= 2     # a real clip later is a new snapshot
