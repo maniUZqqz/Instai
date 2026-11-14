@@ -3,6 +3,7 @@ Every source text of the catalogue must have a Persian twin (a new package or mo
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -90,8 +91,13 @@ def get(api, path: str, lang: str = "fa"):
     return r.json()
 
 
+_PATH = re.compile(r"[\w.~:-]*[/\\][\w./\\~:-]*")
+
+
 def english_or_command(payload) -> list[str]:
-    return [f"{k}: {s}" for k, s in strings(payload) if (fc.looks_english(s) or fc.looks_like_command(s)) and not s.startswith(("http", "/"))]
+    """Strings that are an English sentence or a command. A path or an address inside a text («n8.1.3 - /usr/local/bin/ffmpeg») is technical and skipped."""
+    return [f"{k}: {s}" for k, s in strings(payload)
+            if (fc.looks_english(_PATH.sub(" ", s)) or fc.looks_like_command(s)) and not s.startswith(("http", "/"))]
 
 
 @pytest.mark.parametrize("path", ["/api/models?comfy=0", "/api/downloads/catalog", "/api/models/found"])
