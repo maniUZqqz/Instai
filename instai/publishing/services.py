@@ -45,6 +45,12 @@ def export_package(publication_id: int) -> dict:
         z.write(asset_storage.storage.path_for(video.path), f"episode-{ep.number:02d}.mp4")
         if cover:
             z.write(asset_storage.storage.path_for(cover.path), "cover.png")
+            if (cover.provenance or {}).get("tool") == "instai.covers":          # made by the cover maker: also the JPEG under the platform's size cap
+                from instai.covers import service as cover_service
+
+                jpg = cover_service.jpeg_of_asset(cover)
+                if jpg:
+                    z.writestr("cover.jpg", jpg)
         z.writestr("caption.txt", caption)
         z.writestr("hashtags.txt", tags)
         z.writestr("README.txt", reminder)

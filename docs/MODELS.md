@@ -96,3 +96,11 @@ are NOT measured yet; the anime video candidates are judged in Production lab > 
 | Workflow | Models | Licence | State |
 |---|---|---|---|
 | `qwen_image_edit_multiref` (up to three character model sheets -> a new picture) | the same four files as `qwen_image_edit_ref` (Qwen-Image-Edit-2509 fp8 20.4 GB, Qwen2.5-VL 7B fp8 9.4 GB, Qwen-Image VAE, Qwen-Image-Edit-2509 Lightning 4-step LoRA bf16): since 0.9.0 they are one offer in `manifests/image.json` (package `qwen_edit`, about 31 GB, pinned commits and sha256 read from the Hugging Face API on 2026-11-13; the old workflows named the text-to-image Lightning LoRA, which is not the editing one - corrected) | Apache-2.0 | graph written from ComfyUI's template documentation, **never run** on a real ComfyUI; needs the model downloads |
+
+## Fonts of the cover maker (0.15.0)
+
+| Item | Kind | Licence | Commercial use | Notice | Source | Note |
+|---|---|---|---|---|---|---|
+| Lalezar (cover maker headlines) | font | SIL Open Font License 1.1 | yes | `instai/covers/fonts/Lalezar-OFL.txt` | github.com/google/fonts (ofl/lalezar), (c) 2015 The Lalezar Project Authors | MODIFIED file: only the cmap is extended (`scripts/gen_cover_fonts.py`), so the built-in Persian shaper can draw it; the outlines are untouched and it is not sold on its own |
+| Sahel (cover maker text, weights 300-800) | font | SIL Open Font License 1.1 | yes | `instai/covers/fonts/Sahel-LICENSE.txt` | github.com/rastikerdar/sahel-font | Bundled unchanged |
+| Estedad | font | SIL Open Font License 1.1 | yes | - | github.com/aminabedi68/Estedad | NOT bundled: its Persian letters exist only as OpenType rules, which the built-in shaper cannot use (`instai/covers/fonts/README.md`) |

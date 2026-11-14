@@ -23,7 +23,7 @@ import pytest
 VIEWPORTS = {"desktop": {"width": 1280, "height": 800}, "phone": {"width": 390, "height": 844}}
 SHOTS = Path(os.environ.get("INSTAI_UI_SHOTS", tempfile.gettempdir())) / "instai-ui-shots"
 LAB = ["workers", "voices", "rigs", "compare", "retake", "mix", "automation", "consistency", "notifications"]
-STATIC = ["/", "/pages", "/pages/new", "/library", "/monitor", "/queue", "/report", "/downloads", "/whats-new", "/remotion", "/publishing", "/system", "/models",
+STATIC = ["/", "/pages", "/pages/new", "/library", "/monitor", "/queue", "/report", "/downloads", "/whats-new", "/remotion", "/publishing", "/covers", "/system", "/models",
           "/settings", "/lab", *[f"/lab/{x}" for x in LAB], "/no-such-screen"]
 IGNORED = ("favicon",)
 PERSIAN = re.compile(r"[؀-ۿ]")
