@@ -96,7 +96,7 @@ def execute(job: Job, worker: str = "inline") -> str:
 def _after_success(job: Job) -> None:
     """A finished production step lets the pipeline decide what comes next. Done AFTER the job is marked succeeded, so two
     steps finishing at the same moment cannot both see the other as 'still running' (which would stall the episode)."""
-    if job.kind in ("prod.keyframes", "prod.tts", "prod.clips") and job.episode_id:
+    if (job.kind in ("prod.keyframes", "prod.tts", "prod.clips") or (job.kind == "remotion.render" and (job.payload or {}).get("shot_id"))) and job.episode_id:
         from instai.production import pipeline
         from instai.story.models import Episode
 
@@ -114,7 +114,7 @@ def _on_cancel(job: Job) -> None:
 
 def _on_final_failure(job: Job) -> None:
     """Production jobs that fail for good move their episode to `failed` (retry resumes there); story jobs just report."""
-    if job.kind.startswith("prod.") and job.episode_id:
+    if (job.kind.startswith("prod.") or (job.kind == "remotion.render" and (job.payload or {}).get("shot_id"))) and job.episode_id:
         from instai.story import services
         from instai.story.models import Episode
 

@@ -79,38 +79,28 @@ def kick_setup() -> None:
         pass
 
 
-@handler("remotion.render", resource="cpu", timeout=2 * 3600)
-def render(ctx):
-    from instai.assets import storage
-    from instai.remotion import kit as kitmod
+def require_toolchain() -> dict:
+    """The toolchain status when everything is there; else the job WAITS (nothing fails) and the setup starts by itself."""
     from instai.remotion import toolchain
 
-    p = ctx.payload
-    comp = p.get("composition")
-    if comp not in toolchain.COMPOSITIONS:
-        raise ProviderError("unknown composition", retryable=False, code="validation_error", fa="این قالب Remotion را نمی‌شناسم.")
     st = toolchain.status()
     if not st["ready"]:
         kick_setup()
         why = "Remotion هنوز آماده نیست" + (": " + st["message_fa"] if st.get("message_fa") else ".")
         raise ProviderError("Remotion is not ready yet: " + (st.get("message_en") or "setup pending"), code="remotion_setup", wait="remotion_setup", fa=why)
+    return st
+
+
+def run_renderer(ctx, st: dict, spec: dict, *, work: Path, label: str = "", base: float = 0.2, timeout: int = 2 * 3600) -> dict:
+    """Run `render.mjs` on a job spec (a video, a still, or a QA batch) and follow its events. => the `done` event. A failure is a ProviderError with a Persian line."""
+    from instai.remotion import toolchain
+
     node, browser = st["node"], st["browser"]
-    kit = kitmod.style_kit(p.get("style"), p.get("theme"))
-    size = p.get("size") if p.get("size") in toolchain.SIZES else "landscape"
-    props = {**(p.get("props") or {}), "kit": kit, "size": size}
-    still = p.get("still")
-    ext = "png" if still is not None else "mp4"
-    work = toolchain.work_dir() / "jobs" / str(ctx.job.pk)
+    spec = {"browser": browser["path"], "chrome_mode": browser["mode"], "hw_accel": True, "bundle_dir": str(toolchain.work_dir() / "bundles"), **spec}
     work.mkdir(parents=True, exist_ok=True)
-    out = work / f"{SAFE_NAME.sub('', comp) or 'video'}.{ext}"
-    spec = {"composition": comp, "props": props, "out": str(out), "browser": browser["path"], "chrome_mode": browser["mode"], "crf": int(p.get("crf") or 18),
-            "hw_accel": True, "bundle_dir": str(toolchain.work_dir() / "bundles")}
-    if still is not None:
-        spec["still"] = int(still)
-    job_json = toolchain.write_job_json(ctx.job.pk, spec)
+    job_json = work / "job.json"
+    job_json.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
     state: dict = {"done": None, "error": None, "comp": None}
-    t0 = time.time()
-    ctx.live(phase="rendering", provider="remotion", device="cpu", model=f"{comp} · {kit['key']}")
 
     def on_line(line: str) -> None:
         if not line.startswith(EVENT):
@@ -123,7 +113,7 @@ def render(ctx):
             return
         kind = ev.get("event")
         if kind == "bundle":
-            ctx.progress(min(0.2, ev.get("progress", 0) / 500), "bundling the compositions" if not ev.get("cached") else "bundle ready")
+            ctx.progress(min(base, ev.get("progress", 0) / 500), "bundling the compositions" if not ev.get("cached") else "bundle ready")
         elif kind == "phase":
             ctx.live(phase=ev.get("phase"))
         elif kind == "composition":
@@ -131,25 +121,60 @@ def render(ctx):
             ctx.log(f"composition {ev['id']}: {ev['width']}x{ev['height']} at {ev['fps']} fps, {ev['frames']} frames", "info")
         elif kind == "progress":
             ctx.live(phase="rendering", step=ev.get("rendered"), steps=ev.get("frames"))
-            ctx.progress(0.2 + 0.78 * float(ev.get("progress") or 0), f"{ev.get('rendered')} / {ev.get('frames')}")
+            ctx.progress(base + (0.98 - base) * float(ev.get("progress") or 0), f"{label}{ev.get('rendered')} / {ev.get('frames')}")
+        elif kind == "qa_progress":
+            ctx.live(phase="measuring", step=ev.get("done"), steps=ev.get("total"))
         elif kind == "done":
             state["done"] = ev
         elif kind == "error":
             state["error"] = ev
 
-    rc, tail = ctx.run_cmd([node["path"], str(toolchain.PROJECT / "render.mjs"), str(job_json)], cwd=str(toolchain.PROJECT), on_line=on_line,
-                           timeout=2 * 3600, env=node_env(node["path"]))
-    if rc != 0 or not state["done"] or not out.is_file():
+    rc, tail = ctx.run_cmd([node["path"], str(toolchain.PROJECT / "render.mjs"), str(job_json)], cwd=str(toolchain.PROJECT), on_line=on_line, timeout=timeout, env=node_env(node["path"]))
+    if rc != 0 or not state["done"]:
         msg = (state["error"] or {}).get("message") or tail[-400:] or "the renderer stopped without a message"
         fa = explain(msg)
         raise ProviderError("Remotion render failed: " + msg[:500], retryable=False, code="remotion_render_failed",
                             fa=("ساخت ویدئو با Remotion کامل نشد. " + fa) if fa else "ساخت ویدئو با Remotion کامل نشد؛ جزئیات فنی در گزارش کار است.")
+    return {**state["done"], "composition_info": state["comp"]}
+
+
+@handler("remotion.render", resource="cpu", timeout=2 * 3600)
+def render(ctx):
+    from instai.assets import storage
+    from instai.remotion import kit as kitmod
+    from instai.remotion import toolchain
+
+    p = ctx.payload
+    if p.get("shot_id"):           # one motion-graphics shot of an episode: the plan, the checks, the clip (instai/motion_plan/jobs.py)
+        from instai.motion_plan import jobs as motion_jobs
+
+        return motion_jobs.render_shot(ctx)
+    comp = p.get("composition")
+    if comp not in toolchain.COMPOSITIONS:
+        raise ProviderError("unknown composition", retryable=False, code="validation_error", fa="این قالب Remotion را نمی‌شناسم.")
+    st = require_toolchain()
+    node, browser = st["node"], st["browser"]
+    kit = kitmod.style_kit(p.get("style"), p.get("theme"))
+    size = p.get("size") if p.get("size") in toolchain.SIZES else "landscape"
+    props = {**(p.get("props") or {}), "kit": kit, "size": size}
+    still = p.get("still")
+    ext = "png" if still is not None else "mp4"
+    work = toolchain.work_dir() / "jobs" / str(ctx.job.pk)
+    work.mkdir(parents=True, exist_ok=True)
+    out = work / f"{SAFE_NAME.sub('', comp) or 'video'}.{ext}"
+    spec = {"composition": comp, "props": props, "out": str(out), "crf": int(p.get("crf") or 18)}
+    if still is not None:
+        spec["still"] = int(still)
+    t0 = time.time()
+    ctx.live(phase="rendering", provider="remotion", device="cpu", model=f"{comp} · {kit['key']}")
+    d = run_renderer(ctx, st, spec, work=work)
+    if not out.is_file():
+        raise ProviderError("Remotion render failed: no output file", retryable=False, code="remotion_render_failed", fa="ساخت ویدئو با Remotion کامل نشد؛ جزئیات فنی در گزارش کار است.")
     rel = f"remotion/{ctx.job.pk}/{out.name}"
     asset = storage.register(out, rel, kind="video" if ext == "mp4" else "image", role="export" if ext == "mp4" else "preview",
                              provenance={"engine": "remotion", "composition": comp, "style": kit["key"], "theme": kit.get("theme_key", ""), "size": size,
                                          "props": {k: v for k, v in props.items() if k != "kit"}, "job_id": ctx.job.pk,
                                          "browser": os.path.basename(browser["path"]), "node": node["version"]})
-    d = state["done"]
     ctx.progress(1.0, "done")
     return {"asset_id": asset.pk, "url": asset.url, "kind": ext, "composition": comp, "style": kit["key"], "size": size, "width": d.get("width"),
             "height": d.get("height"), "fps": d.get("fps"), "frames": d.get("frames"), "seconds": round(time.time() - t0, 1), "bytes": asset.size_bytes}

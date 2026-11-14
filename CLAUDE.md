@@ -105,3 +105,11 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
+
+## Motion graphics: the scene-plan engine (0.16.0; docs in `docs/MOTION.md`, decisions in `docs/DECISIONS.md`)
+- A `motion_graphics` shot is DRAWN by Remotion from a SCENE PLAN (`instai/motion_plan`: components, specs, fallback, patch, plans, qa, critique, shots, jobs, api; TSX in `remotion/src/components`). `remotion/src/components/registry.ts` = `motion_plan/components.py` = `components/defs.ts` (page) = `toolchain.SCENE_COMPOSITIONS`: add a component in ALL FOUR (`tests/test_motion_plan.py` fails otherwise).
+- The style enters through ONE table, `remotion/src/components/adapter.json` (read by `ctx.tsx styleFromKit` and `motionlib.py`); a new animation / family in `styles/schema.py` needs its row there. Colours: never without `readableOn` / `accentOn` (`paletteFromKit`, `colors.py` keep the two sides equal).
+- Numbers on screen are examples unless a VERIFIED source is named (`specs._honesty`); a model never writes `source`. The deterministic plan (`fallback.make_plan`) needs no model and invents nothing.
+- A motion shot has no keyframe; `pipeline.advance` enqueues `remotion.render` jobs with `shot_id` (`shots.enqueue`); clips are `Asset(role='shot_clip', provenance.engine='remotion')`.
+- The visual critique uses InstAI's own Ollama with the owner's vision model; Ollama off = wait (`ollama_down`); never a cloud model.
+- `render.mjs` has a `qa` mode (many frames, one browser, `INSTAI_QA:` geometry lines); the real acceptance run is `python -m instai.motion_plan.selftest <folder>` (57 frames + montage) and the self-test rows `motion_library` / `motion_frames` / `motion_critique`.

@@ -14,9 +14,19 @@ from django.conf import settings
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / "remotion"
-COMPOSITIONS = ("TitleCard", "KineticText", "Explainer", "LowerThird")      # remotion/src/catalog.ts (a test compares the two lists)
+#: the library of ready-made components: plan component id -> the id of its composition (remotion/src/components/defs.ts; a test compares the two lists)
+SCENE_COMPOSITIONS = {
+    "title": "SceneTitle", "kinetic_title": "SceneKineticTitle", "quote": "SceneQuote", "stat": "SceneStat", "counter": "SceneCounter", "list": "SceneList",
+    "steps": "SceneSteps", "checklist": "SceneChecklist", "before_after": "SceneBeforeAfter", "bar_chart": "SceneBarChart", "line_chart": "SceneLineChart",
+    "donut": "SceneDonut", "lower_third": "SceneLowerThird", "captions": "SceneCaptions", "logo": "SceneLogo", "image_hero": "SceneImageHero",
+    "social_cta": "SceneSocialCta", "countdown": "SceneCountdown", "sticker": "SceneSticker",
+}
+BASE_COMPOSITIONS = ("TitleCard", "KineticText", "Explainer", "LowerThird")
+PLAN_COMPOSITION = "ScenePlan"
+COMPOSITIONS = (*BASE_COMPOSITIONS, PLAN_COMPOSITION, *SCENE_COMPOSITIONS.values())      # remotion/src/catalog.ts (a test compares the two lists)
 SIZES = {"landscape": (1920, 1080), "vertical": (1080, 1920), "square": (1080, 1080)}
-SHARED_FILES = ("src/kit/theme.ts", "src/kit/motion.ts", "src/kit/Stage.tsx", "src/kit/Look.tsx", "src/catalog.ts", "render.mjs")
+SHARED_FILES = ("src/kit/theme.ts", "src/kit/motion.ts", "src/kit/Stage.tsx", "src/kit/Look.tsx", "src/catalog.ts", "src/components/ScenePlan.tsx", "src/components/ctx.tsx",
+                "src/components/adapter.json", "src/components/registry.ts", "src/components/defs.ts", "render.mjs")
 _MOD = None
 
 
@@ -87,11 +97,14 @@ def code_files() -> dict:
     """{compositions: [{id, file, code}], shared: [{name, file, code}]} read from disk (always what is installed, never a copy)."""
     comps = []
     for cid in COMPOSITIONS:
-        rel = f"src/compositions/{cid}.tsx"
-        try:
-            comps.append({"id": cid, "file": rel, "code": read_file(rel)})
-        except FileNotFoundError:
-            comps.append({"id": cid, "file": rel, "code": ""})
+        if cid in BASE_COMPOSITIONS or cid == PLAN_COMPOSITION:
+            rel = f"src/compositions/{cid}.tsx" if cid in BASE_COMPOSITIONS else "src/components/ScenePlan.tsx"
+            try:
+                comps.append({"id": cid, "file": rel, "code": read_file(rel)})
+            except FileNotFoundError:
+                comps.append({"id": cid, "file": rel, "code": ""})
+        else:      # the library's compositions all play ScenePlan with one scene: their code is ScenePlan's (sent once)
+            comps.append({"id": cid, "file": "src/components/ScenePlan.tsx", "code": "", "same_as": PLAN_COMPOSITION})
     shared = []
     for rel in SHARED_FILES:
         try:

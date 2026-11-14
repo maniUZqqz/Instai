@@ -1,0 +1,26 @@
+{
+  "_about": "StyleKit -> component tokens. ONE table read by the Remotion bundle (components/ctx.tsx styleFromKit) and by the Python side (instai/motion_plan/motionlib.py: transitions for the timeline). Keys are exactly instai/styles/schema.py ANIMATIONS and FAMILIES; tests/test_motion_plan.py checks both lists.",
+  "personalities": {
+    "live_camera":      { "enter": "fade",   "spring": "gentle",      "trans": { "kind": "fade",  "frames": 14 } },
+    "limited_2d":       { "enter": "slide",  "spring": "snappy",      "trans": { "kind": "push",  "frames": 10 } },
+    "full_2d":          { "enter": "rise",   "spring": "smooth",      "trans": { "kind": "slide", "frames": 12 } },
+    "rubber_hose":      { "enter": "pop",    "spring": "bouncy",      "trans": { "kind": "zoom",  "frames": 10 } },
+    "cutout":           { "enter": "drop",   "spring": "snappy",      "trans": { "kind": "cut",   "frames": 0 } },
+    "motion_graphics":  { "enter": "wipe",   "spring": "crisp",       "trans": { "kind": "wipe",  "frames": 10 } },
+    "stop_motion":      { "enter": "pop",    "spring": "crisp",       "trans": { "kind": "cut",   "frames": 0 } },
+    "cg_3d":            { "enter": "unfold", "spring": "heavy",       "trans": { "kind": "flip",  "frames": 14 } },
+    "toon_3d":          { "enter": "squash", "spring": "bouncy",      "trans": { "kind": "iris",  "frames": 12 } },
+    "painted_parallax": { "enter": "float",  "spring": "slow-reveal", "trans": { "kind": "fade",  "frames": 20 } }
+  },
+  "families": {
+    "live_like":    { "radius": 14, "border": 0, "shadow": "soft",  "fx": "plain",   "rule": "accent" },
+    "illustration": { "radius": 24, "border": 0, "shadow": "soft",  "fx": "plain",   "rule": "accent" },
+    "anime":        { "radius": 10, "border": 5, "shadow": "hard",  "fx": "hard",    "rule": "accent", "offset": 8 },
+    "western_2d":   { "radius": 0,  "border": 7, "shadow": "hard",  "fx": "hard",    "rule": "accent", "offset": 10, "badgeRound": false },
+    "cg_3d":        { "radius": 28, "border": 0, "shadow": "float", "fx": "extrude", "rule": "accent", "fillGradient": 150 },
+    "stop_motion":  { "radius": 12, "border": 0, "shadow": "inner", "fx": "felt",    "rule": "accent", "extra": "tape" },
+    "graphic":      { "radius": 16, "border": 0, "shadow": "soft",  "fx": "plain",   "rule": "accent" },
+    "handmade":     { "radius": 20, "border": 4, "shadow": "soft",  "fx": "hand",    "rule": "accent", "dash": true }
+  },
+  "hard_animations": ["cutout", "stop_motion"]
+}

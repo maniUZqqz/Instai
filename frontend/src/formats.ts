@@ -37,7 +37,7 @@ export function useFormats() {
 }
 
 // Techniques with a render path today (mirrors instai/story/costs.py IMPLEMENTED). Others fall back to a still image with camera motion.
-export const IMPLEMENTED_TECHNIQUES = ['still_kenburns', 'parallax_25d', 'wan_i2v']
+export const IMPLEMENTED_TECHNIQUES = ['still_kenburns', 'parallax_25d', 'wan_i2v', 'motion_graphics']
 export const CAMERA_MOVES = ['static', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right', 'pan_up', 'pan_down']
 export const WEEKDAYS = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri']
 export const EXPLAINER = 'concept_explainer'
