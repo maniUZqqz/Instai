@@ -235,15 +235,29 @@ def test_the_critique_job_waits_for_ollama_and_runs_by_itself_when_it_is_back(ap
 REAL = os.environ.get("INSTAI_REMOTION_REAL") == "1"
 
 
+@pytest.fixture
+def real_toolchain(monkeypatch, tmp_path):
+    """The REAL toolchain: on a PC that has run scripts/setup_remotion.py nothing is replaced; on a bare server INSTAI_REAL_NODE / INSTAI_REAL_BROWSER name the Node.js and the browser."""
+    from instai.remotion import toolchain
+
+    node, browser = os.environ.get("INSTAI_REAL_NODE"), os.environ.get("INSTAI_REAL_BROWSER")
+    if node and browser:
+        monkeypatch.setattr(toolchain, "status", lambda: {"ready": True, "node": {"path": node, "version": "manual", "source": "manual"}, "packages": True,
+                                                          "browser": {"path": browser, "source": "manual", "mode": os.environ.get("INSTAI_REAL_MODE", "headless-shell")}, "state": "ready", "message_fa": "", "message_en": ""})
+        monkeypatch.setattr(toolchain, "work_dir", lambda: Path(os.environ.get("INSTAI_REAL_WORK") or tmp_path / "work"))
+    assert toolchain.status()["ready"], toolchain.status()
+    return toolchain.status()
+
+
 @pytest.mark.skipif(not REAL, reason="set INSTAI_REMOTION_REAL=1 on a PC that has run scripts/setup_remotion.py")
-def test_real_toolchain_every_component_in_three_sizes(tmp_path):
+def test_real_toolchain_every_component_in_three_sizes(real_toolchain, tmp_path):
     """The acceptance run: ONE frame of every component of the library in landscape, vertical and square, through the real toolchain (render.mjs QA mode: one browser, 57
     stills), then the rule checks of qa.py over the geometry of every frame. No error-level finding may remain. The pictures are tiled into a montage per size
     (INSTAI_MOTION_OUT, default the temp folder) for the owner's eyes."""
     from instai.motion_plan import selftest
 
     out = Path(os.environ.get("INSTAI_MOTION_OUT") or tmp_path)
-    rep = selftest.run_every_component(out, lang="fa")
+    rep = selftest.run_every_component(out, lang="fa", status=real_toolchain)
     assert rep["rendered"] == 57 and not rep["render_errors"], rep["render_errors"]
     errors = [f for f in rep["findings"] if f["severity"] == "error"]
     assert not errors, "\n".join(f"{f['component']}/{f['size']}: {f['message_en']}" for f in errors[:20])
@@ -252,7 +266,7 @@ def test_real_toolchain_every_component_in_three_sizes(tmp_path):
 
 
 @pytest.mark.skipif(not REAL, reason="set INSTAI_REMOTION_REAL=1 on a PC that has run scripts/setup_remotion.py")
-def test_real_toolchain_an_explainer_episode_assembles_with_drawn_clips(api, worker, ffmpeg_available, monkeypatch, tmp_path):
+def test_real_toolchain_an_explainer_episode_assembles_with_drawn_clips(api, worker, ffmpeg_available, real_toolchain, tmp_path):
     """The acceptance run of the pipeline: an explainer episode with motion-graphics shots is produced with the REAL Remotion (preview size), the clips are registered, and the assembled
     video has no Ken Burns note for them. On a PC that has run setup_remotion.py nothing is faked; on a bare server INSTAI_REAL_NODE / INSTAI_REAL_BROWSER name the Node.js and the browser."""
     import subprocess
@@ -263,12 +277,6 @@ def test_real_toolchain_an_explainer_episode_assembles_with_drawn_clips(api, wor
     from instai.motion_plan.models import MotionPlan
     from instai.remotion import toolchain
 
-    node, browser = os.environ.get("INSTAI_REAL_NODE"), os.environ.get("INSTAI_REAL_BROWSER")
-    if node and browser:
-        monkeypatch.setattr(toolchain, "status", lambda: {"ready": True, "node": {"path": node, "version": "manual", "source": "manual"}, "packages": True,
-                                                          "browser": {"path": browser, "source": "manual", "mode": os.environ.get("INSTAI_REAL_MODE", "headless-shell")}, "state": "ready", "message_fa": "", "message_en": ""})
-        monkeypatch.setattr(toolchain, "work_dir", lambda: Path(os.environ.get("INSTAI_REAL_WORK") or tmp_path / "work"))
-    assert toolchain.status()["ready"], toolchain.status()
     ep_id, picked, shots = motion_episode(api, worker)
     ep = produce(api, worker, ep_id, "preview")
     assert ep["state"] == "ready_for_approval", (ep.get("qc"), why_failed())

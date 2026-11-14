@@ -6,7 +6,7 @@
 import React from "react";
 import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { Stage } from "../kit/Stage";
-import { normalizeKit, type StyleKit } from "../kit/theme";
+import { luminance, normalizeKit, type StyleKit } from "../kit/theme";
 import { cameraCss, exitCss, transitionCss } from "./anim";
 import { CaptionsLine } from "./comp-text";
 import { CtxC, buildCtx, sceneCtx, useCtx, useFontsReady, styleFromKit } from "./ctx";
@@ -119,7 +119,7 @@ export const ScenePlan: React.FC<ScenePlanProps> = (props) => {
   const rootCtx: Ctx = { ...base, fonts, scene: { index: 0, frames: tl.total, count: tl.frames.length } };
   return (
     <CtxC.Provider value={rootCtx}>
-      <Stage kit={kit} backdrop={!spec.bare} zoom={!spec.qa}>
+      <Stage kit={kit} backdrop={!spec.bare} zoom={!spec.qa} fade={luminance(kit.palette.background) > 0.45 ? 0.1 : 0.65}>
         <SvgDefs />
         {(spec.scenes ?? []).map((sc, i) => (
           <Sequence key={i} from={tl.starts[i]} durationInFrames={tl.frames[i]} layout="none">

@@ -91,5 +91,5 @@ def palette_from_kit(kit: dict) -> dict:
         "bg": bg, "bg2": hexof(mix(_rgb(bg), _rgb(primary), 0.35)), "ink": ink, "paper": hexof(mix(_rgb(bg), _rgb(primary), 0.55)),
         "accent": accent_on(bg, p.get("accent", "#E8C98F"), 4.5), "accent2": accent_on(bg, p.get("secondary", "#B9824B"), 4.5),
         "accent3": accent_on(bg, hexof(mix(_rgb(primary), _rgb(p.get("highlight", "#F3E9D8")), 0.4)), 4.5),
-        "muted": hexof(mix(_rgb(ink), _rgb(bg), 0.5)),
+        "muted": hexof(mix(_rgb(ink), _rgb(bg), 0.38)),
     }

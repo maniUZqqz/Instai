@@ -163,7 +163,7 @@ const Donut: SC = ({ sc }) => {
   const a = A(ctx);
   const slices = rows<{ label: string; value: number }>(sc.slices, 5).map((s) => ({ label: String(s.label ?? ""), value: Math.max(0, num(s.value)) }));
   const total = Math.max(1e-9, slices.reduce((t, s) => t + s.value, 0));
-  const size = Math.min(a.w * 0.8, a.h * 0.4, 640);
+  const size = Math.min(a.w * 0.8, a.h * (a.w > a.h * 0.8 ? 0.3 : 0.4), 640);       // a square frame has less height for the ring, the legend and the chip below it
   const r = size * 0.38, sw = size * 0.2, C = 2 * Math.PI * r;
   const g = useGrow(Math.round(fps * 0.4), Math.round(fps * 1.5));
   let acc = 0;
@@ -277,7 +277,7 @@ const BeforeAfter: SC = ({ sc }) => {
           {panel(String(sc.after ?? ""), ai, accent, onColor(accent), split <= 0.5)}
           <div style={{ position: "absolute", inset: 0, clipPath: clipRest }}>{panel(String(sc.before ?? ""), bi, col(pal, "paper"), col(pal, "ink"), split >= 99.5)}</div>
           <div style={{ position: "absolute", top: 0, bottom: 0, [rtl ? "right" : "left"]: `${split}%`, width: 8 * u, marginLeft: rtl ? 0 : -4 * u, marginRight: rtl ? -4 * u : 0, background: "#ffffff", boxShadow: "0 0 18px rgba(0,0,0,0.45)" }} />
-          <div style={{ position: "absolute", top: 22 * u, [rtl ? "right" : "left"]: 22 * u, background: "rgba(0,0,0,0.6)", padding: `${6 * u}px ${22 * u}px`, borderRadius: 40 * u }}><T noAnim fixed role="label" size={40} color="#ffffff" fx="plain">{bl}</T></div>
+          <div style={{ position: "absolute", top: 22 * u, [rtl ? "right" : "left"]: 22 * u, background: "rgba(0,0,0,0.82)", padding: `${6 * u}px ${22 * u}px`, borderRadius: 40 * u }}><T noAnim fixed role="label" size={40} color="#ffffff" fx="plain">{bl}</T></div>
           <div style={{ position: "absolute", top: 22 * u, [rtl ? "left" : "right"]: 22 * u, background: "#ffffff", padding: `${6 * u}px ${22 * u}px`, borderRadius: 40 * u }}><T noAnim fixed role="body" weight={700} size={40} color="#111111" fx="plain">{al}</T></div>
         </div>
       </Pop>

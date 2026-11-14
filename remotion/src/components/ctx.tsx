@@ -86,7 +86,7 @@ export function paletteFromKit(kit: StyleKit): Pal {
     accent: accentOn(bg, p.accent),
     accent2: accentOn(bg, p.secondary),
     accent3: accentOn(bg, mixHex(p.primary, p.highlight, 0.4)),
-    muted: mixHex(ink, bg, 0.5),
+    muted: mixHex(ink, bg, 0.38),        // small secondary text (the example chip, the notes) must still read: 4.5:1 on a light and on a dark page
   };
 }
 

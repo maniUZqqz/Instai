@@ -124,7 +124,7 @@ export const SourceNote: React.FC<{ sc: { [k: string]: any } }> = ({ sc }) => {
   return (
     <Pop delay={Math.round(fps * 1.2)}>
       <div data-nm="box" data-testid={source ? "source-chip" : "example-chip"} style={{ display: "flex", alignItems: "center", gap: 14 * u, padding: `${8 * u}px ${26 * u}px`, borderRadius: 60 * u, border: `${2 * u}px dashed ${col(pal, "muted")}`, direction: rtl ? "rtl" : "ltr" }}>
-        <T noAnim fixed role="label" size={38} color="muted" fx="plain">{text}</T>
+        <T noAnim fixed role="label" size={36} color="muted" fx="plain">{text}</T>
       </div>
     </Pop>
   );

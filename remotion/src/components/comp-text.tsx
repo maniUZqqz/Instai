@@ -66,7 +66,7 @@ const LowerThird: SC = ({ sc }) => {
       <div style={{ width: 16 * u, background: accent, borderRadius: `${8 * u}px 0 0 ${8 * u}px`, flex: "none" }} />
       <div style={{ flex: 1, background: bg, padding: `${18 * u}px ${30 * u}px`, borderRadius: `0 ${Math.min(24, style.shape.radius ?? 12) * u}px ${Math.min(24, style.shape.radius ?? 12) * u}px 0`, display: "flex", flexDirection: "column", gap: 4 * u }}>
         <FT box={[w - 110, 90]} max={58} min={30} maxLines={1} noAnim color={fg} fx="plain" align="start" weight={800}>{String(sc.name ?? "")}</FT>
-        {sc.role ? <FT box={[w - 110, 70]} max={38} min={24} maxLines={1} role="label" noAnim color={fg} fx="plain" align="start">{String(sc.role)}</FT> : null}
+        {sc.role ? <FT box={[w - 110, 70]} max={38} min={24} maxLines={1} role="body" weight={600} noAnim color={fg} fx="plain" align="start">{String(sc.role)}</FT> : null}
       </div>
     </div>
   );
@@ -307,7 +307,7 @@ const ImageHero: SC = ({ sc }) => {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.78) 100%)" }} />
       </div>
       <Stage justify="flex-end" gap={20}>
-        {sc.kicker ? <T role="label" size={44} delay={0} color="#ffffff" fx="plain">{String(sc.kicker)}</T> : null}
+        {sc.kicker ? <T role="body" weight={700} size={44} delay={0} color="#ffffff" fx="plain">{String(sc.kicker)}</T> : null}
         <FT box={[a.w, a.h * 0.34]} max={110} min={38} maxLines={3} delay={6} color="#ffffff" fx="plain">{String(sc.caption ?? "")}</FT>
       </Stage>
     </>
