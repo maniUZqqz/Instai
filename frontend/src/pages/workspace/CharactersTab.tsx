@@ -8,6 +8,7 @@ import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { useWs } from './Workspace'
 import { IdentityCard } from '../../pipeline/Identity'
+import { word } from '../../pipeline/kit'
 
 const REF_KINDS = ['sheet', 'image', 'pose', 'expression', 'lora', 'voice']
 
@@ -63,7 +64,7 @@ function toDraft(c: Character): CharDraft {
 }
 
 function CharacterCard({ c, onChanged }: { c: Character; onChanged: () => void }) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const confirm = useConfirm()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<CharDraft>(() => toDraft(c))
@@ -78,7 +79,7 @@ function CharacterCard({ c, onChanged }: { c: Character; onChanged: () => void }
       title={
         <span className="row">
           {c.name}
-          {c.role && <span className="muted small">· {c.role}</span>}
+          {c.role && <span className="muted small">· {word(lang, c.role)}</span>}
         </span>
       }
       actions={

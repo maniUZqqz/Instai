@@ -228,7 +228,7 @@ def model_sheet(spec: dict, out_path: Path, work: Path, *, title: str = "", lang
     name = title or s["name"] or "?"
     d.rectangle([0, 0, W, 110], fill=(31, 36, 48))
     fa_text.draw_text(d, (W - 60 if fa else 60, 30), name, fa_text.font(58, True), (255, 255, 255), anchor="ra" if fa else "la")
-    fa_text.draw_text(d, (60 if fa else W - 60, 40), "MODEL SHEET" if not fa else "برگهٔ مدل (MODEL SHEET)", fa_text.font(36), (200, 206, 220), anchor="la" if fa else "ra")
+    fa_text.draw_text(d, (60 if fa else W - 60, 40), "MODEL SHEET" if not fa else "برگهٔ مدل", fa_text.font(36), (200, 206, 220), anchor="la" if fa else "ra")
     def label(x, y, text, size=30, anchor="mt"):
         fa_text.draw_text(d, (x, y), text, fa_text.font(size, True), (60, 64, 76), anchor=anchor)
 
@@ -248,9 +248,10 @@ def model_sheet(spec: dict, out_path: Path, work: Path, *, title: str = "", lang
         x0, y0 = kx + col * 520, 210 + row * 118
         d.rounded_rectangle([x0, y0, x0 + 96, y0 + 96], radius=18, fill=tuple(int(c["hex"][j:j + 2], 16) for j in (1, 3, 5)), outline=(31, 36, 48), width=4)
         fa_text.draw_text(d, (x0 + 116, y0 + 8), c["hex"].upper(), fa_text.font(32, True), (31, 36, 48), anchor="la")
-        fa_text.draw_text(d, (x0 + 116, y0 + 52), f"{c['role']} · {c['name']}", fa_text.font(26), (90, 94, 106), anchor="la")
+        role_name = f"{S.fa_word(c['role'])} · {S.fa_word(c['name'])}" if fa else f"{c['role']} · {c['name']}"      # a Persian sheet names its colours in Persian
+        fa_text.draw_text(d, (x0 + 116, y0 + 52), role_name, fa_text.font(26), (90, 94, 106), anchor="la")
     anchor_y = 210 + ((len(pal) + 1) // 2) * 118 + 20
-    label(kx + 520, anchor_y, "قاعدهٔ هویت" if fa else "Identity rule", 32)
+    label(kx + 520, anchor_y, "قاعدهٔ هویت (متن انگلیسی برای مدل تصویر)" if fa else "Identity rule", 32)
     fa_text.draw_paragraph(d, (kx, anchor_y + 54, W - 60, anchor_y + 270), S.anchor_text(s), fa_text.font(28), (60, 64, 76), align="left", spacing=1.3)
     # row 2: expressions
     label(W // 2, 768, "حالت‌های چهره" if fa else "Expressions", 34)
@@ -260,7 +261,7 @@ def model_sheet(spec: dict, out_path: Path, work: Path, *, title: str = "", lang
         x = 60 + i * ew
         sheet.paste(Image.new("RGB", (ew - 10, 240), (255, 255, 255)), (x, 818))
         sheet.paste(cell, (x, 818), cell)
-        label(x + (ew - 10) // 2, 1066, ex, 26)
+        label(x + (ew - 10) // 2, 1066, S.fa_word(ex) if fa else ex, 26)
     # row 3: poses
     label(W // 2, 1108, "ژست‌ها" if fa else "Poses", 34)
     pw = (W - 120) // len(poses.SHEET_POSES)

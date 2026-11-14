@@ -101,6 +101,17 @@ class ComfyClient:
         except ProviderError:
             pass
 
+    def queue_busy(self) -> bool | None:
+        """Is ComfyUI working on, or holding, ANY prompt (InstAI's own or another program's, e.g. the NMarketing agent)? None when it cannot tell (an old build without
+        GET /queue, a timeout): the caller then behaves as before."""
+        try:
+            q = self._get("/queue", timeout=4).json()
+        except (ProviderError, ValueError):
+            return None
+        if not isinstance(q, dict) or ("queue_running" not in q and "queue_pending" not in q):
+            return None
+        return bool(q.get("queue_running") or q.get("queue_pending"))
+
     def free(self) -> None:
         """Unload models and free VRAM (what the GPU arbiter calls before an LLM or voice job)."""
         self._post("/free", json={"unload_models": True, "free_memory": True}, timeout=30)

@@ -87,7 +87,7 @@ export function ChannelTab({ seriesId, page }: { seriesId: number; page: PageDet
           </div>
           <div className="small muted">{L(p.genre.summary_fa, p.genre.summary_en)} · {L('قلاب در ', 'hook within ')}{n(p.genre.hook_sec)}{L(' ثانیه، پایان باز در ', ' s, cliffhanger in the last ')}{n(p.genre.cliffhanger_sec)}{L(' ثانیهٔ آخر، برش هر ', ' s, a cut every ')}{n(p.genre.pacing.avg_shot_sec)}{L(' ثانیه', ' s')}</div>
           <div className="row" style={{ gap: 0, borderRadius: 10, overflow: 'hidden' }} dir="ltr" aria-label={L('خط زمانی قسمت', 'Episode timeline')}>
-            {p.beats.map((b, i) => <div key={b.name} title={`${b.start_sec}–${b.end_sec}s`} style={{ width: `${(b.seconds / total) * 100}%`, background: ['#e8a22b', '#78829a', '#2f7fd1', '#8a4fd1', '#d94a3d', '#2e9e5b'][i % 6], color: '#fff', textAlign: 'center', fontSize: 12, padding: '6px 2px' }}>{lang === 'fa' ? BEAT_FA[b.name] ?? b.name : BEAT_EN[b.name] ?? b.name}</div>)}
+            {p.beats.map((b, i) => <div key={b.name} title={`${n(b.start_sec)}–${n(b.end_sec)} ${lang === 'fa' ? 'ثانیه' : 's'}`} style={{ width: `${(b.seconds / total) * 100}%`, background: ['#e8a22b', '#78829a', '#2f7fd1', '#8a4fd1', '#d94a3d', '#2e9e5b'][i % 6], color: '#fff', textAlign: 'center', fontSize: 12, padding: '6px 2px' }}>{lang === 'fa' ? BEAT_FA[b.name] ?? b.name : BEAT_EN[b.name] ?? b.name}</div>)}
           </div>
           <details><summary className="small">{L('قواعد ساختاری ژانر', 'Structural rules of the genre')}</summary>
             <ul className="small">{conv.data.conventions.map((c) => <li key={c.key}>{L(c.fa, c.en)}</li>)}</ul></details>

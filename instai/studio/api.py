@@ -153,7 +153,7 @@ def development(request, pk):
             s.languages = langs
         if "look" in d:
             look = d["look"] if isinstance(d["look"], dict) else {}
-            s.look = {k: v for k, v in look.items() if k in ("style_key", "realism", "theme_key") and v}
+            s.look = library.check_look({k: v for k, v in look.items() if k in ("style_key", "realism", "theme_key") and v})      # an unknown style is a 400, not a silent empty prompt
         s.save()
     return Response(development_payload(s))
 

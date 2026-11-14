@@ -198,7 +198,7 @@ interface CReport { shots: CRow[]; flagged: number[]; checked: number; ok: numbe
 
 /** The consistency board of an episode: every shot's picture, the locked characters in it and whether they still look like their reference. */
 export function ConsistencyBoard({ episodeId }: { episodeId: number }) {
-  const { L } = usePL()
+  const { L, n } = usePL()
   const q = useQuery<CReport>(`/episodes/${episodeId}/consistency`)
   const act = useAction()
   if (!q.data) return q.error ? <ErrorState error={q.error} onRetry={q.reload} /> : <Loading />
@@ -211,7 +211,7 @@ export function ConsistencyBoard({ episodeId }: { episodeId: number }) {
         {r.locked_characters.length === 0 ? <Notice tone="info">{L('هیچ شخصیتِ قفل‌شده‌ای در این قسمت نیست؛ هویت را در تب «شخصیت‌ها»ی صفحه قفل کنید.', 'No locked character appears in this episode; lock identities in the page\'s Characters tab.')}</Notice> : (
           <>
             <div className="row">
-              <Badge tone="info">{L('بررسی‌شده', 'Checked')} {r.checked}</Badge><Badge tone="ok">{L('درست', 'OK')} {r.ok}</Badge><Badge tone={r.flagged.length ? 'err' : 'neutral'}>{L('نشان‌شده', 'Flagged')} {r.flagged.length}</Badge>
+              <Badge tone="info">{L('بررسی‌شده', 'Checked')} {n(r.checked)}</Badge><Badge tone="ok">{L('درست', 'OK')} {n(r.ok)}</Badge><Badge tone={r.flagged.length ? 'err' : 'neutral'}>{L('نشان‌شده', 'Flagged')} {n(r.flagged.length)}</Badge>
               <Button size="sm" icon="refresh" busy={act.busy} onClick={() => run(false)}>{L('بررسی', 'Check')}</Button>
               <Button size="sm" busy={act.busy} onClick={() => run(true)}>{L('بررسی عمیق (مدل بینایی)', 'Deep check (vision model)')}</Button>
               {r.flagged.length > 0 && <Button size="sm" variant="primary" busy={act.busy} onClick={retakes}>{L('ثبت درخواست بازسازی برای نشان‌شده‌ها', 'Open retake requests for the flagged shots')}</Button>}

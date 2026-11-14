@@ -72,6 +72,14 @@ def stamp() -> str:
     return f"{read_version()}-{hashlib.sha256(blob.encode()).hexdigest()[:10]}"
 
 
+_FA_DIGITS = str.maketrans("0123456789.", "۰۱۲۳۴۵۶۷۸۹٫")
+
+
+def _fd(v) -> str:
+    """A number inside a Persian sentence is written with Persian digits (review of 0.11.0: «21 مرحله», «6 داستان»). Model names and the English text keep Latin ones."""
+    return str(v).translate(_FA_DIGITS)
+
+
 def _r(verdict: str, fa: str, en: str, **metrics) -> dict:
     return {"verdict": verdict, "reason_fa": fa, "reason_en": en, "metrics": metrics}
 
@@ -151,7 +159,7 @@ def check_choice_stories(work: Path) -> dict:
         if len(g["nodes"]) != n or not G.validate(g)["ok"]:
             bad.append(f"skeleton{n}")
     ok = not bad
-    return _r("ok" if ok else "fail", f"داستان‌های انتخابی: {len(story_templates.TEMPLATES)} داستان آماده و برنامه‌ریز پایه همه معتبرند (بدون بن‌بست، شمارهٔ رو به جلو)." if ok else "نمودار این داستان‌ها معتبر نیست: " + "، ".join(bad),
+    return _r("ok" if ok else "fail", f"داستان‌های انتخابی: {_fd(len(story_templates.TEMPLATES))} داستان آماده و برنامه‌ریز پایه همه معتبرند (بدون بن‌بست، شمارهٔ رو به جلو)." if ok else "نمودار این داستان‌ها معتبر نیست: " + "، ".join(bad),
               f"Choice stories: the {len(story_templates.TEMPLATES)} ready-made stories and the basic planner are all valid (no dead ends, forward numbering)." if ok else "These graphs are invalid: " + ", ".join(bad),
               stories=len(story_templates.TEMPLATES), invalid=bad)
 
@@ -169,7 +177,7 @@ def check_mini_series(work: Path) -> dict:
         if not planner.validate(planner.skeleton_season(n, 30, characters=["الف"])["episodes"], cast_names=["الف"])["ok"]:
             bad.append(f"skeleton{n}")
     ok = not bad
-    return _r("ok" if ok else "fail", f"مینی‌سریال: {len(season_templates.TEMPLATES)} فصل آماده بدون خطا و هشدار تأیید شد (قلاب، پایان باز، رشته‌های بسته)." if ok else "این فصل‌ها اشکال دارند: " + "، ".join(bad),
+    return _r("ok" if ok else "fail", f"مینی‌سریال: {_fd(len(season_templates.TEMPLATES))} فصل آماده بدون خطا و هشدار تأیید شد (قلاب، پایان باز، رشته‌های بسته)." if ok else "این فصل‌ها اشکال دارند: " + "، ".join(bad),
               f"Mini-series: the {len(season_templates.TEMPLATES)} ready-made seasons pass with no error or warning (hooks, cliffhangers, closed threads)." if ok else "These seasons have problems: " + ", ".join(bad),
               seasons=len(season_templates.TEMPLATES), invalid=bad)
 
@@ -189,7 +197,7 @@ def check_ladder(work: Path) -> dict:
             problems.append(f"{s['key']}: no role {s['task']}")
     fake_ok = all(callable(getattr(pipeline_fake, s["task"], None)) for s in S.STAGES if s["gen"] == "llm")
     ok = not problems and fake_ok and len(keys) == 21
-    return _r("ok" if ok else "fail", f"نردبان استودیو: {len(keys)} مرحله، ترتیب پیش‌نیازها درست و برای هر مرحلهٔ مدلی نقش نوشته شده." if ok else "نردبان استودیو اشکال دارد: " + "؛ ".join(problems),
+    return _r("ok" if ok else "fail", f"نردبان استودیو: {_fd(len(keys))} مرحله، ترتیب پیش‌نیازها درست و برای هر مرحلهٔ مدلی نقش نوشته شده." if ok else "نردبان استودیو اشکال دارد: " + "؛ ".join(problems),
               f"Studio ladder: {len(keys)} stages, prerequisites in order and a role for every model-written stage." if ok else "The ladder has problems: " + "; ".join(problems), stages=len(keys), problems=problems)
 
 
@@ -230,7 +238,7 @@ def check_text_model(ctx, work: Path) -> dict:
     secs = round(time.time() - t0, 1)
     model = getattr(plan, "model", "") or llm.effective_model(prov)
     if valid:
-        return _r("ok", f"مدل «{model}» لاگ‌لاین و یک نمودار هشت‌پستی معتبر نوشت ({secs} ثانیه).", f"Model «{model}» wrote a logline and a valid eight-post graph ({secs} s).", model=model, seconds=secs, logline=str(ll.data.get("logline", ""))[:160])
+        return _r("ok", f"مدل «{model}» لاگ‌لاین و یک نمودار هشت‌پستی معتبر نوشت ({_fd(secs)} ثانیه).", f"Model «{model}» wrote a logline and a valid eight-post graph ({secs} s).", model=model, seconds=secs, logline=str(ll.data.get("logline", ""))[:160])
     return _r("warn", f"مدل «{model}» نمودار معتبر ننوشت؛ در برنامه‌ریزی، داستان آمادهٔ همان ژانر جایگزین می‌شود.", f"Model «{model}» did not write a valid graph; planning falls back to the ready-made story of the genre.", model=model, seconds=secs)
 
 
@@ -288,9 +296,9 @@ def check_multiref_identity(ctx, work: Path) -> dict:
     keep.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(out, keep)
     if big and min(frac) >= check.PALETTE_OK:
-        return _r("ok", f"تصویر تازه ساخته شد ({size[0]}×{size[1]}) و رنگ‌های هویت هر دو شخصیت در آن دیده شد.", f"A new picture was made ({size[0]}x{size[1]}) and both characters' identity colours are visible in it.",
+        return _r("ok", f"تصویر تازه ساخته شد ({_fd(size[0])}×{_fd(size[1])}) و رنگ‌های هویت هر دو شخصیت در آن دیده شد.", f"A new picture was made ({size[0]}x{size[1]}) and both characters' identity colours are visible in it.",
                   size=list(size), colours=frac, device=res.device, sample="multiref-sample.png")
-    return _r("warn", f"تصویر ساخته شد ولی همهٔ رنگ‌های هویت دیده نشد (سهم رنگ‌ها: {frac}). برای آدمک‌های چوبی همان راهبرد «آدمک چوبی با کد» بهتر است.",
+    return _r("warn", f"تصویر ساخته شد ولی همهٔ رنگ‌های هویت دیده نشد (سهم رنگ‌ها: {_fd(frac)}). برای آدمک‌های چوبی همان راهبرد «آدمک چوبی با کد» بهتر است.",
               f"A picture was made but not every identity colour is visible (shares {frac}). For stick figures the by-code strategy stays the better one.", size=list(size), colours=frac, device=res.device, sample="multiref-sample.png")
 
 
@@ -317,7 +325,7 @@ def check_vision(ctx, work: Path) -> dict:
     if same is None or other is None:
         return _r("warn", f"مدل «{model}» جواب قابل‌استفاده نداد.", f"Model «{model}» gave no usable answer.", model=model)
     ok = same["score"] > other["score"] and same["score"] >= check.VISION_OK - 2
-    return _r("ok" if ok else "warn", f"مدل بینایی «{model}»: همان شخصیت با ژست دیگر {same['score']:g} و شخصیت دیگر {other['score']:g} از ۱۰ گرفت." + ("" if ok else " تفاوت قابل‌اعتماد نیست؛ این بررسی فقط نشانه است."),
+    return _r("ok" if ok else "warn", f"مدل بینایی «{model}»: همان شخصیت با ژست دیگر {_fd(format(same['score'], 'g'))} و شخصیت دیگر {_fd(format(other['score'], 'g'))} از ۱۰ گرفت." + ("" if ok else " تفاوت قابل‌اعتماد نیست؛ این بررسی فقط نشانه است."),
               f"Vision model «{model}»: the same character in another pose scored {same['score']:g} and a different character {other['score']:g} out of 10." + ("" if ok else " The difference is not reliable; treat this check as a hint only."),
               model=model, same=same["score"], other=other["score"])
 

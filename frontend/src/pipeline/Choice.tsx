@@ -257,7 +257,7 @@ function PostEditor({ story, node, nodes, opts, issues, op, busy, img, setImg, c
   }
   const sc = (k: string, v: unknown) => setD({ ...d, scene: { ...d.scene, [k]: v } })
   return (
-    <Card title={`${L('پست', 'Post')} ${n(node.number)} · ${node.id}`} actions={issues.length > 0 ? <Badge tone="err">{n(issues.length)}</Badge> : undefined}>
+    <Card title={`${L('پست', 'Post')} ${n(node.number)}${node.title ? ' · ' + node.title : ''}`} actions={issues.length > 0 ? <Badge tone="err">{n(issues.length)}</Badge> : undefined}>
       <div className="grid2">
         <div className="stack-sm">
           <TextField label={L('عنوان کوتاه', 'Short title')} value={d.title} onChange={(v) => setD({ ...d, title: v })} />

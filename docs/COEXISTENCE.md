@@ -22,7 +22,8 @@ They share one Ollama, one ComfyUI, the voice servers and one graphics card. Thi
 2. **Short stay.** InstAI asks Ollama to keep a model for 3 minutes after its last request (`INSTAI_OLLAMA_KEEP_ALIVE`, was 10 minutes), so the card is
    free again soon after InstAI stops.
 3. **Give it back.** When InstAI has had no GPU work (running or waiting) for `INSTAI_GPU_RELEASE_AFTER` seconds (default 90), the worker asks ComfyUI to
-   unload its models (`POST /free`, `coexist.release_idle`, once per quiet period). Ollama needs no help (rule 2).
+   unload its models (`POST /free`, `coexist.release_idle`, once per quiet period) - but not while ComfyUI's own queue (`GET /queue`) has a running or waiting prompt
+   of ANY program (0.13.0: the NMarketing agent shares this ComfyUI; the release is asked again at the next tick). Ollama needs no help (rule 2).
 4. **Switch occupants cleanly inside one job** (`arbiter.Lease.use`): the LLM is unloaded before ComfyUI starts and the other way round.
 5. **Never kill what InstAI did not start** (ComfyUI, Ollama, voice servers of another program).
 

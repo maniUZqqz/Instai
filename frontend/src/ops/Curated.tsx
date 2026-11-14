@@ -81,7 +81,7 @@ export function CuratedLibrary({ cat, onAdded }: { cat: Catalog; onAdded: () => 
                   </Badge>
                   {p.reused > 0 && <Badge tone="info" title={t('cur.reused_tip')}>{t('cur.reused', { n: p.reused })}</Badge>}
                   <span className="small muted nowrap">{p.complete ? f.bytes(p.size) : t('cur.size_missing', { x: f.bytes(p.missing_size), y: f.bytes(p.size) })}</span>
-                  {p.vram && <span className="small muted ltr" dir="ltr">VRAM: {p.vram}</span>}
+                  {p.vram && <span className="small muted" dir="auto">{t('cur.vram', { x: lang === 'fa' ? p.vram_fa || p.vram : p.vram })}</span>}
                 </div>
                 {why && <p className="small" dir="auto">{why}</p>}
                 {p.needs_confirm && <p className="small err-text" dir="auto">{p.commercial === 'no' ? t('cur.warn_nc') : t('cur.warn_unknown')}</p>}

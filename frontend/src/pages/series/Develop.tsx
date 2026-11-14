@@ -116,7 +116,7 @@ function LookCard({ dev, setDev, onClose }: { dev: Development; setDev: (d: Deve
           </div>
           <div className="field-hint">{t('dev.langs_note')}</div>
         </fieldset>
-        <StylePicker value={look} onChange={setLookState} name="series-look" />
+        <StylePicker value={look} onChange={setLookState} name="series-look" scroll />
         <div className="row">
           <Button variant="primary" icon="save" busy={act.busy} disabled={langs.length === 0} onClick={save}>{t('common.save')}</Button>
           <Button onClick={inherit} busy={act.busy}>{t('dev.look_inherit')}</Button>

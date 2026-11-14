@@ -116,7 +116,7 @@ SUCCESS = bundle("success", [
           "Before running, define the finish: why many of us borrow success from others and how to write our own definition."),
          ("اگر هیچ‌کس تو را نمی‌دید، باز هم همین هدف را می‌خواستی؟", "If nobody were watching, would you still want this goal?")),
     idea("ten_thousand_myth", "explainer", ["skill", "myths"], ("ده‌هزار ساعت: درست یا افسانه؟", "Ten thousand hours: fact or myth?"),
-         ("قانونِ معروفِ ده‌هزار ساعت را بررسی کن: چه چیزش به واقعیت نزدیک است و چه چیزش ساده‌سازیِ شده؟ نتیجه: کیفیتِ تمرین هم مهم است.",
+         ("قانونِ معروفِ ده‌هزار ساعت را بررسی کن: چه چیزش به واقعیت نزدیک است و چه چیزش ساده‌سازی‌شده؟ نتیجه: کیفیتِ تمرین هم مهم است.",
           "Look at the famous ten-thousand-hour rule: what is close to true and what is oversimplified? Takeaway: the quality of practice counts too."),
          ("ده‌هزار ساعت بی‌هدف، بهتر از هزار ساعت هدفمند است؟", "Are ten thousand aimless hours better than a thousand focused ones?")),
     idea("luck_and_prep", "story", ["luck", "preparation"], ("شانس به آدمِ آماده می‌رسد؟", "Does luck favour the prepared?"),

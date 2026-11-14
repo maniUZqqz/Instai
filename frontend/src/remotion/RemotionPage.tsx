@@ -133,7 +133,8 @@ function Renders({ data }: { data: RmRenders | undefined }) {
           {r.url && r.kind === 'mp4' ? <video src={r.url} controls preload="metadata" style={{ width: 280, maxWidth: '100%', borderRadius: 8 }} /> : r.url ? <img src={r.url} alt="" style={{ width: 280, maxWidth: '100%', borderRadius: 8 }} /> : null}
           <div className="stack-sm">
             <div className="strong ltr" dir="ltr">{r.composition} #{r.job_id}</div>
-            <div className="small muted">{[r.style, r.size && (lang === 'en' ? SIZES[r.size as SizeId]?.en : SIZES[r.size as SizeId]?.fa), r.width && `${r.width}×${r.height}`, r.seconds && f.duration(r.seconds), r.bytes && f.bytes(r.bytes)].filter(Boolean).join(' · ')}</div>
+            <div className="small muted">{[r.style, r.size && (lang === 'en' ? SIZES[r.size as SizeId]?.en : SIZES[r.size as SizeId]?.fa), r.width && `${r.width}×${r.height}`, r.duration_sec ? t('rm.renders.length', { x: f.duration(r.duration_sec) }) : '', r.bytes && f.bytes(r.bytes)].filter(Boolean).join(' · ')}</div>
+            {r.render_seconds ? <div className="small muted">{t('rm.renders.took', { x: f.duration(r.render_seconds) })}</div> : null}
             <Badge tone={r.status === 'succeeded' ? 'ok' : r.status === 'failed' ? 'err' : 'info'}>{t(('job.status.' + r.status) as 'job.status.queued')}</Badge>
             {r.error && <div className="small err-text" dir="auto">{r.error.split('\n')[0]}</div>}
             {r.url && <ExtLink href={r.url} download>{t('rm.renders.download')}</ExtLink>}

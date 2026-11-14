@@ -80,6 +80,39 @@ def test_art_style_is_chosen_once_and_locks_the_series_look():
     assert ladder.rows(series)["art_style"]["status"] == "stale" and ladder.rows(series)["art_style"]["stale_reasons"] == [{"code": "changed"}]
 
 
+def test_the_art_style_stage_only_accepts_a_style_the_library_has(api):
+    """Review of 0.11.0: PUT art_style with style_key 'zzz_not_a_style' (or '') answered 200, approve answered 200, and the series look became an unknown style, so
+    /api/library/compose gave an EMPTY prompt to every generator without any error."""
+    from instai.styles import library
+    from instai.styles.builtin_styles import LEGACY_ALIASES
+
+    page, series, ep = make_world()
+    ladder.save_version(series, None, "logline", {"logline": "x"})
+    ladder.approve(series, None, "logline")
+    ladder.save_version(series, None, "treatment", {"synopsis": ["x"], "acts": [{"name": "a", "summary": "b"}]})
+    ladder.approve(series, None, "treatment")
+    base = f"/api/series/{series.pk}/ladder/art_style"
+
+    def put(**data):
+        return api.put(base, {"data": {"style_key": "", "realism": "", "theme_key": "", "notes": "", **data}}, format="json")
+
+    for bad in ({"style_key": "zzz_not_a_style"}, {"style_key": "film_noir"}, {"style_key": "noir_bw", "theme_key": "no_such_theme"}, {"style_key": "noir_bw", "realism": "hyper"}):
+        r = put(**bad)
+        assert r.status_code == 400, (bad, r.status_code)
+    assert ladder.latest(ladder.doc(series, None, "art_style")) is None, "nothing invalid was stored"
+    # while the owner is still choosing, a draft without a style may be saved - but it cannot be approved
+    assert put(notes="later").status_code == 200
+    r = api.post(base + "/approve", {}, format="json")
+    assert r.status_code == 409 and ladder.rows(series)["art_style"]["status"] == "draft"
+    # a real style, written with a legacy name, is stored under its current key and approves
+    legacy = next(iter(LEGACY_ALIASES))
+    assert put(style_key=legacy).status_code == 200
+    assert ladder.latest(ladder.doc(series, None, "art_style")).data["style_key"] == library.resolve_key("style", legacy)
+    assert api.post(base + "/approve", {}, format="json").status_code == 200
+    series.refresh_from_db()
+    assert library.compose(series.look["style_key"])["positive"], "the approved look gives the generators a real prompt"
+
+
 def test_bridged_stages_snapshot_the_live_work_and_go_stale_when_it_changes(api):
     from instai.story import services as story_services
 
@@ -237,6 +270,31 @@ def test_the_ladder_survives_design_sheets_and_an_animatic_which_carry_datetimes
     api.patch(f"/api/design-sheets/{sheet.pk}", {"prompt": "a blue scarf"}, format="json")
     row = {s["key"]: s for s in api.get(f"/api/episodes/{ep.pk}/ladder").json()["stages"]}["design"]
     assert row["status"] == "stale" and row["version"] == before + 1
+
+
+def test_the_animatic_stays_approved_when_production_replaces_its_placeholders_with_keyframes(api):
+    """Review of 0.11.0: right after production the animatic turned 'stale' because its stills changed from placeholders to real keyframes, and re-approving refreshed
+    nothing. Only a change of the shots themselves (words, lengths, technique) makes it stale now; the pictures are offered as a rebuild (`newer_pictures`)."""
+    from instai.assets.models import Asset
+    from instai.story import services as story_services
+    from instai.story.models import Shot
+    from instai.studio import preprod
+
+    page, series, ep = make_world()
+    _walk_to_the_storyboard(api, page, series, ep)
+    shots = story_services.all_shots(ep)
+    Asset.objects.create(kind="video", role="animatic", path="episodes/x/animatic.mp4", episode=ep, input_hash=preprod.animatic_hash(ep), duration_sec=10,
+                         provenance={"shape_hash": preprod.animatic_shape_hash(ep), "stills": {"keyframes": 0, "placeholders": len(shots)}})
+    assert api.post(f"/api/episodes/{ep.pk}/ladder/animatic/approve", {}, format="json").status_code == 200
+    assert ladder.rows(series, ep)["animatic"]["status"] == "approved"
+    Asset.objects.create(kind="image", role="keyframe", path="episodes/x/kf.png", episode=ep, shot_id=shots[0].pk, is_current=True)      # production made the real picture
+    assert preprod.animatic_info(ep)["status"] == "stale", "the Pre-production tab still offers a rebuild with the real pictures"
+    row = ladder.rows(series, ep)["animatic"]
+    assert row["status"] == "approved" and row["stale_reasons"] == [] and row["ready"] is True
+    assert ladder.latest(ladder.doc(series, ep, "animatic")).data["status"] == "fresh" and ladder.rows(series, ep)["animatic"]["version"] == 1, "no new snapshot for it"
+    Shot.objects.filter(pk=shots[0].pk).update(narration="یک جملهٔ تازه که زمان‌بندی را عوض می‌کند")   # a real change of the shots
+    row = ladder.rows(series, ep)["animatic"]
+    assert row["status"] == "stale" and row["stale_reasons"] == [{"code": "changed"}] and row["ready"] is False
 
 
 def test_json_safe_makes_any_snapshot_storable():

@@ -35,7 +35,7 @@ art/animation styles.* So the library has three tabs: **art and animation styles
 No studio, franchise, brand, artist or creator name may appear in a style's name, description, tags or any prompt (`tests/test_style_library.py`
 scans for a long list; `tests/test_styles.py` too). The looks are *inspired* generic descriptions ("hand-drawn pastoral anime", "interlocking plastic
 toy bricks"), so the output cannot be mistaken for a rights-holder's work. People still search by the names they know, so `aliases.py` holds
-**search-only** terms ("ghibli", "lego", "ps2", "dan koe", "zackd", "پیکسار" ...); they are never sent to a model (a test checks the composed prompts).
+**search-only** terms ("ghibli", "lego", "ps2", "dan koe", "zackd", "پیکسار" ...); they are never sent to a model (a test checks the composed prompts). The search ignores brackets, quotes and commas around a word ("Chrome 22K (chrome metallic type)" pasted from a list finds its style) and the filler words "style" / "like".
 `library.matches()` folds Arabic/Persian letter variants, ZWNJ and digit alphabets, and ignores the word "style".
 
 **The owner's own names are visible.** Where a generic look stands in for a studio, a creator or a brand on his list, `aliases.KNOWN_AS` gives a
@@ -76,3 +76,5 @@ anyone's property. Nothing here ships a model file. Display names of the Persian
 Add a `mk(...)` row to `styles_more.py` (key, group, realism, family, animation, fps, fa/en name and description, positive prompt, motion prompt,
 6 colours, light, mood, techniques, sample prompt, a colour theme from `builtin_themes.py`, tags, suitability letters, motif from
 `preview_svg.MOTIFS`, `gen(...)` hints), add its search names to `aliases.py`, run `pytest tests/test_style_library.py tests/test_styles.py`.
+
+The style's `motif` also picks its drawn surface in the Remotion kit (`remotion/src/kit/Look.tsx`, 0.13.0): a new style should use a motif that already has a look there (or add one `Maker`); `tests/test_remotion.py` fails for a motif that is neither drawn nor listed in `PLAIN_MOTIFS`.

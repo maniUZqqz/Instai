@@ -25,6 +25,8 @@ export type StyleKit = {
   animation: string
   /** live_like | illustration | anime | western_2d | cg_3d | stop_motion | graphic | handmade */
   family: string
+  /** the drawn surface of the style (the word that picks its swatch in the library): kit/Look.tsx paints it over the family backdrop. '' = family backdrop only */
+  motif: string
   realism: string
   /** how many different poses per second the style shows (12 = "on twos"); 24 and more = smooth */
   fps_feel: number
@@ -47,6 +49,7 @@ export const DEFAULT_KIT: StyleKit = {
   name: 'InstAI',
   animation: 'motion_graphics',
   family: 'graphic',
+  motif: '',
   realism: 'graphic',
   fps_feel: 30,
   palette: DEFAULT_PALETTE,
@@ -72,6 +75,7 @@ export function normalizeKit(raw?: Partial<StyleKit> | null): StyleKit {
     name: String(r.name || d.name),
     animation: String(r.animation || d.animation),
     family: String(r.family || d.family),
+    motif: String(r.motif || ''),
     realism: String(r.realism || d.realism),
     fps_feel: Math.max(4, Math.min(60, Number(r.fps_feel) || d.fps_feel)),
     palette: {
@@ -117,13 +121,13 @@ export function readableOn(bg: string, preferred: string[] = []): string {
   return contrast('#FFFFFF', bg) >= contrast('#000000', bg) ? '#FFFFFF' : '#000000'
 }
 
-/** The accent colour as it is when it reads on `bg` (contrast >= 3 for large text), else the accent pulled toward the readable text colour until it does. */
-export function accentOn(bg: string, accent: string): string {
-  if (contrast(accent, bg) >= 3) return accent
+/** The accent colour as it is when it reads on `bg` (contrast >= `min`: 3 for big shapes and large text, 4.5 for small text), else the accent pulled toward the readable text colour until it does. */
+export function accentOn(bg: string, accent: string, min = 3): string {
+  if (contrast(accent, bg) >= min) return accent
   const text = contrast('#FFFFFF', bg) >= contrast('#000000', bg) ? '#FFFFFF' : '#000000'
   for (const t of [0.35, 0.5, 0.65, 0.8, 1]) {
     const c = mix(accent, text, t)
-    if (contrast(c, bg) >= 3) return c
+    if (contrast(c, bg) >= min) return c
   }
   return text
 }

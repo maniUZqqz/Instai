@@ -30,7 +30,7 @@ export const TitleCard: React.FC<TitleCardProps> = (props) => {
   const rtl = isRtlText(props.title + (props.subtitle ?? ''))
   const text = applyCase(props.title || '', kit.typography.title_case)
   const color = readableOn(p.background, [p.highlight, '#FFFFFF'])
-  const accent = accentOn(p.background, p.accent)
+  const accent = accentOn(p.background, p.accent, 4.5)          // the kicker is small text; the bar below it only needs 3, and is drawn in the same colour
   const subColor = readableOn(p.background, [kit.typography.subtitle_color, p.highlight])
   const hard = ['western_2d', 'graphic', 'cutout', 'stop_motion'].includes(kit.family)
 
