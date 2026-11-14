@@ -1,15 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { Monitor, ModelRow, ModelsPayload, PackageInfo, SettingsPayload } from '../api/types'
-import { useConfirm, useToast } from '../components/feedback'
-import { JobView } from '../components/domain'
+import type { Monitor, ModelsPayload, SettingsPayload } from '../api/types'
+import { useConfirm } from '../components/feedback'
 import { useApp } from '../components/Shell'
-import { Async, Badge, Button, Card, CardSkeletons, ChoiceGrid, Link, Notice, PageHead, SelectField, SwitchField, TextField, type Tone } from '../components/ui'
+import { Async, Badge, Button, Card, CardSkeletons, ChoiceGrid, Link, LinkButton, Notice, PageHead, SelectField, SwitchField, TextField } from '../components/ui'
 import { useFormats } from '../formats'
-import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
+import { useAction, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
-import { ScheduleField } from '../ops/ScheduleField'
-import type { When } from '../ops/types'
 
 type Values = Record<string, string>
 
@@ -25,7 +22,7 @@ export default function Settings() {
           <>
             <DemoCard s={s} onChanged={(p) => q.setData(p)} />
             <ServicesCard s={s} onSaved={(p) => q.setData(p)} />
-            <ModelsSection />
+            <ModelsLinkCard />
             <WorkersCard />
             <PresetsCard />
             <PathsCard s={s} />
@@ -208,163 +205,19 @@ function ServicesCard({ s, onSaved }: { s: SettingsPayload; onSaved: (p: Setting
   )
 }
 
-// ---------------------------------------------------------------- models, licences, optional packs
-const COMMERCIAL: Record<string, { tone: Tone; key: 'lic.yes' | 'lic.conditional' | 'lic.no' | 'lic.unknown' }> = {
-  yes: { tone: 'ok', key: 'lic.yes' },
-  conditional: { tone: 'warn', key: 'lic.conditional' },
-  no: { tone: 'err', key: 'lic.no' },
-  unknown: { tone: 'neutral', key: 'lic.unknown' },
-}
-
-function ModelsSection() {
-  const { t, f } = useI18n()
-  const confirm = useConfirm()
-  const q = useQuery<ModelsPayload>('/models')
-  const runner = useJobRunner({ onFinished: () => q.reload() })
-  const [installing, setInstalling] = useState<string | null>(null)
-  const when = useRef<When>({ mode: 'now' })
-  const toast = useToast()
-  const install = async (pkg: string, info?: PackageInfo) => {
-    const size = info?.size ? f.bytes(info.size) : ''
-    when.current = { mode: 'now' }
-    const msg = (
-      <div className="stack-sm">
-        <div>{t('set.install_confirm', { size })}</div>
-        <ScheduleField onChange={(w) => { when.current = w }} />
-      </div>
-    )
-    if (!(await confirm({ message: msg, confirmLabel: t('set.install') }))) return
-    setInstalling(pkg)
-    if (when.current.mode === 'now') {
-      runner.start(() => api.post('/downloads', { packages: [pkg], when: when.current }))
-    } else {
-      try {
-        await api.post('/downloads', { packages: [pkg], when: when.current })
-        toast.ok(t('ops.dl.added'))
-      } catch (e) {
-        toast.err(String((e as Error).message))
-      }
-    }
-  }
+// ---------------------------------------------------------------- models, downloads, licences: one place each (this page keeps only the settings)
+function ModelsLinkCard() {
+  const { t } = useI18n()
   return (
-    <Card title={t('set.models_title')} actions={<><Link to="/models" className="btn sm">{t('nav.models')}</Link><Button size="sm" icon="refresh" onClick={q.reload}>{t('common.refresh')}</Button></>}>
-      <div className="stack-lg">
-        <p className="muted">{t('set.models_intro')}</p>
-        {runner.job && (
-          <div className="stack-sm">
-            <JobView job={runner.job} offline={runner.offline} />
-            {installing && !runner.busy && <p className="small muted">{installing}</p>}
-          </div>
-        )}
-        <Async q={q} skeleton={<CardSkeletons n={2} />}>
-          {(m) => {
-            const rows = [...m.models].sort((a, b) => Number(!!a.excluded) - Number(!!b.excluded))
-            return (
-              <>
-                <section className="stack" aria-label={t('set.packages_title')}>
-                  <h3>{t('set.packages_title')}</h3>
-                  <div className="grid-auto">
-                    {Object.entries(m.packages).map(([id, p]) => (
-                      <div key={id} className="card flat stack-sm">
-                        <div className="row between">
-                          <span className="strong ltr">{id}</span>
-                          <span className="row">
-                            {p.default && <Badge tone="info">{t('set.pkg_default')}</Badge>}
-                            {p.complete ? <Badge tone="ok">{t('set.installed')}</Badge> : <Badge>{t('set.pkg_progress', { a: p.installed, b: p.items })}</Badge>}
-                          </span>
-                        </div>
-                        <div className="small" dir="auto">{p.title}</div>
-                        <div className="small muted">{t('set.pkg_size')}: {f.bytes(p.size)}</div>
-                        <div className="small muted">{t('set.pkg_licence')}: <bdi>{p.licence || '—'}</bdi> {p.licence_verified ? '' : `(${t('set.not_verified')})`}</div>
-                        {p.note && <div className="small muted" dir="auto">{p.note}</div>}
-                        {!p.complete && (
-                          <div>
-                            <Button size="sm" icon="download" disabled={runner.busy} onClick={() => install(id, p)}>{t('set.install')}</Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="stack" aria-label={t('set.licences_title')}>
-                  <h3>{t('set.licences_title')}</h3>
-                  <p className="small muted">{t('set.licences_note', { date: m.checked_on })}</p>
-                  <div className="grid-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 330px), 1fr))' }}>
-                    {rows.map((r) => (
-                      <ModelCard key={r.id} r={r} pkg={r.package ? m.packages[r.package] : undefined} busy={runner.busy} onInstall={() => r.package && install(r.package, m.packages[r.package])} />
-                    ))}
-                  </div>
-                </section>
-
-                {m.workflows.length > 0 && (
-                  <section className="stack" aria-label={t('set.workflows_title')}>
-                    <h3>{t('set.workflows_title')}</h3>
-                    <div className="table-wrap">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>{t('set.wf_name')}</th>
-                            <th>{t('set.wf_kind')}</th>
-                            <th>{t('set.wf_vram')}</th>
-                            <th>{t('set.wf_licence')}</th>
-                            <th>{t('set.wf_available')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {m.workflows.map((w) => (
-                            <tr key={w.id}>
-                              <td><div className="strong">{w.title}</div><div className="small muted ltr">{w.id}</div></td>
-                              <td className="ltr">{w.kind}</td>
-                              <td>{w.vram_gb != null ? `${f.num(w.vram_gb)} GB` : '—'}</td>
-                              <td className="small">{w.licence} <Badge tone={w.licence_status === 'verified' ? 'ok' : 'warn'}>{w.licence_status}</Badge></td>
-                              <td>{w.available == null ? <Badge>{t('set.wf_unknown')}</Badge> : w.available ? <Badge tone="ok">{t('set.wf_ready')}</Badge> : <Badge tone="warn" title={w.missing.join(', ')}>{t('set.wf_missing', { n: w.missing.length })}</Badge>}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </section>
-                )}
-              </>
-            )
-          }}
-        </Async>
+    <Card title={t('set.models_title')} className="soft">
+      <div className="stack-sm">
+        <p className="muted">{t('set.models_link_text')}</p>
+        <div className="row">
+          <LinkButton to="/downloads" icon="download" variant="primary">{t('ops.nav.downloads')}</LinkButton>
+          <LinkButton to="/models" icon="layers">{t('nav.models')}</LinkButton>
+        </div>
       </div>
     </Card>
-  )
-}
-
-function ModelCard({ r, pkg, busy, onInstall }: { r: ModelRow; pkg: PackageInfo | undefined; busy: boolean; onInstall: () => void }) {
-  const { t, f } = useI18n()
-  const c = COMMERCIAL[r.commercial] ?? COMMERCIAL.unknown
-  const verified = r.verified === null ? null : r.verified === 'brief' ? t('lic.verified_brief') : r.verified
-  return (
-    <div className={'card flat stack-sm' + (r.excluded ? ' soft' : '')} style={r.excluded ? { opacity: 0.85 } : undefined}>
-      <div className="row between" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-        <span className="strong" dir="auto">{r.name}</span>
-        {r.installed != null && <Badge tone={r.installed ? 'ok' : 'neutral'}>{r.installed ? t('set.installed') : t('set.not_installed')}</Badge>}
-      </div>
-      <div className="small muted" dir="auto">{r.role}</div>
-      <div className="row">
-        <Badge tone={c.tone}>{t('lic.commercial')}: {t(c.key)}</Badge>
-        {r.excluded && <Badge tone="err">{t('lic.excluded')} · EXCLUDED</Badge>}
-        {r.decision && <Badge tone="warn">{t('lic.decision')} · OWNER DECISION</Badge>}
-      </div>
-      <div className="small"><span className="muted">{t('lic.licence')}:</span> <bdi>{r.licence}</bdi></div>
-      <div className="small">
-        <span className="muted">{t('lic.verified')}:</span> {verified ? <bdi>{verified}</bdi> : <Badge tone="warn">{t('set.not_verified')}</Badge>}
-      </div>
-      <div className="small"><span className="muted">VRAM:</span> <bdi>{r.vram}</bdi></div>
-      {r.notes && <div className="small muted" dir="auto">{r.notes}</div>}
-      {r.package && !r.excluded && r.installed === false && (
-        <div className="row">
-          <Button size="sm" icon="download" disabled={busy} onClick={onInstall}>
-            {t('set.install')}{pkg?.size ? ` (${f.bytes(pkg.size)})` : ''}
-          </Button>
-        </div>
-      )}
-    </div>
   )
 }
 

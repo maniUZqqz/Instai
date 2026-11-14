@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import type { BankIdea, IdeasPayload, StartResult } from '../api/ideaTypes'
@@ -8,7 +8,7 @@ import { StylePicker, type Look } from '../components/StylePicker'
 import { AreaField, Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, Notice, NumberField, PageHead, Segmented, SelectField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n, type Lang } from '../i18n'
-import { fold, useLibrary } from '../library'
+import { allWordsIn, fold, queryWords, useLibrary } from '../library'
 import { TAG_FA, tagLabel } from '../ideaTags'
 
 type Text = 'title' | 'logline' | 'hook' | 'premise'
@@ -19,22 +19,34 @@ export function ideaText(i: BankIdea, f: Text, lang: Lang): string {
   return (lang === 'fa' ? fa || en : en || fa) || ''
 }
 
-function ideaMatches(i: BankIdea, q: string): boolean {
-  const words = fold(q).split(/\s+/).filter(Boolean)
-  if (!words.length) return true
-  const hay = fold([i.title_fa, i.title_en, i.logline_fa, i.logline_en, i.hook_fa, i.hook_en, i.premise_fa, i.premise_en, ...i.tags, ...i.tags.map((x) => TAG_FA[x] ?? ''), i.key.replace(/_/g, ' ')].join(' '))
-  return words.every((w) => hay.includes(w))
+/** Everything a search can hit, folded: the texts in both languages, the tags (stored word + Persian name) and the names of the category and the format
+ *  (so «اقتصاد» finds the ideas of the category «اقتصاد»). Mirrors instai/ideabank/bank.py: search_text. */
+export function ideaHaystack(i: BankIdea, d: Pick<IdeasPayload, 'categories' | 'formats'>): string {
+  const cat = d.categories.find((c) => c.key === i.category)
+  const fmt = d.formats.find((c) => c.key === i.format)
+  return fold([i.title_fa, i.title_en, i.logline_fa, i.logline_en, i.hook_fa, i.hook_en, i.premise_fa, i.premise_en, ...i.tags, ...i.tags.map((x) => TAG_FA[x] ?? ''),
+    cat?.fa ?? '', cat?.en ?? '', fmt?.fa ?? '', fmt?.en ?? '', i.key.replace(/_/g, ' ')].join(' '))
+}
+
+/** Every word of the search (filler words such as «سبک» dropped; the spelling without the half-space accepted) must be in the idea's haystack. */
+export function ideaMatches(hay: string, q: string): boolean {
+  const words = queryWords(q)
+  return !words.length || allWordsIn(words, hay)
 }
 
 type Source = '' | 'builtin' | 'mine'
+/** The grid shows this many ideas first and this many more on each press of «نمایش بیشتر» (121 cards at once made the page 24 000 px tall). */
+export const IDEA_PAGE = 24
 
 export default function IdeasPage() {
-  const { t, lang } = useI18n()
+  const { t, lang, f } = useI18n()
   useTitle(t('ideas.title'))
   const [showHidden, setShowHidden] = useState(false)
   const q = useQuery<IdeasPayload>(showHidden ? '/ideas?hidden=1' : '/ideas')
   const [text, setText] = useState('')
   const [category, setCategory] = useState('')
+  const [collection, setCollection] = useState('')
+  const [shownCount, setShownCount] = useState(IDEA_PAGE)
   const [fmt, setFmt] = useState('')
   const [tag, setTag] = useState('')
   const [fav, setFav] = useState(false)
@@ -45,22 +57,33 @@ export default function IdeasPage() {
   const toast = useToast()
   const act = useAction()
 
+  const haystacks = useMemo(() => {
+    const d = q.data
+    return new Map((d?.ideas ?? []).map((i) => [i.key, ideaHaystack(i, d!)]))
+  }, [q.data])
+  const collectionTags = q.data?.collections?.find((c) => c.key === collection)?.tags
   const list = useMemo(
     () =>
       (q.data?.ideas ?? []).filter(
         (i) =>
           (!category || i.category === category) &&
+          (!collectionTags || i.tags.some((x) => collectionTags.includes(x))) &&
           (!fmt || i.format === fmt) &&
           (!tag || i.tags.includes(tag)) &&
           (!fav || i.favorite) &&
           (!source || (source === 'builtin') === i.builtin) &&
-          ideaMatches(i, text),
+          ideaMatches(haystacks.get(i.key) ?? '', text),
       ),
-    [q.data, category, fmt, tag, fav, source, text],
+    [q.data, haystacks, category, collectionTags, fmt, tag, fav, source, text],
   )
+  // a new filter / search starts again at the first page of the grid
+  useEffect(() => setShownCount(IDEA_PAGE), [category, collection, fmt, tag, fav, source, text, showHidden])
+  const visible = list.slice(0, shownCount)
   const surprise = () => {
     if (!list.length) return
-    const i = list[Math.floor(Math.random() * list.length)]
+    const at = Math.floor(Math.random() * list.length)
+    const i = list[at]
+    setShownCount((n) => Math.max(n, at + 1))       // the surprise may be further down than the first page
     setOpen(i.key)
     window.setTimeout(() => document.getElementById('idea-' + i.key)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50)
   }
@@ -71,12 +94,13 @@ export default function IdeasPage() {
   const clearAll = () => {
     setText('')
     setCategory('')
+    setCollection('')
     setFmt('')
     setTag('')
     setFav(false)
     setSource('')
   }
-  const filtered = !!(text || category || fmt || tag || fav || source)
+  const filtered = !!(text || category || collection || fmt || tag || fav || source)
 
   return (
     <div className="stack">
@@ -94,12 +118,17 @@ export default function IdeasPage() {
                 <input id="idea-q" type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('ideas.search_short')} title={t('ideas.search')} />
               </div>
               <div className="filter-chips" role="group" aria-label={t('ideas.categories')}>
-                <button type="button" className={'filter-chip' + (category === '' ? ' on' : '')} aria-pressed={category === ''} onClick={() => setCategory('')}>
-                  {t('lib.all')} <span className="muted">({d.total})</span>
+                <button type="button" className={'filter-chip' + (category === '' && collection === '' ? ' on' : '')} aria-pressed={category === '' && collection === ''} onClick={() => { setCategory(''); setCollection('') }}>
+                  {t('lib.all')} <span className="muted">({f.num(d.total)})</span>
                 </button>
+                {(d.collections ?? []).map((c) => (
+                  <button key={c.key} type="button" data-testid={'idea-collection-' + c.key} className={'filter-chip' + (collection === c.key ? ' on' : '')} aria-pressed={collection === c.key} onClick={() => { setCollection(collection === c.key ? '' : c.key); setCategory('') }}>
+                    {lang === 'fa' ? c.fa : c.en} <span className="muted">({f.num(c.count)})</span>
+                  </button>
+                ))}
                 {d.categories.map((c) => (
-                  <button key={c.key} type="button" className={'filter-chip' + (category === c.key ? ' on' : '')} aria-pressed={category === c.key} onClick={() => setCategory(category === c.key ? '' : c.key)}>
-                    {lang === 'fa' ? c.fa : c.en} <span className="muted">({c.count})</span>
+                  <button key={c.key} type="button" className={'filter-chip' + (category === c.key ? ' on' : '')} aria-pressed={category === c.key} onClick={() => { setCategory(category === c.key ? '' : c.key); setCollection('') }}>
+                    {lang === 'fa' ? c.fa : c.en} <span className="muted">({f.num(c.count)})</span>
                   </button>
                 ))}
               </div>
@@ -120,10 +149,10 @@ export default function IdeasPage() {
                 {filtered && <Button variant="ghost" onClick={clearAll}>{t('ideas.clear')}</Button>}
                 <Button icon="spark" onClick={surprise} disabled={!list.length}>{t('ideas.surprise')}</Button>
               </div>
-              <div className="filter-chips" role="group" aria-label={t('ideas.tags')}>
-                {d.tags.slice(0, 18).map((x) => (
+              <div className="filter-chips tag-chips" role="group" aria-label={t('ideas.tags')} tabIndex={0}>
+                {d.tags.map((x) => (
                   <button key={x.tag} type="button" className={'filter-chip' + (tag === x.tag ? ' on' : '')} aria-pressed={tag === x.tag} onClick={() => setTag(tag === x.tag ? '' : x.tag)}>
-                    <span className={lang === 'fa' && TAG_FA[x.tag] ? undefined : 'ltr'}>{tagLabel(x.tag, lang)}</span> <span className="muted">({x.count})</span>
+                    <span className={lang === 'fa' && TAG_FA[x.tag] ? undefined : 'ltr'}>{tagLabel(x.tag, lang)}</span> <span className="muted">({f.num(x.count)})</span>
                   </button>
                 ))}
               </div>
@@ -137,8 +166,8 @@ export default function IdeasPage() {
             {list.length === 0 ? (
               <Empty icon="spark" title={t('ideas.none_title')} text={t('ideas.none_text')} action={filtered ? <Button onClick={clearAll}>{t('ideas.clear')}</Button> : undefined} />
             ) : (
-              <div className="idea-grid">
-                {list.map((i) => (
+              <div className="idea-grid" data-testid="idea-grid">
+                {visible.map((i) => (
                   <IdeaCard
                     key={i.key}
                     idea={i}
@@ -155,6 +184,12 @@ export default function IdeasPage() {
                     onStarted={() => toast.ok(t('ideas.started'))}
                   />
                 ))}
+              </div>
+            )}
+            {list.length > visible.length && (
+              <div className="row center">
+                <Button onClick={() => setShownCount((n) => n + IDEA_PAGE)} data-testid="ideas-more">{t('ideas.show_more', { n: Math.min(IDEA_PAGE, list.length - visible.length), rest: list.length - visible.length })}</Button>
+                <Button variant="ghost" onClick={() => setShownCount(list.length)} data-testid="ideas-all">{t('ideas.show_all', { n: list.length })}</Button>
               </div>
             )}
           </>

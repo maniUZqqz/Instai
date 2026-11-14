@@ -379,3 +379,46 @@ def test_catalog_lists_every_downloadable_item_and_the_places_it_can_go(api):
     assert {"ffmpeg", "piper", "wan22", "moss-tts", "acestep", "flux"} <= ids
     assert all(p["title"] for p in c["packages"]) and c["ollama"] and c["config"]["download_window"] == "02:00-07:00"
     assert [t["id"] for t in c["targets"]] == ["local", str(w.pk)]
+
+
+# ------------------------------------------------------------------ audit round ia_ui: a download that does not fit the disk is refused before it is queued
+
+def test_a_download_that_does_not_fit_the_disk_is_refused_with_the_sizes_in_plain_words(api, monkeypatch):
+    from instai.core import api as core_api
+    from instai.ops import downloads
+
+    GB = 1024 ** 3
+    monkeypatch.setattr(core_api, "_package_status", lambda: {"ffmpeg": {"missing_size": 5 * GB, "size": 5 * GB, "complete": False}})
+    monkeypatch.setattr(downloads, "free_bytes", lambda: 4 * GB)
+    r = api.post("/api/downloads", {"packages": ["ffmpeg"], "when": "now"}, format="json")
+    assert r.status_code == 409, r.content
+    err = r.json()["error"]
+    assert err["code"] == "disk_low" and "گیگابایت" in err["message"] and "5.0" in err["message"] and "4.0" in err["message"], err
+    assert Job.objects.filter(kind="downloads.run").count() == 0, "nothing was queued"
+    # 5 GB + the 2 GB spare fit into 8 GB
+    monkeypatch.setattr(downloads, "free_bytes", lambda: 8 * GB)
+    assert api.post("/api/downloads", {"packages": ["ffmpeg"], "when": "now"}, format="json").status_code == 202
+    # the free space is not known (no ComfyUI folder found): nothing is refused
+    monkeypatch.setattr(downloads, "free_bytes", lambda: None)
+    assert api.post("/api/downloads", {"packages": ["ffmpeg"], "when": "now"}, format="json").status_code == 202
+
+
+def test_a_download_for_the_second_pc_is_not_judged_by_this_pcs_disk(api, monkeypatch):
+    from instai.core import api as core_api
+    from instai.ops import downloads
+
+    GB = 1024 ** 3
+    w = make_b(online=True)
+    monkeypatch.setattr(core_api, "_package_status", lambda: {"ffmpeg": {"missing_size": 50 * GB, "size": 50 * GB, "complete": False}})
+    monkeypatch.setattr(downloads, "free_bytes", lambda: 1 * GB)
+    assert api.post("/api/downloads", {"packages": ["ffmpeg"], "target": str(w.pk), "when": "now"}, format="json").status_code == 202
+
+
+def test_the_catalogue_tells_the_interface_the_free_space_and_the_big_download_size(api, monkeypatch):
+    from instai.ops import downloads
+
+    monkeypatch.setattr(downloads, "free_bytes", lambda: 30 * 1024 ** 3)
+    c = api.get("/api/downloads/catalog").json()
+    assert c["free_gb"] == 30.0 and c["free_bytes"] == 30 * 1024 ** 3 and c["big_bytes"] == 2 * 1024 ** 3 and c["spare_bytes"] == 2 * 1024 ** 3
+    monkeypatch.setattr(downloads, "free_bytes", lambda: None)
+    assert api.get("/api/downloads/catalog").json()["free_gb"] is None

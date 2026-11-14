@@ -173,6 +173,8 @@ def downloads_view(request):
         raise DomainError("validation_error", "این بسته مجوز غیرتجاری یا نامشخص دارد؛ دانلودش فقط پس از تأیید شما شروع می‌شود: " + "، ".join(ask),
                           http_status=400, details={"confirm_licence": ask},
                           message_en="This package has a non-commercial or unclear licence; the download starts only after you confirm it: " + ", ".join(ask))
+    tid, _ = downloads.resolve_target(request.data.get("target"))
+    downloads.check_disk(sum(int((known.get(p) or {}).get("missing_size") or 0) for p in pkgs), tid)      # too big for the disk: said BEFORE it is queued
     # `when` (now | "03:30" | {mode: window}) and `target` (this PC or a worker PC) are optional: without them the owner's saved default applies
     return job_response(downloads.start_packages(pkgs, "دانلود: " + "، ".join(pkgs), when=request.data.get("when"), target=request.data.get("target")))
 

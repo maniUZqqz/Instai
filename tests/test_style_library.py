@@ -462,3 +462,15 @@ def test_samples_are_queued_by_themselves_in_chunks_once_comfyui_is_ready(monkey
         settings_store.set_setting("comfyui_url", "")
         settings_store.set_setting("ops_config", {})
         compute._CAP_CACHE.update(at=0.0, value=None)
+
+
+def test_a_persian_search_typed_without_the_half_space_finds_the_same_styles():
+    """Audit round ia_ui: library «واقعگرا» (no half-space) found 0 styles while «واقع‌گرا» found 4."""
+    lib = rows()
+    spaced = {r["key"] for r in library.filter_styles(lib, q="واقع‌گرا")}
+    assert spaced, "the spelling with the half-space finds styles"
+    assert spaced <= {r["key"] for r in library.filter_styles(lib, q="واقعگرا")}
+    assert library.filter_styles(lib, q="پیکسل‌آرت") and {r["key"] for r in library.filter_styles(lib, q="پیکسلآرت")} == {r["key"] for r in library.filter_styles(lib, q="پیکسل‌آرت")}
+    assert library.filter_styles(lib, q="واقعگراzzzz") == []
+    assert library.all_words_in(["ab"], "a b") is False, "two-letter words are never looked for across a space"
+    assert library.all_words_in(["روانشناسی"], library._fold("روان‌شناسی")) is True
