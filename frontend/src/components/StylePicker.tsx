@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
-import type { StylePreset, Suit, ThemePreset } from '../api/types'
+import type { Library, StylePreset, Suit, ThemePreset } from '../api/types'
 import { desc, nm, paletteGradient, styleImage, styleMatches, useLibrary, vocab } from '../library'
 import { useI18n } from '../i18n'
-import { ErrorState, Loading, Badge, Segmented } from './ui'
+import { Button, ErrorState, Loading, Badge, Segmented } from './ui'
 
 export interface Look {
   style_key: string
@@ -10,10 +10,14 @@ export interface Look {
   theme_key: string
 }
 
+/** The picture of a look: the palette gradient always, and - when there is a picture - a <img> on top that loads only when it comes near the screen
+ *  (a CSS background loaded all 116 pictures at once, ~19 s through a slow link, although only a handful are ever in view). */
 export function Swatch({ palette, url, height = 56 }: { palette: string[]; url?: string | null; height?: number }) {
   return (
-    <div className="swatch" style={{ height, background: url ? `center / cover no-repeat url(${url})` : paletteGradient(palette) }} aria-hidden="true">
-      {!url && (
+    <div className="swatch" style={{ height, background: paletteGradient(palette) }} aria-hidden="true">
+      {url ? (
+        <img className="swatch-img" src={url} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+      ) : (
         <div className="swatch-chips">
           {palette.slice(0, 6).map((c, i) => (
             <i key={i} style={{ background: c }} />
@@ -21,6 +25,25 @@ export function Swatch({ palette, url, height = 56 }: { palette: string[]; url?:
         </div>
       )}
     </div>
+  )
+}
+
+/** The cards of a list of looks, shared by every gallery (the picker's suggestions, its full gallery). */
+function StyleCards({ list, value, name, lang, groups, onPick }: { list: StylePreset[]; value: string; name: string; lang: 'fa' | 'en'; groups: Library['groups'] | undefined; onPick: (s: StylePreset) => void }) {
+  const { t } = useI18n()
+  return (
+    <>
+      {list.map((s) => (
+        <label key={s.key} className={'choice style-card' + (value === s.key ? ' selected' : '')}>
+          <input type="radio" name={`${name}-style`} checked={value === s.key} onChange={() => onPick(s)} />
+          <Swatch palette={s.palette} url={styleImage(s)} />
+          <span className="strong">{nm(s, lang)}</span>
+          <span className="small muted">{vocab(groups, s.group, lang)}</span>
+          {s.known_as && <span className="small ltr known-as">{'≈ ' + s.known_as}</span>}
+          {!s.builtin && <Badge tone="info">{t('lib.mine')}</Badge>}
+        </label>
+      ))}
+    </>
   )
 }
 
@@ -74,39 +97,52 @@ export function StyleFilters({ styles, f, name }: { styles: StylePreset[]; f: Re
 }
 
 /** Choose a style from the art/animation library and a colour theme (the project's / page's look). Used by the wizard, the page settings, the series
- *  look and "start a project from an idea". */
-export function StylePicker({ value, onChange, showTheme = true, name = 'look', scroll = false }: { value: Look; onChange: (v: Look) => void; showTheme?: boolean; name?: string; scroll?: boolean }) {
-  const { t, lang } = useI18n()
+ *  look and "start a project from an idea".
+ *  `suggestAround` (the wizard): the key of a look to build a short list of suggestions around (itself and the others of its group); the picker then shows
+ *  ONLY those few cards and «همهٔ سبک‌ها» opens the whole gallery (116 cards made that step 7000 px tall on a desktop and 14 800 px on a phone). */
+export function StylePicker({ value, onChange, showTheme = true, name = 'look', scroll = false, suggestAround }: { value: Look; onChange: (v: Look) => void; showTheme?: boolean; name?: string; scroll?: boolean; suggestAround?: string }) {
+  const { t, lang, f } = useI18n()
   const lib = useLibrary()
   const themeTouched = useRef(false)
   const styles = lib.data?.styles ?? []
-  const f = useStyleFilter(styles)
+  const filter = useStyleFilter(styles)
+  const [showAll, setShowAll] = useState(false)
   if (lib.error) return <ErrorState error={lib.error} onRetry={lib.reload} />
   if (!lib.data) return <Loading />
   const L = lib.data
   const sel: StylePreset | undefined = styles.find((s) => s.key === value.style_key)
   const pick = (s: StylePreset) => onChange({ style_key: s.key, realism: s.realism, theme_key: themeTouched.current && value.theme_key ? value.theme_key : s.theme_key })
   const themes = L.themes
+  const suggested = suggestAround ? suggestions(styles, suggestAround, value.style_key) : []
+  const compact = suggested.length > 0 && !showAll
   return (
     <div className="stack">
-      <StyleFilters styles={styles} f={f} name={name} />
-
-      <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-        <legend className="sr-only">{t('lib.styles')}</legend>
-        <div className={'choice-grid style-grid' + (scroll ? ' scroll-box' : '')}>
-          {f.list.map((s) => (
-            <label key={s.key} className={'choice style-card' + (value.style_key === s.key ? ' selected' : '')}>
-              <input type="radio" name={`${name}-style`} checked={value.style_key === s.key} onChange={() => pick(s)} />
-              <Swatch palette={s.palette} url={styleImage(s)} />
-              <span className="strong">{nm(s, lang)}</span>
-              <span className="small muted">{vocab(L.groups, s.group, lang)}</span>
-              {s.known_as && <span className="small ltr known-as">{'≈ ' + s.known_as}</span>}
-              {!s.builtin && <Badge tone="info">{t('lib.mine')}</Badge>}
-            </label>
-          ))}
-          {f.list.length === 0 && <p className="muted">{t('lib.none_found')}</p>}
-        </div>
-      </fieldset>
+      {compact ? (
+        <section className="stack-sm" aria-labelledby={`${name}-suggested`} data-testid="style-suggestions">
+          <div className="row between">
+            <div className="field-label" id={`${name}-suggested`}>{t('lib.suggested')}</div>
+            <Button size="sm" onClick={() => setShowAll(true)} data-testid="style-show-all">{t('lib.show_all_styles', { n: f.num(styles.length) })}</Button>
+          </div>
+          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="sr-only">{t('lib.styles')}</legend>
+            <div className="choice-grid style-grid">
+              <StyleCards list={suggested} value={value.style_key} name={name} lang={lang} groups={L.groups} onPick={pick} />
+            </div>
+          </fieldset>
+        </section>
+      ) : (
+        <>
+          {suggested.length > 0 && <div><Button size="sm" onClick={() => setShowAll(false)}>{t('lib.only_suggested')}</Button></div>}
+          <StyleFilters styles={styles} f={filter} name={name} />
+          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+            <legend className="sr-only">{t('lib.styles')}</legend>
+            <div className={'choice-grid style-grid' + (scroll || suggested.length > 0 ? ' scroll-box' : '')} data-testid="style-gallery">
+              <StyleCards list={filter.list} value={value.style_key} name={name} lang={lang} groups={L.groups} onPick={pick} />
+              {filter.list.length === 0 && <p className="muted">{t('lib.none_found')}</p>}
+            </div>
+          </fieldset>
+        </>
+      )}
 
       {sel && <StyleDetails style={sel} />}
 
@@ -136,6 +172,24 @@ export function StylePicker({ value, onChange, showTheme = true, name = 'look', 
       )}
     </div>
   )
+}
+
+/** Up to six cards to start from: the look the format starts with, the others of its group (they look alike and suit the same kind of video; a small group is
+ *  filled up with the same realism level), and - so the
+ *  choice never disappears from view - the look that is selected right now. */
+export function suggestions(styles: StylePreset[], around: string, selected: string, n = 6): StylePreset[] {
+  const base = styles.find((s) => s.key === around)
+  if (!base) return []
+  const others = styles.filter((s) => s.key !== around && s.builtin)
+  // the group first; a small group is filled up with looks of the same realism level (a photographic look next to a photographic one)
+  const near = [...others.filter((s) => s.group === base.group), ...others.filter((s) => s.group !== base.group && s.realism === base.realism)]
+  const out = [base, ...near].slice(0, n)
+  const chosen = styles.find((s) => s.key === selected)
+  if (chosen && !out.some((s) => s.key === chosen.key)) {
+    if (out.length < n) out.push(chosen)
+    else out[n - 1] = chosen
+  }
+  return out
 }
 
 const SUIT_KEY: Record<Suit, 'lib.suits_image' | 'lib.suits_video' | 'lib.suits_character'> = { image: 'lib.suits_image', video: 'lib.suits_video', character: 'lib.suits_character' }

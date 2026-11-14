@@ -36,7 +36,7 @@ def ideas(request):
         return Response(bank.create_idea(request.data if isinstance(request.data, dict) else {}), status=201)
     q = request.query_params
     rows = bank.list_ideas(q=q.get("q", ""), category=q.get("category", ""), tag=q.get("tag", ""), fmt=q.get("fmt", ""), favorite=_flag(q.get("favorite", "")),
-                           source=q.get("source", ""), include_hidden=_flag(q.get("hidden", "")))
+                           source=q.get("source", ""), include_hidden=_flag(q.get("hidden", "")), collection=q.get("collection", ""))
     return Response({"ideas": rows, **bank.facets(), "shown": len(rows)})
 
 

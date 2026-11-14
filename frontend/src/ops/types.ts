@@ -279,6 +279,11 @@ export interface Catalog {
   ollama: { model: string; fa: string; en: string; gb: number }[]
   targets: { id: string; name: string; name_en: string; online: boolean; can_download?: boolean }[]
   config: OpsConfig
+  /** this PC's free disk where the files land (null = not known), and the two sizes the interface and the server care about */
+  free_bytes?: number | null
+  free_gb?: number | null
+  big_bytes?: number
+  spare_bytes?: number
 }
 
 export interface VersionInfo {

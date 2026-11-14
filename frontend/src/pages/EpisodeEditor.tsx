@@ -4,12 +4,14 @@ import { api } from '../api/client'
 import type { Episode, EpisodeState, Job, PageDetail, Script } from '../api/types'
 import { STATE_ORDER } from '../api/types'
 import { useConfirm, useToast } from '../components/feedback'
+import { Fold } from '../components/Fold'
 import { BUSY_STATES, ErrorText, JobView, StateBadge } from '../components/domain'
 import { Badge, Button, Card, Empty, ErrorState, LinkButton, Loading, Notice, PageHead, Tabs, TextField } from '../components/ui'
 import { EXPLAINER } from '../formats'
 import { useAction, useHashTabOpt, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 import { Production, activeProdJobs } from './episode/Production'
+import { QcSummary, VideoPlayer, topVideo } from './episode/Player'
 import { Events, Research, Versions } from './episode/Research'
 import { ScriptEditor } from './episode/ScriptEditor'
 import { StoryboardEditor } from './episode/StoryboardEditor'
@@ -98,6 +100,9 @@ export default function EpisodeEditor() {
     q.reload()
   }
 
+  const next = (
+    <NextStep ep={ep} hasShots={shots.length > 0} scriptDirty={scriptDirty} isExplainer={isExplainer} setTab={setTab} onChanged={refresh} onRebuild={rebuild} onEpisode={(e) => { q.setData(e); rebuild() }} jobsActive={jobsActive} />
+  )
   return (
     <div className="stack">
       <PageHead title={ep.title || t('episode.untitled', { n: ep.number })} crumbs={crumbs}>
@@ -107,18 +112,21 @@ export default function EpisodeEditor() {
         </div>
       </PageHead>
       <TitleEditor ep={ep} onSaved={refresh} />
+      {/* A finished video is what the owner came for: the card with the player and the approve button comes BEFORE the summary and the row of steps (those were 300-400 px of the first screen). */}
+      {topVideo(ep) && next}
       {(ep.logline || ep.goal || ep.cliffhanger) && (
-        <Card soft>
+        // closed on a phone (it was 280 px of the first screen), open on a wide screen
+        <Fold title={t('ed.summary_fold')} open={!window.matchMedia?.('(max-width: 760px)').matches} testid="fold-summary">
           <dl className="kv small">
             {ep.logline && (<><dt>{t('sb.ep_logline')}</dt><dd>{ep.logline}</dd></>)}
             {ep.goal && (<><dt>{t('sb.goal')}</dt><dd>{ep.goal}</dd></>)}
             {ep.cliffhanger && (<><dt>{t('sb.cliffhanger')}</dt><dd>{ep.cliffhanger}</dd></>)}
           </dl>
-        </Card>
+        </Fold>
       )}
 
       <Stepper ep={ep} onChanged={rebuild} />
-      <NextStep ep={ep} hasShots={shots.length > 0} scriptDirty={scriptDirty} isExplainer={isExplainer} setTab={setTab} onChanged={refresh} onRebuild={rebuild} onEpisode={(e) => { q.setData(e); rebuild() }} jobsActive={jobsActive} />
+      {!topVideo(ep) && next}
 
       <Tabs tabs={tabs.map((k) => ({ key: k, label: labels[k] }))} value={tab} onChange={setTab} label={t('ed.tabs')} />
 
@@ -198,9 +206,28 @@ function Stepper({ ep, onChanged }: { ep: Episode; onChanged: () => void }) {
     const r = await act.run(async () => { await api.post(`/episodes/${ep.id}/transition`, { to: s, reason: 'manual (stepper)' }); return true })
     if (r) onChanged()
   }
+  // The row of steps is wider than the page on most screens: bring the CURRENT step to the middle of the row (the row only, never the page), in either
+  // text direction (scrollLeft moves the same way for «content to the left» in both).
+  const list = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    const center = () => {
+      const ol = list.current
+      const now = ol?.querySelector<HTMLElement>('[aria-current="step"]')
+      if (!ol || !now) return
+      const o = ol.getBoundingClientRect()
+      const e = now.getBoundingClientRect()
+      ol.scrollLeft += e.left + e.width / 2 - (o.left + o.width / 2)
+    }
+    center()
+    void document.fonts?.ready.then(center)      // the web font changes the widths a moment later
+    window.addEventListener('resize', center)
+    return () => window.removeEventListener('resize', center)
+  }, [ep.state, ep.failed_state])
+  const stateName = cur >= 0 ? tr('state.' + STATE_ORDER[cur], STATE_ORDER[cur]) + (failed ? ` — ${t('state.failed')}` : '') : tr('state.' + ep.state, ep.state)
   return (
-    <nav aria-label={t('ed.stepper')}>
-      <ol className="state-steps" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <nav aria-label={t('ed.stepper')} data-testid="state-stepper">
+      {cur >= 0 && <p className="state-summary strong" data-testid="state-summary">{t('ed.step_of', { n: cur + 1, total: STATE_ORDER.length, state: stateName })}</p>}
+      <ol className="state-steps" ref={list} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
         {ep.state === 'cancelled' && (
           <li><span className="state-step failed">{t('state.cancelled')}</span></li>
         )}
@@ -220,7 +247,7 @@ function Stepper({ ep, onChanged }: { ep: Episode; onChanged: () => void }) {
           )
         })}
       </ol>
-      <p className="small muted">{t('ed.stepper_hint')}</p>
+      <p className="small muted state-hint">{t('ed.stepper_hint')}</p>
     </nav>
   )
 }
@@ -336,6 +363,7 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
       <>
         <p>{t(s === 'quality_review' ? 'next.quality' : 'next.ready')}</p>
         {latest?.role === 'preview' && <Notice tone="info">{t('next.preview_only')}</Notice>}
+        <QcSummary ep={ep} more={<div><Button size="sm" variant="ghost" onClick={() => setTab('production')}>{t('next.qc_details')}</Button></div>} />
         <div className="row">
           <Button variant="primary" icon="check" busy={act.busy} disabled={!hasVideo} onClick={approve}>{t('next.approve')}</Button>
           <Button icon="film" busy={act.busy} disabled={jobsActive} onClick={() => produce('final')}>{t('prod.make_final')}</Button>
@@ -380,10 +408,17 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
   }
 
   const canCancel = ep.allowed_next.some((a) => a.state === 'cancelled')
+  // A finished video is the thing the owner came for: the player sits at the top, next to what to do about it (it used to be two screens further down).
+  const tv = topVideo(ep)
   return (
     <Card className="next-card" title={<span className="row"><Badge tone={tone}>{t('next.title')}</Badge></span>} actions={canCancel ? <Button size="sm" variant="ghost" onClick={cancelEp}>{t('next.cancel')}</Button> : undefined}>
       <div className="stack">
-        {body}
+        {tv ? (
+          <div className="next-review" data-testid="next-review">
+            <VideoPlayer ep={ep} v={tv} label={t(tv.role === 'final' ? 'prod.final' : 'prod.preview')} />
+            <div className="stack">{body}</div>
+          </div>
+        ) : body}
         {active.length > 0 && (
           <div className="stack-sm">
             {active.slice(0, 3).map((j) => (

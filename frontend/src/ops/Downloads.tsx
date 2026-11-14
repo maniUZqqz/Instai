@@ -6,6 +6,7 @@ import { useAction, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 import { StateBadge } from './Queue'
 import { CuratedLibrary } from './Curated'
+import { DiskNote, diskState, useBigDownloadConfirm } from './Disk'
 import { ScheduleField } from './ScheduleField'
 import type { Catalog, OpsConfig, QueueRow, When } from './types'
 
@@ -54,8 +55,12 @@ function AddCard({ cat, onAdded }: { cat: Catalog; onAdded: () => void }) {
   const when = useRef<When>({ mode: 'now' })
   const targets = cat.targets.map((x) => ({ value: x.id, label: (lang === 'en' ? x.name_en : x.name) + (x.online ? '' : ' — ' + t('ops.node.offline')) }))
   const sel = cat.packages.find((p) => p.id === pkg)
+  const local = target === 'local'
+  const need = sel ? sel.missing_size || sel.size : 0
+  const askBig = useBigDownloadConfirm(cat)
   const addPkg = async () => {
     if (!pkg) return
+    if (!(await askBig(need, local))) return
     await act.run(() => api.post('/downloads', { packages: [pkg], target, when: when.current }), { success: t('ops.dl.added') })
     onAdded()
   }
@@ -78,7 +83,8 @@ function AddCard({ cat, onAdded }: { cat: Catalog; onAdded: () => void }) {
                   options={todo.map((p) => ({ value: p.id, label: `${p.id} — ${f.bytes(p.missing_size || p.size)}` }))} />
                 {sel && <p className="small muted" dir="auto">{sel.title}</p>}
                 <SelectField label={t('ops.dl.target')} value={target} onChange={setTarget} options={targets} />
-                <div><Button variant="primary" icon="download" busy={act.busy} disabled={!pkg} onClick={addPkg}>{t('ops.dl.go')}</Button></div>
+                <DiskNote cat={cat} need={need} local={local} />
+                <div><Button variant="primary" icon="download" busy={act.busy} disabled={!pkg || !diskState(cat, need, local).fits} onClick={addPkg}>{t('ops.dl.go')}</Button></div>
                 <p className="small muted">{t('ops.dl.optional_note')} <Link to="/models">{t('nav.models')}</Link></p>
               </>
             )}

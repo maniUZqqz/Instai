@@ -82,6 +82,7 @@ def test_library_gallery_filters_duplicate_and_tabs(browser, server, size, lang)
     failures: list[str] = []
     try:
         page.locator(".style-card").first.wait_for(timeout=15000)
+        page.locator("[data-testid=styles-all]").click()          # the gallery shows a page of 36 cards first (audit round ia_ui)
         n = page.locator(".style-card").count()
         assert n >= 40, f"{n} style cards"
         chips = page.locator(".filter-chip")
@@ -153,6 +154,9 @@ def test_wizard_template_and_look_steps(browser, server, size, lang):
         nxt.click()  # -> look
         page.locator(".style-card").first.wait_for(timeout=15000)
         page.wait_for_function("() => document.querySelectorAll('.theme-card').length >= 16", timeout=15000)
+        assert page.locator(".style-card").count() == 6, "the look step shows six suggestions first (audit round ia_ui)"
+        page.locator("[data-testid=style-show-all]").click()
+        page.locator("[data-testid=style-gallery] .style-card").nth(5).wait_for(timeout=10000)
         assert page.locator(".style-card").count() >= 40 and page.locator(".theme-card").count() >= 16
         page.locator(".style-card").nth(5).click()
         page.screenshot(path=str(SHOTS / f"{size}-{lang}-wizard-look.png"))

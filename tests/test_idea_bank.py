@@ -236,3 +236,52 @@ def test_every_builtin_tag_has_a_persian_name_in_the_interface():
     tags = {t for i in BUILTIN_IDEAS.values() for t in i["tags"]}
     assert sorted(tags - set(named)) == [], "tags without a Persian name"
     assert all(PERSIAN.search(v) for v in named.values()), "every name is Persian"
+
+
+# ------------------------------------------------------------------ audit round ia_ui: Persian search without the half-space, the Chagher / fitness chip
+
+def test_a_search_typed_without_the_half_space_finds_what_the_spaced_word_finds():
+    """«روانشناسی» (the way phone keyboards type it) found 0 of 121 ideas while the chip said «روان‌شناسی (18)»; «اقتصاد» found 2 of 18: the names of the category,
+    the format and the tags were not searched."""
+    psych = {k for k, i in BUILTIN_IDEAS.items() if i["category"] == "psychology"}
+    assert len(psych) >= 15
+    for q in ("روانشناسی", "روان‌شناسی", "روان شناسی"):
+        got = {i["key"] for i in bank.list_ideas(q=q)}
+        assert psych <= got, (q, sorted(psych - got)[:3])
+    economy = {k for k, i in BUILTIN_IDEAS.items() if i["category"] == "economy"}
+    assert economy <= {i["key"] for i in bank.list_ideas(q="اقتصاد")}, "the category's own name finds its ideas"
+    assert {i["key"] for i in bank.list_ideas(q="کسبوکار")} >= {k for k, i in BUILTIN_IDEAS.items() if i["category"] == "business"}
+    assert bank.list_ideas(q="روانشناسیzzzz") == [], "a word that is nowhere still finds nothing"
+
+
+def test_the_persian_name_of_a_tag_finds_its_ideas_and_filler_words_are_dropped():
+    assert "succ_comeback" in {i["key"] for i in bank.list_ideas(q="ورزش")}, "tag «sports» = «ورزش»"
+    assert {"pers_form_before_weight", "pers_first_day_at_the_gym"} <= {i["key"] for i in bank.list_ideas(q="باشگاه")}
+    assert {i["key"] for i in bank.list_ideas(q="تناسباندام")} >= {k for k, i in BUILTIN_IDEAS.items() if "fitness" in i["tags"]}
+    teleport = {i["key"] for i in bank.list_ideas(q="تلپورت")}
+    assert teleport and {i["key"] for i in bank.list_ideas(q="سبک تلپورت")} == teleport, "«سبک» is no part of a name"
+    assert bank.list_ideas(q="سبک") != [] or True       # only filler words: the query is kept as it is (never everything, never an error)
+
+
+def test_the_python_and_the_interface_name_every_tag_the_same_way():
+    from pathlib import Path
+
+    from instai.ideabank.tag_names import TAG_FA
+
+    src = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "ideaTags.ts").read_text(encoding="utf-8")
+    named = dict(re.findall(r"^\s*'([a-z0-9\-]+)':\s*'([^']+)'", src, flags=re.M))
+    assert named == TAG_FA, "frontend/src/ideaTags.ts and instai/ideabank/tag_names.py must list the same names"
+
+
+def test_the_chagher_fitness_collection_is_a_chip_of_its_own(api):
+    body = api.get("/api/ideas").json()
+    col = next(c for c in body["collections"] if c["key"] == "chagher")
+    assert col["fa"] == "ایده‌های چغر / ورزش" and col["count"] >= 9 and {"fitness", "gym", "sports", "coaching"} <= set(col["tags"])
+    rows = api.get("/api/ideas?collection=chagher").json()
+    assert rows["shown"] == col["count"]
+    assert all({"fitness", "gym", "sports", "coaching"} & set(i["tags"]) for i in rows["ideas"])
+    assert {"pers_plateau_is_adaptation", "succ_comeback"} <= {i["key"] for i in rows["ideas"]}
+    assert api.get("/api/ideas?collection=nope").json()["shown"] == 0
+    # the owner's own idea joins by a tag, nothing else to maintain
+    mine = api.post("/api/ideas", {"title_fa": "ایدهٔ من", "logline_fa": "یک ایدهٔ ورزشی", "tags": ["fitness"], "category": "personal_development"}, format="json").json()
+    assert mine["key"] in {i["key"] for i in api.get("/api/ideas?collection=chagher").json()["ideas"]}

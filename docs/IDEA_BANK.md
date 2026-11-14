@@ -17,11 +17,14 @@ copies, imported and AI-written ideas live in the database (`UserIdea`); stars a
   invented figures, studies or quotes; example numbers are made up and said to be. One story that is often told but historically debated (the cobra
   effect) says so. Stories use made-up people only. No real brand, person or franchise.
 
-* Tags are stored as short English words (they stay the filter/search keys). The Persian interface shows Persian names from `frontend/src/ideaTags.ts` (a tag the owner typed himself is shown as written); `tests/test_idea_bank.py` checks every built-in tag has one, and the search box also finds ideas by the Persian tag name.
+* Tags are stored as short English words (they stay the filter/search keys). The Persian interface shows Persian names from `frontend/src/ideaTags.ts` (a tag the owner typed himself is shown as written); `tests/test_idea_bank.py` checks every built-in tag has one, and the search box also finds ideas by the Persian tag name (`instai/ideabank/tag_names.py` is the Python copy of that list; a test keeps the two equal).
+
+* **Search (audit round ia_ui)** looks in the texts, the tags (English word + Persian name), the names of the category and of the format, and the key. A word of three letters or more also matches with the half-spaces and spaces removed from the text, so «روانشناسی» (typed on a phone) finds «روان‌شناسی»; filler words such as «سبک» / «style» are dropped. The same rules run in `frontend/src/library.ts` (`fold`, `queryWords`, `allWordsIn`) and `instai/styles/library.py` (`_fold`, `query_words`, `all_words_in`); keep them in step.
+* **Collections**: a collection is a chip beside the categories made of the ideas that carry one of its tags (`bank.COLLECTIONS`). «ایده‌های چغر / ورزش» = tags `fitness`, `gym`, `sports`, `coaching`; an idea the owner tags `fitness` joins it by itself. It is not a category (the six categories are the owner's brief).
 
 ## API
 
-`GET /api/ideas` (`q`, `category`, `tag`, `fmt`, `favorite`, `source=builtin|mine`, `hidden`) returns `{ideas, categories, formats, tags, total, shown}`;
+`GET /api/ideas` (`q`, `category`, `collection`, `tag`, `fmt`, `favorite`, `source=builtin|mine`, `hidden`) returns `{ideas, categories, collections, formats, tags, total, shown}`;
 `POST /api/ideas` creates; `GET/PATCH/DELETE /api/ideas/<key>` (built-ins are read-only: 409); `POST .../duplicate`, `.../mark {favorite, hidden}`,
 `GET /api/ideas/random`, `POST /api/ideas/generate {category, count, instruction}` (a job, `ideas.generate`), and
 `POST /api/ideas/<key>/start {page_id | page_name, language, style_key, theme_key, episodes, title}` = **«شروعِ پروژه از این ایده»**.
