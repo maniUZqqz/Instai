@@ -877,3 +877,56 @@ def test_the_frames_really_go_to_the_owners_vision_model_through_instais_own_oll
     assert user["role"] == "user" and len(user["images"]) == len(shots) and "PLAN:" in user["content"] and "scene" in user["content"]
     assert base64.b64decode(user["images"][0])[:3] == b"\xff\xd8\xff", "a JPEG frame"
     assert res["verdict"] == "ok" and res["issues"] == []
+
+
+def test_the_three_self_test_rows_judge_what_they_see(monkeypatch, tmp_path):
+    """The rows of the PC self-test (instai/ops/pcselftest.py): the library (always), the frames of every component (when Remotion is ready), the visual critique (when Ollama has a vision model)."""
+    from instai.motion_plan import critique, qa_browser, selftest
+    from instai.ops import pcselftest as st
+    from instai.providers.base import ProviderError
+    from instai.providers.fake import FakeProvider
+    from instai.remotion import toolchain
+
+    row = st.check_motion_library(tmp_path)
+    assert row["verdict"] == "ok" and row["metrics"]["components"] == 19 and "۱۹" in row["reason_fa"] and "19 components" in row["reason_en"]
+    assert {"motion_library", "motion_frames", "motion_critique"} <= set(st.BY_KEY) and st.BY_KEY["motion_library"].get("ready") is None, "the library row needs nothing and waits for nothing"
+    # frames: wait for the toolchain, then judge the report
+    monkeypatch.setattr(toolchain, "status", lambda: {"ready": False})
+    assert st.check_motion_frames(tmp_path)["verdict"] == "pending"
+    monkeypatch.setattr(toolchain, "status", lambda: {"ready": True})
+    good = {"rendered": 57, "render_errors": [], "findings": [], "components": list(range(19)), "sizes": [1, 2, 3]}
+    monkeypatch.setattr(selftest, "run_every_component", lambda *a, **k: good)
+    ok = st.check_motion_frames(tmp_path)
+    assert ok["verdict"] == "ok" and ok["metrics"]["rendered"] == 57
+    finding = {"severity": "error", "component": "stat", "size": "vertical", "message": "متن بیرون زده", "message_en": "text spills out", "code": "overflow"}
+    monkeypatch.setattr(selftest, "run_every_component", lambda *a, **k: {**good, "findings": [finding]})
+    bad = st.check_motion_frames(tmp_path)
+    assert bad["verdict"] == "fail" and "stat" in bad["reason_en"] and "text spills out" in bad["reason_en"]
+    monkeypatch.setattr(selftest, "run_every_component", lambda *a, **k: {**good, "findings": [{**finding, "severity": "warn"}]})
+    assert st.check_motion_frames(tmp_path)["verdict"] == "warn"
+    monkeypatch.setattr(selftest, "run_every_component", lambda *a, **k: {**good, "rendered": 40, "render_errors": ["vertical: x"]})
+    assert st.check_motion_frames(tmp_path)["verdict"] == "fail"
+
+    def boom(*a, **k):
+        raise RuntimeError("no browser")
+
+    monkeypatch.setattr(selftest, "run_every_component", boom)
+    assert st.check_motion_frames(tmp_path)["verdict"] == "fail"
+    # critique: no vision model = skipped (the rules still run), Ollama off = pending, an answer = ok
+    def no_model():
+        raise ProviderError("none", retryable=False, code="no_vision_model")
+
+    def ollama_off():
+        raise ProviderError("down", code="ollama_down")
+
+    monkeypatch.setattr(critique, "vision_provider", no_model)
+    assert st.check_motion_critique(tmp_path)["verdict"] == "skip"
+    monkeypatch.setattr(critique, "vision_provider", ollama_off)
+    assert st.check_motion_critique(tmp_path)["verdict"] == "pending"
+    prov = FakeProvider()
+    prov.model_name = "qwen3-vl:30b"
+    prov.scripted = {"verdict": "ok", "issues": [], "ops": []}
+    monkeypatch.setattr(critique, "vision_provider", lambda: prov)
+    monkeypatch.setattr(qa_browser, "make_measure", lambda *a, **k: make_measure_fake(None))
+    done = st.check_motion_critique(tmp_path)
+    assert done["verdict"] == "ok" and done["metrics"]["answer"] == "ok", done

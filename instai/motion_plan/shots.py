@@ -70,6 +70,18 @@ def render_size(ep) -> str:
     return "vertical"
 
 
+#: the network the page publishes to => the platform whose UI bars the vertical layout keeps clear of (motionlib.PLATFORMS)
+PLATFORM_OF = {"instagram": "reels", "youtube": "shorts", "tiktok": "tiktok", "telegram": "telegram", "aparat": "telegram"}
+
+
+def platform_of(ep) -> str:
+    """The safe area the layout keeps: the page's publishing network for a vertical video, the usual one of its size otherwise."""
+    size = render_size(ep)
+    if size != "vertical":
+        return motionlib.DEFAULT_PLATFORM.get(size, "")
+    return PLATFORM_OF.get(str(page_of(ep).profile("publishing").get("platform") or ""), motionlib.DEFAULT_PLATFORM["vertical"])
+
+
 def render_scale(ep, mode: str) -> float:
     """The renderer's scale of the composition (1 = 1080 x 1920): the preview is drawn small, the final at the page's final height. Remotion needs the scaled width and height to be
     whole numbers (and h264 even ones): the scale is a multiple of 1/120 for which that holds in every size (a rounded 0.333 once made 638.361 and the render failed)."""
@@ -123,7 +135,7 @@ def inputs_hash(shot, ep, seconds: float) -> str:
     """What a generated plan depends on; when it changes an UNEDITED generated plan is written again."""
     style, theme = look_keys(ep)
     ser = series_context(ep, shot)
-    return _h("plan", narration_of(shot), round(seconds, 1), style, theme, render_size(ep), page_of(ep).language, ser["title"], ser["episode"], ser["episode_title"])
+    return _h("plan", narration_of(shot), round(seconds, 1), style, theme, render_size(ep), platform_of(ep), page_of(ep).language, ser["title"], ser["episode"], ser["episode_title"])
 
 
 def latest_plan(shot) -> MotionPlan | None:
@@ -155,7 +167,7 @@ def ensure_plan(shot, ep, *, ctx=None, provider=None, force: bool = False) -> Mo
     if ctx is not None:
         ctx.live(phase="planning", shot=shot.pk)
     spec, info = role.write_plan(narration_of(shot), seconds=seconds, kit=kit, style=style, theme=theme, size=render_size(ep), lang=lang if lang in ("fa", "en") else "fa",
-                                 series=ser, platform="", sources=srcs, allowed_sources=allowed, provider=provider)
+                                 series=ser, platform=platform_of(ep), sources=srcs, allowed_sources=allowed, provider=provider)
     if plan is None:
         plan = plans.create(spec, shot=shot, origin=info["origin"], source=info["origin"] if info["origin"] in plans.SOURCES else "ai", label="Version 1: " + info["origin"])
     else:
@@ -178,7 +190,7 @@ def prepare_plans(ep) -> int:
             continue
         seconds = target_seconds(s, ep)
         spec = fallback.make_plan(narration_of(s), seconds, lang=lang if lang in ("fa", "en") else "fa", style=style, theme=theme, size=render_size(ep), series=series_context(ep, s),
-                                  sources=verified_sources(ep), kit=kit, allowed_sources=[x["title"] for x in verified_sources(ep)])
+                                  platform=platform_of(ep), sources=verified_sources(ep), kit=kit, allowed_sources=[x["title"] for x in verified_sources(ep)])
         plan = plans.create(spec, shot=s, origin="fallback", source="fallback", label="Version 1: fallback")
         MotionPlan.objects.filter(pk=plan.pk).update(source_hash=inputs_hash(s, ep, seconds))
         n += 1

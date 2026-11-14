@@ -428,7 +428,7 @@ def check_motion_critique(work: Path) -> dict:
     secs = round(time.time() - t0, 1)
     return _r("ok", f"مدل بینایی ({prov.model}) فریم‌ها را دید و نظر داد: {'مشکلی نبود' if res['verdict'] == 'ok' else _fd(len(res['ops'])) + ' اصلاح پیشنهاد شد'} ({_fd(secs)} ثانیه).",
               f"The vision model ({prov.model}) looked at the frames and answered: {'no problem' if res['verdict'] == 'ok' else str(len(res['ops'])) + ' fix(es) suggested'} ({secs} s).",
-              model=prov.model, verdict=res["verdict"], issues=len(res["issues"]), seconds=secs)
+              model=prov.model, answer=res["verdict"], issues=len(res["issues"]), seconds=secs)
 
 
 class SimpleNamespaceCtx:
