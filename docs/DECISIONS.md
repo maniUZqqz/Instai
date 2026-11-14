@@ -203,7 +203,7 @@ Checked and found already fixed (nothing to do): the `frontend/node_modules` sym
 
 Not done, with the reason (all need the GPU PC or are advice by design): the real sample picture of each of the 116 styles (0 of 116: the worker makes them by itself once ComfyUI answers; their quality has never been seen), the Qwen multi-reference / vision / AI-picture checks (`studio.selftest` runs them by itself when the PC is on), LoRA / sampler hints stay advice (4 of 116 styles name a LoRA; nothing is downloaded because a LoRA's licence must be read first), the fixed preview subject stays "a person at a desk in a small room" (a drawn stick figure is not what an image model makes well), `hf-mirror.com` answers every request with a redirect to huggingface.co (checked from the server) so the mirror links only help where huggingface.co itself is blocked and the mirror is not - nothing to fix on our side, the PuLID node still needs `insightface` inside ComfyUI's Python (the card says so).
 
-## Audit round «ia_core» (0.14.0, the 2026-11-14 quality audit)
+## Audit round «ia_core» (0.15.0, the 2026-11-14 quality audit)
 
 Source: `/root/stage/audit/batch-ia_core.json` (the audit measured 0.12.0; every item was re-checked on 0.13.0 first).
 

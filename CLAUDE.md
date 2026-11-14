@@ -105,7 +105,7 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **Remotion looks**: a style's `motif` selects its drawn surface in `remotion/src/kit/Look.tsx` (`LOOKS`) or must be listed in `PLAIN_MOTIFS`; `tests/test_remotion.py` checks every motif of the library. A look is CSS / SVG only, deterministic per frame, close to the style's background tones, and never paints text. A new style = a `motif` that already has a look, or one new `Maker` there.
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
-## Audit round «ia_core» (0.14.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
+## Audit round «ia_core» (0.15.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
 - **Never roll an episode back with `services.transition` from a job's `except`**: use `services.release_scripting` (compare-and-set, never raises) and let the original exception reach the worker.
 - **A new technique that may not be rendered as planned** goes into `production/fallbacks.shot_fallback` (fa + en text); never write a fallback note by hand. `GET/POST /episodes/<id>/preflight` and `auto_rig` on produce make the stick-figure puppet.
 - **A new automation step of the worker** = one entry in `worker.tick_steps()` + a label in `TICK_LABELS` (fa + en); it must not rely on the steps before it.

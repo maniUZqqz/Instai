@@ -1,4 +1,4 @@
-// Audit batch "ia_core" (0.14.0): recovery of a stuck script, the automatic-upkeep warning, technical-details toggle, the pre-flight of
+// Audit batch "ia_core" (0.15.0): recovery of a stuck script, the automatic-upkeep warning, technical-details toggle, the pre-flight of
 // production (puppets), the update badge, plain-Persian provider hints. One value per line, single quotes only (tests/test_i18n.py reads this file line by line).
 export const fa: Record<string, string> = {
   'common.tech': 'اطلاعات فنی',
