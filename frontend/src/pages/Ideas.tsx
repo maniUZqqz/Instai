@@ -43,7 +43,7 @@ export default function IdeasPage() {
   useTitle(t('ideas.title'))
   const [showHidden, setShowHidden] = useState(false)
   const q = useQuery<IdeasPayload>(showHidden ? '/ideas?hidden=1' : '/ideas')
-  const [text, setText] = useState('')
+  const [text, setText] = useState(() => { try { return new URLSearchParams(window.location.search).get('q') ?? '' } catch { return '' } })   // /ideas?q=<key>: the link from a project's development room
   const [category, setCategory] = useState('')
   const [collection, setCollection] = useState('')
   const [shownCount, setShownCount] = useState(IDEA_PAGE)

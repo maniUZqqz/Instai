@@ -1,6 +1,7 @@
 import { api } from '../../api/client'
 import type { Episode, EpisodeEstimate, Job, PageDetail, Shot } from '../../api/types'
-import { useConfirm } from '../../components/feedback'
+import { useChoose, useConfirm } from '../../components/feedback'
+import { askAboutPuppets } from './preflight'
 import { JobView } from '../../components/domain'
 import { Fold } from '../../components/Fold'
 import { Badge, Button, Card, Notice, Progress } from '../../components/ui'
@@ -84,6 +85,7 @@ export function EstimateCard({ ep, page, fold, open }: { ep: Episode; page: Page
 export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; page: PageDetail | undefined; onChanged: () => void; onProduced: () => void }) {
   const { t, f, tr } = useI18n()
   const confirm = useConfirm()
+  const choose = useChoose()
   const act = useAction()
   const active = ep.jobs.filter(isActive)
   const shots: Shot[] = ep.scenes.flatMap((s) => s.shots)
@@ -97,7 +99,9 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
       const ok = await confirm({ message: t('prod.final_confirm', { g: f.duration(est.modes.final.gpu_seconds) }), confirmLabel: t('prod.make_final') })
       if (!ok) return
     }
-    const r = await act.run(() => api.post(`/episodes/${ep.id}/produce`, { mode }), { success: t('prod.started') })
+    const pf = await askAboutPuppets(ep.id, choose, t)          // a character without a puppet: offer one click instead of a silent still
+    if (!pf.go) return
+    const r = await act.run(() => api.post(`/episodes/${ep.id}/produce`, { mode, auto_rig: pf.auto_rig }), { success: t('prod.started') })
     if (r) {
       onChanged()
       onProduced()
@@ -240,7 +244,7 @@ function QcCard({ ep }: { ep: Episode }) {
   const icon = { ok: 'check', warn: 'alert', fail: 'close', info: 'info' } as const
   const tone = { ok: 'var(--ok)', warn: 'var(--warn)', fail: 'var(--err)', info: 'var(--info)' } as const
   return (
-    <Card title={t('prod.qc_title')} actions={<Badge tone={ep.qc.ok ? 'ok' : 'err'}>{ep.qc.ok ? t('prod.qc_ok') : t('prod.qc_fail')}</Badge>}>
+    <Card title={t('prod.qc_title')} actions={<Badge tone={!ep.qc.ok ? 'err' : ep.qc.warnings ? 'warn' : 'ok'}>{!ep.qc.ok ? t('prod.qc_fail') : ep.qc.warnings ? t('prod.qc_warn', { n: ep.qc.warnings }) : t('prod.qc_ok')}</Badge>}>
       <ul className="qc-list">
         {checks.map((c, i) => (
           <li key={i}>

@@ -3,8 +3,9 @@ import { useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Episode, EpisodeState, Job, PageDetail, Script } from '../api/types'
 import { STATE_ORDER } from '../api/types'
-import { useConfirm, useToast } from '../components/feedback'
 import { Fold } from '../components/Fold'
+import { useChoose, useConfirm, useToast } from '../components/feedback'
+import { askAboutPuppets } from './episode/preflight'
 import { BUSY_STATES, ErrorText, JobView, StateBadge } from '../components/domain'
 import { Badge, Button, Card, Empty, ErrorState, LinkButton, Loading, Notice, PageHead, Tabs, TextField } from '../components/ui'
 import { EXPLAINER } from '../formats'
@@ -266,6 +267,7 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
   }) {
   const { t, tr } = useI18n()
   const confirm = useConfirm()
+  const choose = useChoose()
   const act = useAction()
   const post = <T,>(path: string, body: unknown = {}, success?: string) => act.run(() => api.post<T>(`/episodes/${ep.id}/${path}`, body), { success })
   const active = ep.jobs.filter(isActive)
@@ -283,7 +285,11 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
     const r = await post<Episode>('approve-storyboard', {}, t('next.board_approved'))
     if (r) { onEpisode(r); setTab('production') }
   }
-  const produce = async (mode: 'preview' | 'final') => { if (await post('produce', { mode }, t('prod.started'))) { onChanged(); setTab('production') } }
+  const produce = async (mode: 'preview' | 'final') => {
+    const pf = await askAboutPuppets(ep.id, choose, t)             // a character without a puppet: one click instead of a silent still
+    if (!pf.go) return
+    if (await post('produce', { mode, auto_rig: pf.auto_rig }, t('prod.started'))) { onChanged(); setTab('production') }
+  }
   const approve = async () => {
     if (!(await confirm({ message: t('next.approve_confirm'), confirmLabel: t('next.approve') }))) return
     const r = await post<Episode>('approve', {}, t('next.approved'))
@@ -316,7 +322,14 @@ function NextStep({ ep, hasShots, scriptDirty, isExplainer, setTab, onChanged, o
       </>
     )
   } else if (s === 'scripting') {
-    body = <p>{t('next.scripting')}</p>
+    body = active.some((j) => j.kind === 'story.script') ? <p>{t('next.scripting')}</p> : (
+      <>
+        <Notice tone="warn">{t('next.script_stuck')}</Notice>
+        <div className="row">
+          <Button variant="primary" icon="refresh" busy={act.busy} onClick={async () => { const r = await act.run(async () => { await api.post(`/episodes/${ep.id}/transition`, { to: 'planned', reason: 'script job gone' }); return true }); if (r) onRebuild() }}>{t('next.script_stuck_btn')}</Button>
+        </div>
+      </>
+    )
   } else if (s === 'script_review') {
     body = (
       <>

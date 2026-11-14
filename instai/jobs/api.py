@@ -60,7 +60,10 @@ def job_detail(request, pk):
 def job_logs(request, pk):
     after = int(request.query_params.get("after", 0))
     logs = JobLog.objects.filter(job_id=pk, id__gt=after).order_by("id")[:500]
-    return Response([{"id": l.id, "at": l.at, "level": l.level, "message": l.message} for l in logs])
+    from . import logtext
+
+    return Response([{"id": l.id, "at": l.at, "level": l.level, "message": l.message, "code": l.code, "text_fa": logtext.texts(l.code, l.params)[0],
+                      "text_en": logtext.texts(l.code, l.params)[1]} for l in logs])
 
 
 @api_view(["POST"])
@@ -77,6 +80,17 @@ def job_retry(request, pk):
     return Response(JobSerializer(queue.requeue(job, reset_attempts=True)).data)
 
 
+def tick_errors_of(w: Worker) -> list[dict]:
+    """The automation steps of this worker's 30-second tick that failed last time (see worker.run_tick_steps), named in both languages."""
+    from .worker import TICK_LABELS
+
+    out = []
+    for key, e in ((w.info or {}).get("tick_errors") or {}).items():
+        fa, en = TICK_LABELS.get(key, (key, key))
+        out.append({"step": key, "label_fa": fa, "label_en": en, "since": e.get("at"), "error": e.get("error", "")})
+    return out
+
+
 @api_view(["GET"])
 def monitor(request):
     """Queue + workers + GPU in one call for the production monitor."""
@@ -86,7 +100,7 @@ def monitor(request):
     active = Job.objects.filter(status__in=[Job.QUEUED, Job.RUNNING]).select_related(*rel).order_by("status", "-priority", "id")[:100]
     recent = Job.objects.filter(status__in=[Job.SUCCEEDED, Job.FAILED, Job.CANCELLED]).select_related(*rel).order_by("-finished_at", "-id")[:30]
     workers = [{"name": w.name, "pid": w.pid, "alive": bool(w.last_seen and now - w.last_seen < timedelta(seconds=30)), "last_seen": w.last_seen,
-                "current_jobs": w.current_jobs, "info": w.info} for w in Worker.objects.all()]
+                "current_jobs": w.current_jobs, "info": w.info, "tick_errors": tick_errors_of(w)} for w in Worker.objects.all()]
     gpu = hardware.gpu_status()
     holder = Job.objects.filter(status=Job.RUNNING, resource="gpu").first()
     return Response({"active": JobSerializer(active, many=True).data, "recent": JobSerializer(recent, many=True).data, "workers": workers,
