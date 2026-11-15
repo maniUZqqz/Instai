@@ -10,6 +10,8 @@ import re
 
 from django.utils import timezone
 
+from .progress_text import persian as progress_persian
+
 # kind -> (Persian, English): the step in plain words
 KIND_TEXT: dict[str, tuple[str, str]] = {
     "story.strategy": ("پیشنهاد استراتژی صفحه", "Page strategy proposal"),
@@ -222,7 +224,7 @@ def _line(job, live: dict, now) -> tuple[str, str, str]:
         fa_parts.append(PHASE_FA[phase])
         en_parts.append(PHASE_EN[phase])
     elif job.progress_text:
-        fa_parts.append(job.progress_text)
+        fa_parts.append(progress_persian(job.progress_text))
         en_parts.append(job.progress_text)
     return phase or "running", " · ".join(fa_parts), " · ".join(en_parts)
 
@@ -243,6 +245,6 @@ def activity(job, cache: dict | None = None) -> dict:
     if eta is None and job.status == "running" and job.estimated_sec and job.started_at:
         eta = max(0.0, job.estimated_sec - (now - job.started_at).total_seconds())
     return {"title_fa": t_fa, "title_en": t_en, "for_fa": for_fa, "for_en": for_en, "phase": phase, "model": live.get("model") or "",
-            "device": device, "device_fa": d_fa, "device_en": d_en, "warn": warn, "line_fa": line_fa, "line_en": line_en,
+            "device": device, "device_fa": d_fa, "device_en": d_en, "warn": warn, "line_fa": line_fa, "line_en": line_en, "note_fa": progress_persian(job.progress_text or ""), "note_en": job.progress_text or "",
             "step": live.get("step"), "steps": live.get("steps"), "tokens": live.get("tokens"), "tps": live.get("tps"),
             "eta_sec": round(eta) if eta is not None else None}

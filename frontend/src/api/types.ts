@@ -16,6 +16,8 @@ export interface JobActivity {
   warn: boolean
   line_fa: string
   line_en: string
+  note_fa?: string
+  note_en?: string
   step: number | null
   steps: number | null
   tokens: number | null

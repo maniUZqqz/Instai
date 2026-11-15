@@ -77,10 +77,15 @@ export function useNow(active: boolean): number {
 }
 
 /** The text of a job's activity in the active language ('' when there is none). */
-export function activityText(a: JobActivity | undefined | null, field: 'title' | 'for' | 'line' | 'device', lang: 'fa' | 'en'): string {
+export function activityText(a: JobActivity | undefined | null, field: 'title' | 'for' | 'line' | 'device' | 'note', lang: 'fa' | 'en'): string {
   if (!a) return ''
   const v = (a as unknown as Record<string, unknown>)[`${field}_${lang}`]
   return typeof v === 'string' ? v : ''
+}
+
+/** The short progress line of a job («shot clip 3/5») in the active language: the stored text is English, the activity carries the Persian twin. */
+export function jobNote(j: Pick<Job, 'progress_text' | 'activity'>, lang: 'fa' | 'en'): string {
+  return activityText(j.activity, 'note', lang) || j.progress_text || ''
 }
 
 /** A job's title in the active language: the activity title (what this step is) or else the title of its kind. */
@@ -121,6 +126,7 @@ export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; 
   const indeterminate = job.status === 'queued' || (job.status === 'running' && job.progress <= 0)
   const forText = activityText(job.activity, 'for', lang)
   const line = activityText(job.activity, 'line', lang)
+  const note = jobNote(job, lang)
   const eta = job.activity?.eta_sec
   const waitingGpu = job.activity?.phase === 'waiting_gpu'
   return (
@@ -142,7 +148,7 @@ export function JobView({ job, offline, onCancel, compact, extra }: { job: Job; 
       {active && line && !waitingGpu && <div className="small strong" dir="auto">{line}</div>}
       {active && <Progress value={job.progress} indeterminate={indeterminate} label={title} />}
       {active && job.status === 'running' && <div className="small muted">{f.percent(job.progress)}</div>}
-      {job.progress_text && active && job.progress_text !== line && <div className="small">{job.progress_text}</div>}
+      {active && note && note !== line && <div className="small">{note}</div>}
       {active && (job.waiting_reason || waitingGpu) && (
         <Notice tone="warn" icon="clock">
           {waitingGpu && line ? `${t('job.waiting')}: ${line}` : job.waiting_reason ? `${t('job.waiting')}: ${job.waiting_reason}` : t('job.waiting_gpu')}

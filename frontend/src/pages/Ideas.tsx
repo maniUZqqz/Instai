@@ -8,6 +8,7 @@ import { StylePicker, type Look } from '../components/StylePicker'
 import { AreaField, Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, Notice, NumberField, PageHead, Segmented, SelectField, TextField } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n, type Lang } from '../i18n'
+import { jobNote } from '../components/domain'
 import { allWordsIn, fold, queryWords, useLibrary } from '../library'
 import { TAG_FA, tagLabel } from '../ideaTags'
 
@@ -358,7 +359,7 @@ function GenerateBar({ categories, category, onDone }: { categories: IdeasPayloa
         </div>
         <div className="row">
           <Button icon="spark" variant="primary" busy={run.busy} onClick={() => run.start(() => api.post('/ideas/generate', { category: chosen, count: count ?? 5, instruction }))}>{t('ideas.gen_go')}</Button>
-          {run.job && !run.succeeded && <span className="small">{run.job.waiting_reason || run.job.progress_text || run.job.status}</span>}
+          {run.job && !run.succeeded && <span className="small">{run.job.waiting_reason || jobNote(run.job, lang) || run.job.status}</span>}
         </div>
         {run.failed && run.job && <Notice tone="warn">{(run.job.error || '').split('\n')[0]}</Notice>}
       </div>
