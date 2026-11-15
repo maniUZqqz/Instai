@@ -61,6 +61,12 @@ def shot_dict(s: Shot) -> dict:
             "clip": {"id": clip.pk, "url": clip.url} if clip else None}
 
 
+def captions_summary(e: Episode) -> dict:
+    from instai.production import captions as ep_captions
+
+    return ep_captions.summary(e)
+
+
 def episode_dict(e: Episode) -> dict:
     d = episode_brief(e)
     scenes = []
@@ -81,7 +87,7 @@ def episode_dict(e: Episode) -> dict:
         "sources": [{"id": s.pk, "title": s.title, "url": s.url, "publisher": s.publisher, "extract": s.extract, "claim": s.claim, "stance": s.stance,
                      "verified": s.verified, "added_by": s.added_by} for s in e.sources.all()],
         "jobs": JobSerializer(e.jobs.all()[:20], many=True).data,
-        "stale": stale_summary(e),
+        "stale": stale_summary(e), "captions": captions_summary(e),
         "fallbacks": _fallbacks_of(e),
     })
     return d

@@ -1,5 +1,35 @@
 [
   {
+    "version": "0.17.0",
+    "date": "2026-11-15",
+    "title": {
+      "fa": "زیرنویسِ کلمه‌به‌کلمه با هفت قالب برای شورتس و ریلز: درشت، کادرِ تیره، کارائوکه، ساده، نئونی، ماشین‌تحریر و آرام",
+      "en": "Word-by-word captions with seven presets for Shorts and Reels: big, dark box, karaoke, clean, neon, typewriter and quiet"
+    },
+    "items": [
+      {
+        "fa": "در تنظیماتِ هر صفحه (بخش «ظاهر») و در صفحهٔ «ساخت» هر قسمت می‌توانید قالبِ زیرنویس را انتخاب کنید. هفت قالبِ آزموده‌شده (درشت و پرانرژی، کادرِ تیره، کارائوکه با ماژیک، ساده و تمیز، نئونی، ماشین‌تحریر، آرام برای روایت) و همان زیرنویسِ ساده و همیشگیِ InstAI که اگر چیزی انتخاب نکنید هیچ چیزش عوض نمی‌شود.",
+        "en": "In every page's settings (the «Visual» section) and on every episode's production screen you can pick the caption preset: seven tried presets (big and punchy, dark box, karaoke marker, clean, neon, typewriter, quiet for narration) and the plain InstAI subtitle it always had, which changes nothing if you pick nothing."
+      },
+      {
+        "fa": "کلمه‌ای که گفته می‌شود در همان لحظه رنگی یا بزرگ‌تر می‌شود. زمانِ کلمه‌ها را برنامه از روی طولِ واقعیِ صدای هر نما و تعدادِ حرف‌ها تخمین می‌زند و در نتیجهٔ ساخت صریح می‌گوید «تخمینی» بوده؛ اگر موتورِ صدا زمانِ کلمه‌ها را بدهد از همان استفاده می‌شود.",
+        "en": "The word being spoken is coloured or enlarged at that moment. The program estimates each word's time from the real length of every shot's narration and the number of letters, and the render result says plainly that it was an estimate; if the voice engine reports word times, those are used."
+      },
+      {
+        "fa": "رنگ‌ها از سبکِ سریال می‌آیند (رنگِ تأکیدِ سبک = رنگِ کلمهٔ در حالِ گفتن، رنگِ زمینهٔ سبک = رنگِ کادر) و خوانایی (۴٫۵ به ۱) همیشه بررسی می‌شود، حتی روی عکسِ کاملاً سفید. حاشیهٔ امنِ ریلز، شورتس، تیک‌تاک، استوری، پست، یوتیوب، تلگرام و آپارات رعایت می‌شود؛ زیرنویسِ انگلیسی چپ‌به‌راست است.",
+        "en": "The colours come from the series look (the look's accent colour marks the spoken word, its background colour is the box) and the contrast (4.5 to 1) is always checked, even over a pure white picture. The safe zones of Reels, Shorts, TikTok, Story, feed posts, YouTube, Telegram and Aparat are kept; English captions run left to right."
+      },
+      {
+        "fa": "نمونهٔ هر قالب را خودِ موتورِ ساخت می‌کشد (نه شبیه‌سازی)، پس همان چیزی است که در ویدئو می‌بینید. کنارِ ویدئو یک فایلِ زیرنویسِ SRT هم ساخته می‌شود و در بستهٔ انتشار می‌آید (پلتفرم‌هایی که فایلِ زیرنویس می‌پذیرند، مثلاً یوتیوب، آن را به‌عنوانِ زیرنویسِ خودِ ویدئو نشان می‌دهند). حالتِ «فایل جدا» تصویر را تمیز نگه می‌دارد. چیزی خودکار منتشر نمی‌شود.",
+        "en": "Each preset's preview is drawn by the render engine itself (not imitated), so it is what you will see in the video. Beside the video an SRT subtitle file is made and goes into the publishing package (a platform that takes a subtitle file, YouTube for one, shows it as the video's own subtitles). The «separate file» mode keeps the picture clean. Nothing is published by itself."
+      },
+      {
+        "fa": "آزمونِ خودکارِ رایانه یک ردیفِ تازه دارد: هر هفت قالب با libass واقعی در قابِ عمودی و افقی کشیده می‌شود و باید زیرنویس داخلِ حاشیهٔ امن باشد.",
+        "en": "The PC self-test has a new row: all seven presets are drawn with the real libass in a vertical and a landscape frame and every caption must be inside the safe zone."
+      }
+    ]
+  },
+  {
     "version": "0.16.0",
     "date": "2026-11-14",
     "title": {

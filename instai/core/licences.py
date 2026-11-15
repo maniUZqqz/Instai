@@ -79,7 +79,7 @@ MODELS: list[dict] = [
     {"id": "ffmpeg", "name": "FFmpeg 7.1.1 essentials build", "role": "assembly", "licence": "GPL-3.0 build (run as a separate program, not linked)", "commercial": "yes",
      "verified": None, "vram": "CPU", "package": "ffmpeg", "notes": "Video produced with FFmpeg is not encumbered by the GPL."},
     {"id": "vazirmatn", "name": "Vazirmatn font (UI + subtitles)", "role": "font", "licence": "SIL Open Font License 1.1", "commercial": "yes",
-     "verified": "OFL.txt shipped with the package", "vram": "-", "package": None, "notes": "Bundled in the repo with its licence text."},
+     "verified": "OFL.txt shipped with the package", "vram": "-", "package": None, "notes": "Bundled in the repo with its licence text: Regular, Bold, Black and Light (the caption presets use all four; instai/render/fonts)."},
     # ---- curated library (0.8.0): packages of manifests/curated.json; every file pinned to a commit with size + sha256
     {"id": "flux-schnell", "name": "FLUX.1 [schnell] FP8 (all-in-one checkpoint)", "role": "image (fast, 4 steps)", "licence": "Apache-2.0", "commercial": "yes",
      "verified": "model card licence field + repository read on 2026-11-13 (not audited)", "vram": "12 GB (fp8)", "package": "flux-schnell", "notes": "The commercially usable FLUX; take it when the work is published."},

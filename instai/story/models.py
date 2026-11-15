@@ -63,6 +63,7 @@ class Episode(models.Model):
     research = models.JSONField(default=dict, blank=True)     # explainers: topic, claims (stance + source ids), analogies, caveats
     studio = models.JSONField(default=dict, blank=True)       # pre-production: animatic, stage approvals, gate (instai.studio.preprod)
     translations = models.JSONField(default=dict, blank=True)  # {lang: {script, shots: {shot_id: text}, at, provider, model}}
+    caption_style = models.JSONField(default=dict, blank=True)  # this episode's caption override {preset?, mode?, zone?} over the page's visual.caption_style ({} = the page's)
     notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

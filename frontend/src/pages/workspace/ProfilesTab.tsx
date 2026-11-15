@@ -13,6 +13,7 @@ import { useWs } from './Workspace'
 import { StylePicker } from '../../components/StylePicker'
 import { schemaSubtitle, useLibrary } from '../../library'
 import { TextModelsCard } from './LlmCard'
+import { CaptionPicker } from '../../components/CaptionPicker'
 
 type Draft = Record<string, any>
 
@@ -93,7 +94,7 @@ function ProfileEditor({ kind, page, setPage, formats, draft, setDraft, dirty, r
         <div className="stack">
           {kind === 'identity' && <IdentityForm draft={draft} set={set} pageName={pageName} setPageName={setPageName} />}
           {kind === 'strategy' && <StrategyForm draft={draft} set={set} />}
-          {kind === 'visual' && <VisualForm draft={draft} set={set} formats={formats} />}
+          {kind === 'visual' && <VisualForm draft={draft} set={set} formats={formats} pageId={page.id} />}
           {kind === 'audio' && <AudioForm draft={draft} set={set} />}
           {kind === 'production' && <ProductionForm draft={draft} set={set} formats={formats} />}
           {kind === 'publishing' && <PublishingForm draft={draft} set={set} />}
@@ -184,7 +185,7 @@ function ColorList({ label, value, onChange }: { label: string; value: string[];
   )
 }
 
-function VisualForm({ draft, set, formats }: FormProps & { formats: Formats }) {
+function VisualForm({ draft, set, formats, pageId }: FormProps & { formats: Formats; pageId: number }) {
   const { t } = useI18n()
   const sub = draft.subtitle ?? {}
   const setSub = (patch: Draft) => set({ subtitle: { ...sub, ...patch } })
@@ -227,6 +228,7 @@ function VisualForm({ draft, set, formats }: FormProps & { formats: Formats }) {
           </div>
         </div>
       </fieldset>
+      <CaptionPicker scope={{ page: pageId }} value={{ preset: 'classic', mode: 'burned', zone: 'auto', ...(draft.caption_style ?? {}) }} onChange={(v) => set({ caption_style: v })} />
     </>
   )
 }

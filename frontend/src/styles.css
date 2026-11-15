@@ -2104,3 +2104,14 @@ tr.q-waiting_gpu td { background: color-mix(in srgb, var(--warn-soft) 45%, trans
 
 /* a long picker inside a panel (idea start): the gallery scrolls inside its own box instead of making the page 15 000 px tall */
 .scroll-box { max-height: 26rem; overflow-y: auto; padding: 0.25rem; border: 1px solid var(--border, rgba(127,127,127,0.25)); border-radius: 0.75rem; }
+
+/* word-by-word captions picker (components/CaptionPicker.tsx): the pictures are drawn by the render engine, the guides are physical (a button column is on the RIGHT of the frame in any UI language) */
+.cap-grid.vertical { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+.cap-grid.landscape { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
+.cap-card { padding: 0.6rem; }
+.cap-thumb { position: relative; display: block; overflow: hidden; border-radius: var(--radius-sm); background: var(--surface-3); border: 1px solid var(--border); direction: ltr; }
+.cap-thumb.vertical { aspect-ratio: 9 / 16; }
+.cap-thumb.landscape { aspect-ratio: 16 / 9; }
+.cap-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cap-empty { display: block; width: 100%; height: 100%; }
+.cap-guide { position: absolute; background: rgba(220, 38, 38, 0.22); outline: 1px dashed rgba(220, 38, 38, 0.7); pointer-events: none; }
