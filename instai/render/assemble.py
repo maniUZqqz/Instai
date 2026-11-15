@@ -12,7 +12,7 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import camera, ffmpeg, subtitles
+from . import camera, captions, ffmpeg, subtitles
 
 FONT_DIR = Path(__file__).parent / "fonts"
 LEAD_IN = 0.15       # seconds of silence before narration starts in a shot
@@ -36,6 +36,7 @@ class ShotSpec:
     audio_duration: float = 0.0
     subtitle: str = ""
     puppet: dict | None = None            # puppet-2D scene (rig, background layers, camera); see production/puppet.py
+    words: list | None = None             # [{w, s, e}] real word times in seconds from the start of `audio` (a recogniser / the voice engine gave them); None = estimated
 
 
 @dataclass
@@ -51,6 +52,11 @@ class RenderOptions:
     music: str | None = None
     music_db: float = -22.0
     subtitles: bool = True
+    # captions (render/captions.py): {preset, mode, zone}. The default is the plain InstAI subtitle burned in, exactly as before.
+    captions: dict = field(default_factory=lambda: dict(captions.DEFAULT_CONFIG))
+    caption_look: dict | None = None      # the series look's kit ({palette, typography}); None = the neutral default palette
+    language: str = "fa"                  # page language: "en" = left-to-right captions
+    platform: str = "instagram"           # where the page publishes: picks the safe zone of a vertical frame
     tracks: list = field(default_factory=list)    # mix tracks resolved to timeline positions (production/mixing.py): music, ambience, sfx
 
     @classmethod
@@ -130,6 +136,26 @@ def build_cues(shots: list[ShotSpec], timeline: list[dict]) -> list[subtitles.Cu
         dur = s.audio_duration if (s.audio and s.audio_duration) else max(0.5, t["duration"] * 0.85)
         cues += subtitles.make_cues(s.subtitle, t["audio_start"], dur)
     return cues
+
+
+def caption_segments(shots: list[ShotSpec], timeline: list[dict]) -> list[dict]:
+    """One segment per spoken shot for the caption engine: the KNOWN text, where its narration is audible and for how long, and the real word times when a shot has them.
+    Without real word times the estimate is spread over the AUDIBLE part of the narration file (a voice engine's file starts and ends with a breath of silence), found by
+    `captions.speech_span`; a file that cannot be read keeps the whole duration."""
+    segs: list[dict] = []
+    for s, t in zip(shots, timeline):
+        if not s.subtitle.strip():
+            continue
+        start, trimmed = t["audio_start"], False
+        if s.audio and s.audio_duration:
+            dur = s.audio_duration
+            span = None if s.words else captions.speech_span(s.audio)
+            if span and span[1] - span[0] >= 0.3:
+                start, dur, trimmed = t["audio_start"] + span[0], span[1] - span[0], True
+        else:
+            dur = max(0.5, t["duration"] * 0.85)
+        segs.append({"text": s.subtitle, "start": start, "duration": dur, "heard": s.words, "trimmed": trimmed})
+    return segs
 
 
 def build_filter(shots: list[ShotSpec], timeline: list[dict], opts: RenderOptions, n_clips: int, audio_first_input: int,
@@ -233,14 +259,29 @@ def assemble(shots: list[ShotSpec], clips: list[Path], opts: RenderOptions, out_
         raise ffmpeg.FFmpegError("assemble needs one clip per shot")
     timeline = plan_timeline(shots)
     workdir.mkdir(parents=True, exist_ok=True)
-    cues = build_cues(shots, timeline) if opts.subtitles else []
-    has_subs = bool(cues)
+    cap: dict = {"ass": None, "srt": None, "cues": 0, "clips": [], "info": {}}
+    legacy_cues: list[subtitles.Cue] = []
+    if opts.subtitles:
+        cfg = captions.normalize_config(opts.captions)
+        position = str((opts.subtitle_style or {}).get("position") or "bottom")
+        cap = captions.plan(caption_segments(shots, timeline), cfg, opts.width, opts.height, look=opts.caption_look, language=opts.language,
+                            platform=opts.platform, position=position if position in ("top", "middle", "bottom") else "bottom")
+        if cfg["mode"] == "burned" and captions.PRESETS[cfg["preset"]].get("legacy"):
+            legacy_cues = build_cues(shots, timeline)             # the plain look InstAI always had: its own cue splitting and ASS
+    has_subs = bool(cap["ass"]) or bool(legacy_cues)
+    if cap["ass"]:
+        (workdir / "sub.ass").write_text(cap["ass"], encoding="utf-8")
+    elif legacy_cues:
+        subtitles.write_ass(workdir / "sub.ass", legacy_cues, opts.width, opts.height, opts.subtitle_style)
     if has_subs:
-        subtitles.write_ass(workdir / "sub.ass", cues, opts.width, opts.height, opts.subtitle_style)
         fonts = workdir / "fonts"
         fonts.mkdir(exist_ok=True)
         for f in FONT_DIR.glob("*.ttf"):
             shutil.copyfile(f, fonts / f.name)
+    srt_path = None
+    if cap["srt"]:                                                # the soft copy travels next to the video (publishing package, YouTube / Aparat upload)
+        srt_path = workdir / "episode.srt"
+        srt_path.write_text(cap["srt"], encoding="utf-8-sig")
     graph = build_filter(shots, timeline, opts, len(clips), len(clips), has_subs)
     script = workdir / "filter.txt"
     script.write_text(graph, encoding="utf-8")
@@ -260,7 +301,8 @@ def assemble(shots: list[ShotSpec], clips: list[Path], opts: RenderOptions, out_
              "-movflags", "+faststart", "-t", f"{total:.3f}", str(out_path)]
     out_path.parent.mkdir(parents=True, exist_ok=True)
     ffmpeg.run(args, ctx=ctx, cwd=workdir, expected_sec=total, on_progress=on_progress)
-    return {"path": str(out_path), "timeline": timeline, "duration": total, "cues": len(cues)}
+    return {"path": str(out_path), "timeline": timeline, "duration": total, "cues": cap["cues"] if cap["ass"] else len(legacy_cues),
+            "captions": cap["info"], "srt": str(srt_path) if srt_path else None}
 
 
 def extract_cover(video: Path, out_png: Path, at: float = 1.0) -> Path:

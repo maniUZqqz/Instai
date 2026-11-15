@@ -14,7 +14,10 @@ DEFAULTS: dict[str, dict[str, Any]] = {
                  "posting_goal": ""},
     "visual": {"style_key": "modern_tv_anime", "realism": "anime", "theme_key": "", "style_notes": "", "aspect_ratio": "9:16", "palette": [],
                "negative_prompt": "",
-               "subtitle": {"font": "Tahoma", "size": 64, "color": "#FFFFFF", "outline": "#000000", "position": "bottom"}},
+               "subtitle": {"font": "Tahoma", "size": 64, "color": "#FFFFFF", "outline": "#000000", "position": "bottom"},
+               # word-by-word captions (render/captions.py): {preset: classic | pop | box | karaoke | clean | neon | typewriter | lower,
+               # mode: burned | soft | none, zone: auto | <safe zone key>}. "classic" + "burned" is the plain subtitle InstAI always had; an episode may override it.
+               "caption_style": {"preset": "classic", "mode": "burned", "zone": "auto"}},
     "audio": {"narration_engine": "auto", "narration_voice": "", "language": "fa", "music_enabled": False, "music_mood": "calm",
               "music_volume_db": -22, "sfx_enabled": False,
               # -14 LUFS is what YouTube, Shorts, Reels and TikTok play at (new pages); pages saved before 0.16 keep the -16 they were saved with
@@ -97,6 +100,10 @@ def normalize(kind: str, data: dict | None) -> dict:
             v = {**d, **{kk: vv for kk, vv in v.items() if kk in d}}
         if (kind, k) == ("production", "llm"):
             v = normalize_llm(v)
+        if (kind, k) == ("visual", "caption_style"):
+            from instai.render import captions
+
+            v = captions.normalize_config(v)
         if (kind, k) in ENUMS and v not in ENUMS[(kind, k)]:
             v = d
         if (kind, k) in INT_RANGES:

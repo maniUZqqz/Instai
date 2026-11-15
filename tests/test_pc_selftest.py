@@ -14,7 +14,7 @@ from tests.conftest import finish
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
-PC_KEYS = ["database", "disk", "ffmpeg", "persian_text", "update_channel", "autostart"]
+PC_KEYS = ["database", "disk", "ffmpeg", "persian_text", "captions", "update_channel", "autostart"]
 GPU_KEYS = ["gpu_card", "nvenc", "ollama_run", "comfyui"]
 
 
@@ -62,6 +62,8 @@ def test_the_cheap_checks_run_for_real_and_say_what_they_saw(ffmpeg_available, m
     assert r["ffmpeg"]["verdict"] in ("ok", "warn"), r["ffmpeg"]["reason_en"]
     assert r["ffmpeg"]["metrics"]["version"] and r["ffmpeg"]["seconds"] >= 0
     assert r["persian_text"]["verdict"] == "ok" and r["persian_text"]["metrics"]["ink"] > 400
+    assert r["captions"]["verdict"] == "ok", r["captions"]["reason_en"]               # seven presets x two frame shapes through the real libass, ink inside the safe zone
+    assert r["captions"]["metrics"]["samples"] == 14
     assert r["update_channel"]["verdict"] == "ok" and r["update_channel"]["metrics"]["start_bat_has_updater"] is True
     assert r["autostart"]["verdict"] in ("ok", "warn", "skip")
     assert rep["ok"] and st.load_report()["stamp"] == st.stamp() and rep["machine"]["python"]

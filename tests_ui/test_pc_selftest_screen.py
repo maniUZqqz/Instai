@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tests_ui.test_screens import PERSIAN, SHOTS, open_page  # noqa: E402
 
-KEYS = ["database", "disk", "ffmpeg", "persian_text", "delivery_loudness", "delivery_echo", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "covers", "motion_library", "motion_frames", "gpu_card", "nvenc", "ollama_run", "comfyui", "covers_bg", "motion_critique"]
+KEYS = ["database", "disk", "ffmpeg", "persian_text", "delivery_loudness", "delivery_echo", "captions", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "covers", "motion_library", "motion_frames", "gpu_card", "nvenc", "ollama_run", "comfyui", "covers_bg", "motion_critique"]
 GPU = ["gpu_card", "nvenc", "ollama_run", "comfyui"]
 
 
@@ -38,6 +38,7 @@ def test_the_system_screen_shows_the_pc_selftest_and_runs_it(browser, server, la
         verdicts = {k: page.get_by_test_id(f"pc-check-{k}").get_attribute("data-verdict") for k in KEYS}
         assert verdicts["database"] == "ok" and verdicts["persian_text"] == "ok", verdicts
         assert verdicts["delivery_loudness"] == "ok" and verdicts["delivery_echo"] == "ok", verdicts          # the delivery rows (0.16) run on every PC that has numpy (requirements.txt)
+        assert verdicts["captions"] in ("ok", "skip"), verdicts          # the seven caption presets drawn with the real libass (skipped, never failed, where ffmpeg has no `ass` filter)
         assert all(verdicts[k] == "pending" for k in GPU), f"no GPU PC here: the GPU checks wait, they do not fail ({verdicts})"
         assert "fail" not in verdicts.values(), verdicts
         state = page.get_by_test_id("pc-selftest-state")

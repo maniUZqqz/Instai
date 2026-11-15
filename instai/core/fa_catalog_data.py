@@ -184,6 +184,8 @@ NOTE: dict[str, str] = {
     "EXCLUDED: check every dependency of talking-head tools.": "کنار گذاشته شد: وابستگی‌های ابزارهای ویدئوی گویا را باید یکی‌یکی بررسی کرد.",
     "Video produced with FFmpeg is not encumbered by the GPL.": "ویدئویی که با FFmpeg ساخته می‌شود زیرِ بارِ مجوزِ GPL نمی‌رود.",
     "Bundled in the repo with its licence text.": "همراهِ متنِ مجوزش در پروژه آمده است.",
+    "Bundled in the repo with its licence text: Regular, Bold, Black and Light (the caption presets use all four; instai/render/fonts).":
+        "همراهِ متنِ مجوزش در پروژه آمده است: چهار وزنِ معمولی، ضخیم، سیاه و سبک (قالب‌های زیرنویس از هر چهار استفاده می‌کنند).",
     "The commercially usable FLUX; take it when the work is published.": "نسخهٔ FLUX که استفادهٔ تجاری‌اش آزاد است؛ برای کارهایی که منتشر می‌شوند همین را بردارید.",
     "For the split FLUX loaders and GGUF models.": "برای بارگذارهای جدای FLUX و مدل‌های GGUF.",
     "Commercial use allowed with use-based restrictions; the base of SDXL ControlNet / IP-Adapter.": "استفادهٔ تجاری با محدودیت در نوعِ استفاده آزاد است؛ پایهٔ ControlNet و IP-Adapterِ SDXL.",

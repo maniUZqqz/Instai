@@ -9,6 +9,7 @@ import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { Icon } from '../../components/Icon'
 import { VideoPlayer, topVideo } from './Player'
+import { CaptionsCard } from './CaptionsCard'
 
 const isActive = (j: Job) => j.status === 'queued' || j.status === 'running'
 const EDIT_STATES = ['storyboarding', 'asset_generation', 'quality_review', 'ready_for_approval', 'failed']
@@ -117,6 +118,8 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
   return (
     <div className="stack">
       <VideoCard ep={ep} />
+
+      <CaptionsCard ep={ep} locked={locked} onChanged={onChanged} />
 
       <Card title={t('prod.make_title')}>
         <div className="stack">

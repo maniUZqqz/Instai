@@ -34,6 +34,7 @@ from instai.story import costs, services, states
 from instai.story.models import Episode, Shot
 from instai.styles import library as style_library
 
+from . import captions as ep_captions
 from . import deliveryqc, hero
 
 log = logging.getLogger("instai.pipeline")
@@ -55,8 +56,10 @@ def page_of(ep: Episode):
 def render_options(ep: Episode, mode: str) -> asm.RenderOptions:
     page = page_of(ep)
     prod, vis, aud = page.profile("production"), page.profile("visual"), page.profile("audio")
-    return asm.RenderOptions.for_mode(mode, final_height=prod["final_height"], preview_height=prod["preview_height"], fps=prod["fps"],
+    opts = asm.RenderOptions.for_mode(mode, final_height=prod["final_height"], preview_height=prod["preview_height"], fps=prod["fps"],
                                       subtitle_style=vis["subtitle"], target_lufs=float(aud["target_lufs"]))
+    ep_captions.apply_to_options(opts, ep)
+    return opts
 
 
 def look(ep: Episode) -> dict:
@@ -268,7 +271,15 @@ def timeline_hash(ep: Episode, mode: str) -> str:
 
     aud = page_of(ep).profile("audio")
     extra = [] if aud.get("loudness_settle", True) else ["no-settle"]       # only a NON-default switch enters the hash: renders made before 0.16 stay current
+    if not captions_default(ep):
+        extra.append(ep_captions.hash_part(ep))                              # a page that never picked a caption style keeps the hashes (and the renders) it had
     return _h(mode, parts, page_of(ep).profile("visual")["subtitle"], aud["target_lufs"], mixing.mix_hash_parts(ep), *extra)
+
+
+def captions_default(ep: Episode) -> bool:
+    from instai.render import captions as engine
+
+    return engine.is_default(ep_captions.config_for(ep))
 
 
 # ------------------------------------------------------------------ steps (called by job handlers)
@@ -401,7 +412,8 @@ def step_tts(ctx, ep: Episode, mode: str) -> dict:
         asset_storage.register(tmp, rel, kind="audio", role="narration", page=page_of(ep), episode=ep, shot=shot, input_hash=hsh,
                                provenance={"engine": res.engine, "voice": res.voice, "provider": res.engine, "job_id": ctx.job.pk, "language": lang,
                                            "speaker": shot.speaker, "render_seconds": round(res.render_seconds, 2), "text": shot.narration[:200],
-                                           "licence": res.licence, "device": getattr(res, "device", "local")})
+                                           "licence": res.licence, "device": getattr(res, "device", "local"),
+                                           **({"words": res.words} if getattr(res, "words", None) else {})})
         _cleanup(tmp.parent)
         done += 1
     return {"generated": done}
@@ -525,7 +537,7 @@ def shot_specs_full(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[st
             video=str(asset_storage.storage.path_for(clip.path)) if (clip and (mode == FINAL or s.technique == "motion_graphics")) else None, layers=layers, camera=s.camera or {},
             technique=s.technique, transition="cut" if last else (s.transition or "cut"),
             audio=str(asset_storage.storage.path_for(nar.path)) if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0,
-            subtitle=s.narration, puppet=puppet_scene))
+            subtitle=s.narration, puppet=puppet_scene, words=(nar.provenance or {}).get("words") if nar else None))
     return specs, notes, fallbacks
 
 
@@ -586,8 +598,8 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
                                        provenance={"mode": mode, "width": opts.width, "height": opts.height, "fps": opts.fps, "job_id": ctx.job.pk,
                                                    "shots": len(specs), "techniques": sorted({s.technique for s in specs}), "notes": notes,
                                                    "fallbacks": fallbacks,
-                                                   "subtitle_cues": info["cues"], "workflow": "ffmpeg-assembly@1", "expected_duration": info["duration"],
-                                                   "target_lufs": float(opts.target_lufs), **delivery_audio})
+                                                   "subtitle_cues": info["cues"], "captions": info.get("captions") or {}, "workflow": "ffmpeg-assembly@1",
+                                                   "expected_duration": info["duration"], "target_lufs": float(opts.target_lufs), **delivery_audio})
         cover_tmp = work / "cover.png"
         asm.extract_cover(asset_storage.storage.path_for(video.path), cover_tmp, at=min(1.0, info["duration"] / 2))
         asset_storage.register(cover_tmp, f"episodes/{ep.pk}/renders/{mode}-{stamp}-cover.png", kind="image", role="cover", page=page_of(ep), episode=ep,
@@ -596,9 +608,13 @@ def step_assemble(ctx, ep: Episode, mode: str) -> dict:
         if ass.exists():
             asset_storage.register(ass, f"episodes/{ep.pk}/renders/{mode}-{stamp}.ass", kind="subtitle", role="subtitles", page=page_of(ep),
                                    episode=ep, probe=False, provenance={"from": video.pk})
+        srt = work / "work" / "episode.srt"
+        if srt.exists():                                       # the soft copy of the captions: YouTube / Aparat take it, and the publishing package ships it
+            asset_storage.register(srt, f"episodes/{ep.pk}/renders/{mode}-{stamp}.srt", kind="subtitle", role="subtitles", page=page_of(ep), episode=ep,
+                                   probe=False, provenance={"from": video.pk, "format": "srt", "captions": info.get("captions") or {}})
     finally:
         _cleanup(work)
-    return {"asset_id": video.pk, "duration": info["duration"], "notes": notes, "mode": mode}
+    return {"asset_id": video.pk, "duration": info["duration"], "notes": notes, "mode": mode, "captions": info.get("captions") or {}}
 
 
 # ------------------------------------------------------------------ quality control

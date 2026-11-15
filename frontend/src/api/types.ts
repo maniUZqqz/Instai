@@ -321,6 +321,54 @@ export interface VideoAsset {
   loudness_lufs: number | null
   size_bytes: number
   created_at: string
+  provenance?: { captions?: CaptionInfo }
+}
+
+// ---- word-by-word captions (instai/render/captions.py, instai/production/api_captions.py)
+export interface CaptionConfig { preset: string; mode: string; zone: string }
+export interface CaptionContrast { text: number; highlight: number; marker?: number; worst_text?: number; worst_highlight?: number }
+export interface CaptionInfo {
+  preset?: string
+  mode?: string
+  zone?: string
+  language?: string
+  estimated?: boolean
+  words?: number
+  aligned?: number
+  segments?: number
+  contrast?: CaptionContrast
+  colors?: { text: string; highlight: string; surface: string }
+}
+export interface CaptionPresetRow { key: string; fa: string; en: string; hint_fa: string; hint_en: string; legacy: boolean }
+export interface CaptionMargins { top: number; bottom: number; left: number; right: number }
+export interface CaptionZoneRow { key: string; fa: string; en: string; hint_fa: string; hint_en: string; margins: CaptionMargins | null }
+export interface CaptionCatalogue {
+  presets: CaptionPresetRow[]
+  modes: { key: string; fa: string; en: string; hint_fa: string; hint_en: string }[]
+  zones: CaptionZoneRow[]
+  default: CaptionConfig
+  libass: boolean
+  shapes: string[]
+}
+export interface CaptionPreview extends CaptionPresetRow { url: string | null; error?: string; contrast?: CaptionContrast }
+export interface CaptionPreviews {
+  previews: CaptionPreview[]
+  shape: 'vertical' | 'landscape'
+  zone: string
+  margins: CaptionMargins
+  language: string
+  platform: string
+  look: { style_key: string; theme_key: string; palette: Record<string, string> }
+  ok: boolean
+}
+export interface EpisodeCaptions {
+  page: CaptionConfig
+  override: Partial<CaptionConfig>
+  effective: CaptionConfig
+  language: string
+  platform: string
+  srt_url: string | null
+  info: CaptionInfo | null
 }
 
 export interface QcCheck {
@@ -386,6 +434,7 @@ export interface Episode extends EpisodeBrief {
   jobs: Job[]
   stale: { keyframes_preview?: number; keyframes_final?: number; narration?: number; shots?: number }
   translations?: Record<string, { script?: Script; shots?: Record<string, string>; at?: string; provider?: string; model?: string }>
+  captions?: EpisodeCaptions
 }
 
 export interface EpisodeEvent {

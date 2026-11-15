@@ -51,7 +51,7 @@ name in any sub-folder and letter case, plus known aliases (e.g. `FLUX.1 [dev] F
 | BiRefNet-lite | background removal (parallax layers) | MIT (per repo) | unknown | NOT verified | small | Phase 3. |
 | InsightFace detector weights **(EXCLUDED)** | talking-head dependency | non-commercial | no | brief | - | EXCLUDED: check every dependency of talking-head tools. |
 | FFmpeg 7.1.1 essentials build | assembly | GPL-3.0 build (run as a separate program, not linked) | yes | NOT verified | CPU | Video produced with FFmpeg is not encumbered by the GPL. |
-| Vazirmatn font (UI + subtitles) | font | SIL Open Font License 1.1 | yes | OFL.txt shipped with the package | - | Bundled in the repo with its licence text. |
+| Vazirmatn font (UI + subtitles) | font | SIL Open Font License 1.1 | yes | OFL.txt shipped with the package | - | Bundled in the repo with its licence text: Regular, Bold, Black and Light (the caption presets use all four; `instai/render/fonts`). |
 | FLUX.1 [schnell] FP8 (all-in-one checkpoint) | image (fast, 4 steps) | Apache-2.0 | yes | model card licence field + repository read on 2026-11-13 (not audited) | 12 GB (fp8) | The commercially usable FLUX; take it when the work is published. |
 | FLUX text encoders + VAE (t5xxl fp8, clip_l, ae) | image (split loaders) | Apache-2.0 (encoder cards; the VAE is an ungated repack) | yes | model card licence field + repository read on 2026-11-13 (not audited) | T5 fp8 about 5 GB while encoding | For the split FLUX loaders and GGUF models. |
 | Stable Diffusion XL base 1.0 | image | CreativeML Open RAIL++-M | yes | model card licence field + repository read on 2026-11-13 (not audited) | 7-9 GB | Commercial use allowed with use-based restrictions; the base of SDXL ControlNet / IP-Adapter. |

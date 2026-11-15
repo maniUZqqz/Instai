@@ -145,3 +145,10 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - Remotion page: the preview is the sticky second column; a style card draws the composition in that look with `Thumbnail` only once it is near the screen (`useSeen`); `/api/remotion/code` is fetched when the code tab opens.
 - UI tests for this round: `tests_ui/test_audit_ui.py` (1366 and 390 px).
 - **Audit round «ia_core», second pass**: `/api/anime/candidates` is translated like the other catalogue endpoints; Persian check messages go through `fa_numbers`; episode history reasons are mapped by `frontend/src/api/eventReason.ts` (`evr.*`); Remotion setup errors by `toolchain.fa_reason`. A Persian text never holds «npm » or a command line (`tests_ui/test_core_pages*.py`).
+
+
+## Word-by-word captions (0.21.0; docs `docs/CAPTIONS.md`, self-test `docs/selftests/captions.md`)
+- Engine in `instai/render/` (`titles_ass`, `captions`, `contrast`, `safezones`, `srt`, `caption_previews`, `captions_check`), glue in `instai/production/captions.py`, API in `production/api_captions.py`. **Sizes are fractions of the frame height; colours come from the series look through `captions.resolve_style` and are contrast-checked - never put a colour in a preset.** Ported from NMarketing (`SOURCE:` notes); never import NMarketing.
+- A page's `visual.caption_style` ({preset, mode, zone}; `classic` + `burned` = the old subtitle) and `Episode.caption_style` (override). `publishing.caption_style` is a different thing (post text tone). A render with a non-default config adds `captions.hash_part` to `pipeline.timeline_hash`; a default one keeps the old hashes.
+- User text never reaches ASS raw: `titles_ass._esc` (braces, backslash). The `ass` filter always gets RELATIVE names (`ass=sub.ass:fontsdir=fonts`, ffmpeg run with `cwd=`).
+- Word times are ESTIMATES unless `ShotSpec.words` (from `TTSResult.words`) are given; the result says so (`info.estimated`). New caption text keys live in `frontend/src/i18n/packs/captions.ts` (fa + en).

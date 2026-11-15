@@ -7,4 +7,5 @@ urlpatterns = [
     path("", include("instai.production.api_hero")),
     path("", include("instai.production.api_post")),
     path("", include("instai.production.api_auto")),
+    path("", include("instai.production.api_captions")),
 ]

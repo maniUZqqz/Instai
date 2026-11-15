@@ -73,12 +73,14 @@ def lint_for(pub, caption: str | None = None, tags: list | None = None, networks
                               title=ep.title, extra_words=hashtags.page_vocabulary(page, ep.series, ep))
 
 
-def find_srt(ep) -> Asset | None:
-    """The newest current subtitle file in SubRip form (the captions work registers it); None when there is none."""
-    for a in Asset.objects.filter(episode=ep, kind="subtitle", is_current=True).order_by("-id"):
-        if str(a.path).lower().endswith(".srt"):
-            return a
-    return None
+def find_srt(ep, video: Asset | None = None) -> Asset | None:
+    """The newest current subtitle file in SubRip form (the captions work registers it); None when there is none. With `video` it is the file made FOR that video
+    (`provenance.from`): a render made with captions off never inherits the file of an older render; a file with no recorded origin still counts."""
+    found = [a for a in Asset.objects.filter(episode=ep, kind="subtitle", is_current=True).order_by("-id") if str(a.path).lower().endswith(".srt")]
+    if video is not None:
+        own = [a for a in found if (a.provenance or {}).get("from") == video.pk]
+        found = own or [a for a in found if (a.provenance or {}).get("from") is None]
+    return found[0] if found else None
 
 
 def cover_for(ep, key: str, pub=None) -> Asset | None:
@@ -142,7 +144,7 @@ def plan_for(pub, video: Asset | None = None, info: dict | None = None) -> dict:
 
 # ---------------------------------------------------------------------------------------------------------------------------- building
 
-def _readme(pub, plan: dict, results: dict[str, dict]) -> str:
+def _readme(pub, plan: dict, results: dict[str, dict], srt_name: str | None = None) -> str:
     ep = pub.episode
     page = ep.series.page
     schedule = pub.scheduled_at.strftime("%Y-%m-%d %H:%M UTC") if pub.scheduled_at else "not scheduled"
@@ -155,6 +157,9 @@ def _readme(pub, plan: dict, results: dict[str, dict]) -> str:
         "Upload manually from the phone or the platform's own tools. Nothing was posted. / آپلود دستی است؛ هیچ چیزی خودکار منتشر نشده است.",
         "",
     ]
+    if srt_name:
+        lines += [f"Captions / زیرنویس: {srt_name} holds the words of the narration as a subtitle file (UTF-8): a platform that takes a subtitle file, YouTube for one, shows it as the video's own subtitles. "
+                  f"/ همان کلمات به‌صورت فایل زیرنویس: پلتفرمی که فایل زیرنویس می‌پذیرد، مثلاً یوتیوب، آن را زیرنویسِ خودِ ویدئو نشان می‌دهد.", ""]
     if plan["networks"]:
         lines += ["== Networks / شبکه‌ها (all numbers are approximate / همهٔ عددها تقریبی است) =="]
         for p in plan["networks"]:
@@ -224,14 +229,15 @@ def build(pub, video: Asset, tmp: Path, ctx=None) -> tuple[list[tuple[str, Path 
     cover = cover_for(ep, "", pub)                                      # the one cover the package always had
     if cover:
         entries += cover_entries(cover, "", legacy_name=True)
-    srt = find_srt(ep)
+    srt = find_srt(ep, video)
+    srt_name = f"episode-{ep.number:02d}.srt" if srt else None
     if srt:
-        entries.append((f"episode-{ep.number:02d}.srt", asset_storage.storage.path_for(srt.path)))
+        entries.append((srt_name, asset_storage.storage.path_for(srt.path)))
     entries.append(("caption.txt", caption.encode("utf-8")))
     entries.append(("hashtags.txt", tags_text(repaired).encode("utf-8")))
     manifest = {"version": 1, "publication": pub.pk, "episode": ep.pk, "source": plan["source"], "networks": [{**p, "result": results.get(p["key"], {})} for p in plan["networks"]],
                 "ignored": plan["ignored"], "lint": plan["lint"], "hashtags": plan["hashtags"], "srt": bool(srt), "approximate_numbers": True}
-    entries.append(("README.txt", _readme(pub, plan, results).encode("utf-8")))
+    entries.append(("README.txt", _readme(pub, plan, results, srt_name).encode("utf-8")))
     entries.append(("delivery.json", json.dumps(manifest, ensure_ascii=False, indent=1, default=str).encode("utf-8")))
     return entries, manifest
 

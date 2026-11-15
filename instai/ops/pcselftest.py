@@ -255,6 +255,35 @@ def check_delivery_echo(work: Path) -> dict:
     return _r("fail", "گفتارِ عمداً دوبار پخش‌شده پیدا نشد.", "The deliberately doubled narration was not found.", **m)
 
 
+def check_captions(work: Path) -> dict:
+    """Word-by-word captions: each of the seven presets renders one second of a dark clip through the real ffmpeg + libass, in a vertical and a landscape frame; the frame must
+    hold caption ink inside the platform's safe zone, the ASS script must have no unescaped brace and the colours must pass the contrast rule. Skipped (not failed) when this
+    ffmpeg has no `ass` filter: the ffmpeg row already says so."""
+    from instai.core import runtime
+    from instai.render import captions_check, ffmpeg
+
+    info = runtime.ffmpeg_info()
+    if not info["ffmpeg"] or not (info.get("features") or {}).get("ass"):
+        return _r("skip", "ffmpeg این رایانه فیلتر زیرنویس (ass) ندارد؛ ردیف «رمزگذاری ویدئو» دلیل و راه‌حل را می‌گوید.",
+                  "This PC's ffmpeg has no subtitle (ass) filter; the video-encoding row gives the reason and the fix.")
+    t0 = time.time()
+    try:
+        rows = captions_check.run(work, shapes=("vertical", "landscape"))
+    except ffmpeg.FFmpegError as e:
+        return _r("fail", "ffmpeg یکی از قالب‌های زیرنویس را نکشید: " + str(e)[-160:], "ffmpeg could not draw one of the caption presets: " + str(e)[-160:])
+    bad = [r for r in rows if not r["ok"]]
+    injection = captions_check.injection_ok()
+    secs = round(time.time() - t0, 2)
+    if bad:
+        first = bad[0]
+        return _r("fail", f"قالب «{first['preset']}» ({first['shape']}) درست کشیده نشد: {first['reason'] or 'نامعلوم'}",
+                  f"The preset «{first['preset']}» ({first['shape']}) was not drawn properly: {first['reason'] or 'unknown'}", bad=[f"{r['preset']}/{r['shape']}" for r in bad])
+    if not injection:
+        return _r("fail", "متن کاربر می‌تواند در اسکریپت زیرنویس تگ بسازد (آکولادها درست محافظت نشده‌اند).", "A typed text can inject tags into the caption script (braces are not escaped properly).")
+    return _r("ok", f"{_fd(len(rows))} نمونه (هفت قالب در دو شکل قاب) با libass کشیده شد؛ زیرنویس همه داخل حاشیهٔ امن بود ({_fd(secs)} ثانیه).",
+              f"{len(rows)} samples (seven presets in two frame shapes) were drawn with libass; every caption was inside the safe zone ({secs} s).", samples=len(rows), seconds=secs)
+
+
 def _read_start_bat() -> str:
     try:
         return (ROOT / "START.bat").read_text(encoding="utf-8", errors="replace")
@@ -680,6 +709,7 @@ CHECKS = [
     {"key": "persian_text", "group": "pc", "fa": "متن فارسی روی تصویر", "en": "Persian text on a picture", "fn": check_persian_text},
     {"key": "delivery_loudness", "group": "pc", "fa": "بلندی صدای تحویل (‎-۱۴ LUFS)", "en": "Delivery loudness (-14 LUFS)", "fn": check_delivery_loudness},
     {"key": "delivery_echo", "group": "pc", "fa": "تشخیص گفتارِ دوبار پخش‌شده (اکو)", "en": "Doubled narration (echo) detection", "fn": check_delivery_echo},
+    {"key": "captions", "group": "pc", "fa": "زیرنویس کلمه‌به‌کلمه (هفت قالب)", "en": "Word-by-word captions (seven presets)", "fn": check_captions},
     {"key": "update_channel", "group": "pc", "fa": "به‌روزرسانی خودکار", "en": "Automatic update", "fn": check_update_channel},
     {"key": "autostart", "group": "pc", "fa": "راه‌اندازی خودکار با ویندوز", "en": "Start with Windows", "fn": check_autostart},
     {"key": "remotion_toolchain", "group": "tools", "fa": "ابزار «ویدئو با کد» (Remotion)", "en": "Code-to-video toolchain (Remotion)", "fn": check_remotion_toolchain},

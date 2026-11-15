@@ -17,7 +17,7 @@ import struct
 import subprocess
 import time
 import wave
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import requests
@@ -70,6 +70,7 @@ class TTSResult:
     voice: str
     sample_rate: int
     render_seconds: float = 0.0
+    words: list = field(default_factory=list)      # [{w, s, e}] word times in seconds from the start of the audio, when the engine reports them (captions use them; else estimated)
 
     @property
     def licence(self) -> dict:
