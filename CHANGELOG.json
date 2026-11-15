@@ -1,6 +1,6 @@
 [
   {
-    "version": "0.19.0",
+    "version": "0.20.0",
     "date": "2026-11-15",
     "title": {
       "fa": "زیرنویسِ کلمه‌به‌کلمه با هفت قالب برای شورتس و ریلز: درشت، کادرِ تیره، کارائوکه، ساده، نئونی، ماشین‌تحریر و آرام",
@@ -26,6 +26,44 @@
       {
         "fa": "آزمونِ خودکارِ رایانه یک ردیفِ تازه دارد: هر هفت قالب با libass واقعی در قابِ عمودی و افقی کشیده می‌شود و باید زیرنویس داخلِ حاشیهٔ امن باشد.",
         "en": "The PC self-test has a new row: all seven presets are drawn with the real libass in a vertical and a landscape frame and every caption must be inside the safe zone."
+      }
+    ]
+  },
+  {
+    "version": "0.19.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "بازبینی کیفیت صفحه‌های روزمره: جست‌وجوی فارسی بدون نیم‌فاصله، ویدئو بالای صفحهٔ قسمت، گالری سبک‌ها و بانک ایده سبک‌تر، تنظیمات کوتاه، پیش‌نمایش ثابت در ویدئو با کد",
+      "en": "Quality pass over the everyday screens: Persian search without the half-space, the video at the top of the episode page, lighter style gallery and idea bank, a short Settings page, a fixed preview on the code-made video page"
+    },
+    "items": [
+      {
+        "fa": "جست‌وجوی فارسی: «روانشناسی» (بدون نیم‌فاصله، همان‌طور که روی گوشی تایپ می‌شود) حالا همهٔ ایده‌های «روان‌شناسی» را پیدا می‌کند؛ تا امروز هیچ‌کدام را پیدا نمی‌کرد. «واقعگرا» هم در کتابخانهٔ سبک‌ها مثل «واقع‌گرا» کار می‌کند. جست‌وجوی بانک ایده حالا نام دسته، قالب و برچسب‌ها (به فارسی) را هم می‌بیند: «اقتصاد» همهٔ ایده‌های دستهٔ اقتصاد را می‌آورد و «ورزش» ایده‌های ورزشی را.",
+        "en": "Persian search: the word for psychology typed without the half-space (the way it is typed on a phone) now finds every psychology idea; until today it found none. The same goes for «realistic» in the style library. The idea bank search now also sees the names of the category, the format and the tags (in Persian): the word for economy brings every idea of the economy category and the word for sports the sports ideas."
+      },
+      {
+        "fa": "بانک ایده: یک چیپ تازه به نام «ایده‌های چغر / ورزش» کنار دسته‌ها آمد (ایده‌هایی که برچسب ورزش، باشگاه، تناسب‌اندام یا مربی‌گری دارند؛ ایدهٔ خودتان هم با همین برچسب‌ها واردش می‌شود). کارت‌ها ۲۴تا‌۲۴تا نشان داده می‌شوند («نمایش بیشتر») به‌جای ۱۲۱ کارت یک‌جا؛ و همهٔ برچسب‌ها (نه فقط ۱۸ تای اول) در یک کادر قابل پیمایش هستند.",
+        "en": "Idea bank: a new chip «Chagher / fitness ideas» beside the categories (the ideas tagged sports, gym, fitness or coaching; your own idea joins with the same tags). The cards show 24 at a time («Show more») instead of 121 at once, and every tag (not only the first 18) is in a scrolling box."
+      },
+      {
+        "fa": "صفحهٔ قسمت: وقتی ویدئو ساخته شده، کارت «قدم بعدی» با پخش‌کننده، دکمهٔ «تأیید» و خلاصهٔ بازبینی کیفیت همان بالای صفحه است، پیش از خلاصهٔ قسمت و ردیف مراحل (پیش‌تر ویدئو بیش از دو صفحه پایین‌تر بود). مرحلهٔ فعلی در ردیف مراحل وسط می‌آید و بالایش نوشته می‌شود «مرحلهٔ ۱۰ از ۱۳»؛ پیش‌تر مرحلهٔ فعلی بریده می‌شد. برآورد زمان و فهرست کارها تا زمانی که لازم نیستند جمع‌اند، و خلاصهٔ قسمت روی گوشی جمع است.",
+        "en": "Episode page: once a video exists, the «Next step» card with the player, the «Approve» button and the quality summary is right at the top, before the episode summary and the row of steps (the video used to be more than two screens down). The current step is centred in the row of steps with «Step 10 of 13» above it; it used to be clipped. The estimates and the job list stay folded until needed, and the episode summary is folded on a phone."
+      },
+      {
+        "fa": "برچسب نسخه دیگر روی صفحه شناور نیست و روی دکمه‌ها نمی‌افتد؛ در نوار بالا، کنار بقیهٔ دکمه‌ها قرار گرفت.",
+        "en": "The version tag no longer floats over the page and covers buttons; it is in the top bar beside the other buttons."
+      },
+      {
+        "fa": "گالری سبک‌ها: تصویر هر سبک فقط وقتی به صفحه نزدیک شود بارگیری می‌شود (پیش‌تر ۱۱۶ تصویر یک‌جا). در ساخت صفحهٔ تازه، قدم «سبک تصویر» شش پیشنهاد برای همان قالب نشان می‌دهد و «همهٔ سبک‌ها» کل گالری را در کادری قابل پیمایش باز می‌کند (پیش‌تر صفحه ۷۰۰۰ پیکسل و روی گوشی ۱۴٬۸۰۰ پیکسل بود). کتابخانه هم ۳۶تا‌۳۶تا نشان می‌دهد.",
+        "en": "Style gallery: the picture of a style loads only when it comes near the screen (it was all 116 at once). In the new-page wizard, the «Image style» step shows six suggestions for the format and «All styles» opens the whole gallery in a scrolling box (the page was 7000 px, and 14 800 px on a phone). The library shows 36 at a time."
+      },
+      {
+        "fa": "تنظیمات دیگر فهرست ۲۲ بستهٔ اختیاری را تکرار نمی‌کند (صفحه ۱۵٬۰۰۰ پیکسل بود): نصب فقط در «دانلودها» انجام می‌شود، و مجوز مدل‌ها و گردش‌کارها به صفحهٔ «مدل‌ها» رفت (با باز کردن بارگیری می‌شود). «دانلودها» حالا جای آزاد دیسک را نشان می‌دهد، از ۲ گیگابایت به بالا می‌پرسد «شروع شود؟»، و دانلودی را که روی دیسک جا نمی‌شود قبل از شروع رد می‌کند.",
+        "en": "Settings no longer repeats the list of 22 optional packs (the page was 15 000 px): installing is done only on «Downloads», and the licences of the models and the workflows moved to the «Models» page (loaded when opened). «Downloads» now shows the free disk space, asks «Start it?» from 2 GB up, and refuses a download that does not fit the disk before it starts."
+      },
+      {
+        "fa": "ویدئو با کد (Remotion): پیش‌نمایش زنده در ستون کناری ثابت می‌ماند و هنگام انتخاب سبک و ویرایش متن در دید است (روی گوشی بالای صفحه، کوچک). کارت هر سبک تصویر خودش را دارد (همان ترکیب‌بندی با همان سبک). کد ترکیب‌ها فقط وقتی تب «کد» باز شود گرفته می‌شود.",
+        "en": "Code-made video (Remotion): the live preview stays in the side column while you pick a style and edit the text (on a phone: on top, small). Each style card has its own picture (the same composition in that style). The code of the compositions is fetched only when the «Code» tab is opened."
       }
     ]
   },

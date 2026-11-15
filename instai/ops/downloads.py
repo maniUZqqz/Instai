@@ -67,6 +67,33 @@ def resolve_target(raw) -> tuple[str, str]:
     return str(w.pk), w.name
 
 
+DISK_SPARE = 2 * 1024 ** 3      # a download to this PC leaves at least this much free (the disk must stay usable for the rest of InstAI)
+BIG_DOWNLOAD = 2 * 1024 ** 3    # from this size on the interface asks «are you sure?» before it starts (it shows the size and the free space)
+
+
+def free_bytes() -> int | None:
+    """Free space where the downloaded files land (the drive of the ComfyUI folder); None when it cannot be told - then nothing is refused."""
+    from . import auto_offers
+
+    return auto_offers.free_bytes()
+
+
+def check_disk(missing_bytes: int, target_id: str = "local") -> None:
+    """Refuse a download to THIS PC that would not fit (with DISK_SPARE to spare) BEFORE it is queued, with the sizes in plain words. Another PC has
+    its own disk, which is not known from here: it is its own downloader's business."""
+    if target_id != "local" or missing_bytes <= 0:
+        return
+    free = free_bytes()
+    if free is None or missing_bytes + DISK_SPARE <= free:
+        return
+    gb = 1024 ** 3
+    raise DomainError("disk_low", f"جای آزاد دیسک کافی نیست: این دانلود حدود {missing_bytes / gb:.1f} گیگابایت می‌خواهد و فقط {free / gb:.1f} گیگابایت آزاد است "
+                      f"(باید حدود {DISK_SPARE // gb} گیگابایت هم خالی بماند). اول جا باز کنید یا جای دیگری را انتخاب کنید.", http_status=409,
+                      details={"need_bytes": missing_bytes, "free_bytes": free},
+                      message_en=f"Not enough free disk space: this download needs about {missing_bytes / gb:.1f} GB and only {free / gb:.1f} GB is free "
+                                 f"(about {DISK_SPARE // gb} GB must stay free as well). Free some space first or choose another place.")
+
+
 def _schedule(when, now: datetime | None = None) -> tuple[dict, datetime | None]:
     try:
         sched = schedule.resolve(when, now=now)
@@ -184,5 +211,7 @@ def catalog() -> dict:
                       "size": int(st.get("size") or 0),
                       "missing_size": int(st.get("missing_size") or 0), "complete": bool(st.get("complete")), "default": bool(p.get("default")),
                       "licence": p.get("licence", "")})
+    free = free_bytes()
     return {"packages": items, "ollama": OLLAMA_SUGGESTIONS, "targets": targets(), "config": schedule.config(),
-            "curated": curated(packages, _items, status)}
+            "curated": curated(packages, _items, status),
+            "free_bytes": free, "free_gb": round(free / 1024 ** 3, 1) if free is not None else None, "big_bytes": BIG_DOWNLOAD, "spare_bytes": DISK_SPARE}

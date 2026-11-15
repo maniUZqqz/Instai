@@ -4,6 +4,7 @@ import { Modal } from '../components/feedback'
 import { Badge, Button, Card, CheckField, Notice, SelectField, Segmented, type Tone } from '../components/ui'
 import { useAction } from '../hooks'
 import { useI18n } from '../i18n'
+import { DiskNote, diskState, useBigDownloadConfirm } from './Disk'
 import { ScheduleField } from './ScheduleField'
 import type { Catalog, CuratedPackage, When } from './types'
 
@@ -32,6 +33,8 @@ export function CuratedLibrary({ cat, onAdded }: { cat: Catalog; onAdded: () => 
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
   const commercialLabel = (c: CuratedPackage['commercial']) => t(('cur.comm.' + c) as 'cur.comm.yes')
 
+  const local = target === 'local'
+  const askBig = useBigDownloadConfirm(cat)
   const submit = async (confirmLicence: boolean) => {
     const ids = chosen.filter((p) => !p.complete).map((p) => p.id)
     if (!ids.length) return
@@ -42,7 +45,8 @@ export function CuratedLibrary({ cat, onAdded }: { cat: Catalog; onAdded: () => 
       onAdded()
     }
   }
-  const go = () => {
+  const go = async () => {
+    if (!(await askBig(total, local))) return          // a big download: the size and the free space are shown first
     const risky = chosen.filter((p) => p.needs_confirm && !p.complete)
     if (risky.length) setAsk(risky)
     else void submit(false)
@@ -125,8 +129,9 @@ export function CuratedLibrary({ cat, onAdded }: { cat: Catalog; onAdded: () => 
             )
           })}
         </div>
+        <DiskNote cat={cat} need={total} local={local} />
         <div className="row">
-          <Button variant="primary" icon="download" busy={act.busy} disabled={!chosen.some((p) => !p.complete)} onClick={go} data-testid="cur-go">
+          <Button variant="primary" icon="download" busy={act.busy} disabled={!chosen.some((p) => !p.complete) || !diskState(cat, total, local).fits} onClick={() => void go()} data-testid="cur-go">
             {t('cur.go')}
           </Button>
           <span className="small muted">{chosen.length ? t('cur.sel_total', { n: chosen.length, x: f.bytes(total) }) : t('cur.sel_none')}</span>

@@ -3,10 +3,12 @@ import type { Episode, EpisodeEstimate, Job, PageDetail, Shot } from '../../api/
 import { useChoose, useConfirm } from '../../components/feedback'
 import { askAboutPuppets } from './preflight'
 import { JobView } from '../../components/domain'
+import { Fold } from '../../components/Fold'
 import { Badge, Button, Card, Notice, Progress } from '../../components/ui'
 import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { Icon } from '../../components/Icon'
+import { VideoPlayer, topVideo } from './Player'
 import { CaptionsCard } from './CaptionsCard'
 
 const isActive = (j: Job) => j.status === 'queued' || j.status === 'running'
@@ -17,7 +19,7 @@ export function activeProdJobs(ep: Episode): Job[] {
 }
 
 /** Estimated GPU time: preview vs final. Always labelled as an estimate and says where the numbers come from. */
-export function EstimateCard({ ep, page }: { ep: Episode; page: PageDetail | undefined }) {
+export function EstimateCard({ ep, page, fold, open }: { ep: Episode; page: PageDetail | undefined; fold?: boolean; open?: boolean }) {
   const { t, f } = useI18n()
   const est = ep.estimate as EpisodeEstimate | undefined
   if (!est || !est.modes || !est.shots) return <Notice tone="info">{t('prod.no_estimate')}</Notice>
@@ -38,8 +40,8 @@ export function EstimateCard({ ep, page }: { ep: Episode; page: PageDetail | und
       <td colSpan={3}>—</td>
     )
   }
-  return (
-    <Card title={t('prod.estimate_title')} actions={<Badge tone={est.source === 'measured' ? 'ok' : 'warn'}>{est.source === 'measured' ? t('prod.src_measured') : t('prod.src_planning')}</Badge>}>
+  const sourceBadge = <Badge tone={est.source === 'measured' ? 'ok' : 'warn'}>{est.source === 'measured' ? t('prod.src_measured') : t('prod.src_planning')}</Badge>
+  const body = (
       <div className="stack-sm">
         <p className="small muted">{est.source === 'measured' ? t('prod.src_measured_note') : t('prod.src_planning_note')}</p>
         <div className="table-wrap">
@@ -77,8 +79,8 @@ export function EstimateCard({ ep, page }: { ep: Episode; page: PageDetail | und
           </div>
         )}
       </div>
-    </Card>
   )
+  return fold ? <Fold title={t('prod.estimate_title')} badge={sourceBadge} open={open} testid="fold-estimate">{body}</Fold> : <Card title={t('prod.estimate_title')} actions={sourceBadge}>{body}</Card>
 }
 
 export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; page: PageDetail | undefined; onChanged: () => void; onProduced: () => void }) {
@@ -110,9 +112,12 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
   const m = (k: 'keyframes_preview' | 'keyframes_final' | 'narration') => stale[k] ?? 0
   const total = stale.shots ?? shots.length
 
+  const hasVideo = ep.videos.length > 0
+  const jobsSorted = [...ep.jobs].sort((x, y) => Number(isActive(y)) - Number(isActive(x)) || y.id - x.id)
+
   return (
     <div className="stack">
-      <EstimateCard ep={ep} page={page} />
+      <VideoCard ep={ep} />
 
       <CaptionsCard ep={ep} locked={locked} onChanged={onChanged} />
 
@@ -124,16 +129,6 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
             <Notice tone="info">{t('prod.no_shots')}</Notice>
           ) : (
             <>
-              <div className="stack-sm">
-                <div className="small">
-                  <strong>{t('prod.stale_title')}</strong>
-                </div>
-                <ul className="small" style={{ margin: 0, paddingInlineStart: '1.25rem' }}>
-                  <li>{t('prod.stale_preview', { a: m('keyframes_preview'), b: m('narration'), n: total })}</li>
-                  <li>{t('prod.stale_final', { a: m('keyframes_final'), b: m('narration'), n: total })}</li>
-                </ul>
-                <div className="small muted">{t('prod.stale_note')}</div>
-              </div>
               <div className="row">
                 <Button variant="primary" icon="play" busy={act.busy} disabled={!canProduce} onClick={() => produce('preview')}>
                   {t('prod.make_preview')}
@@ -143,25 +138,37 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
                 </Button>
               </div>
               {!canProduce && active.length > 0 && <p className="small muted">{t('prod.busy_note')}</p>}
+              <details className="stale-details">
+                <summary className="small strong">{t('prod.stale_title')}</summary>
+                <div className="stack-sm" style={{ marginBlockStart: '0.4rem' }}>
+                  <ul className="small" style={{ margin: 0, paddingInlineStart: '1.25rem' }}>
+                    <li>{t('prod.stale_preview', { a: m('keyframes_preview'), b: m('narration'), n: total })}</li>
+                    <li>{t('prod.stale_final', { a: m('keyframes_final'), b: m('narration'), n: total })}</li>
+                  </ul>
+                  <div className="small muted">{t('prod.stale_note')}</div>
+                </div>
+              </details>
             </>
           )}
         </div>
       </Card>
 
-      <Card title={t('prod.jobs_title')} actions={active.length > 0 ? <Badge tone="info">{t('prod.jobs_active', { n: active.length })}</Badge> : undefined}>
+      <QcCard ep={ep} />
+
+      {/* the estimates and the finished jobs are one line each once a video exists; they open by themselves while something is being made */}
+      <EstimateCard ep={ep} page={page} fold open={!hasVideo} />
+
+      <Fold title={t('prod.jobs_title')} badge={active.length > 0 ? <Badge tone="info">{t('prod.jobs_active', { n: active.length })}</Badge> : <Badge>{f.num(ep.jobs.length)}</Badge>} open={active.length > 0 || (!hasVideo && ep.jobs.length > 0)} testid="fold-jobs">
         {ep.jobs.length === 0 ? (
           <p className="muted">{t('prod.no_jobs')}</p>
         ) : (
           <div className="stack-sm" role="log" aria-live="polite">
-            {[...ep.jobs].sort((a, b) => Number(isActive(b)) - Number(isActive(a)) || b.id - a.id).slice(0, 8).map((j) => (
+            {jobsSorted.slice(0, 8).map((j) => (
               <JobView key={j.id} job={j} compact onCancel={isActive(j) ? () => cancel(j) : undefined} />
             ))}
           </div>
         )}
-      </Card>
-
-      <VideoCard ep={ep} />
-      <QcCard ep={ep} />
+      </Fold>
 
       <Card title={t('prod.assets_title')}>
         {shots.length === 0 ? (
@@ -187,6 +194,7 @@ export function Production({ ep, page, onChanged, onProduced }: { ep: Episode; p
 
 function VideoCard({ ep }: { ep: Episode }) {
   const { t, f } = useI18n()
+  const above = topVideo(ep)          // the newest video is already playing at the top of the page: here only its facts, no second player
   if (ep.videos.length === 0) {
     return (
       <Card title={t('prod.video_title')}>
@@ -195,17 +203,16 @@ function VideoCard({ ep }: { ep: Episode }) {
     )
   }
   return (
-    <Card title={t('prod.video_title')}>
+    <Card title={above ? t('prod.versions_title') : t('prod.video_title')}>
       <div className="stack-lg">
         {ep.videos.map((v) => (
           <div key={v.id} className="video-box">
-            <video controls preload="metadata" src={v.url} poster={ep.cover_url ?? undefined} style={v.width && v.height ? { aspectRatio: `${v.width} / ${v.height}` } : undefined} aria-label={t(v.role === 'final' ? 'prod.final' : 'prod.preview')}>
-              <track kind="captions" />
-            </video>
+            {v.id === above?.id ? null : <VideoPlayer ep={ep} v={v} label={t(v.role === 'final' ? 'prod.final' : 'prod.preview')} />}
             <div className="stack-sm grow" style={{ minWidth: 220 }}>
               <div className="row">
                 <Badge tone={v.role === 'final' ? 'ok' : 'info'}>{t(v.role === 'final' ? 'prod.final' : 'prod.preview')}</Badge>
                 <span className="small muted">{f.dateTime(v.created_at)}</span>
+                {v.id === above?.id && <span className="small muted">{t('prod.player_above')}</span>}
               </div>
               <dl className="kv small">
                 <dt>{t('prod.meta_size')}</dt>

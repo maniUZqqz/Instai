@@ -27,9 +27,14 @@ export interface IdeaFacet {
   en: string
   count: number
 }
+/** A hand-picked group that sits beside the categories (the ideas that carry one of its tags): «ایده‌های چغر / ورزش». */
+export interface IdeaCollection extends IdeaFacet {
+  tags: string[]
+}
 export interface IdeasPayload {
   ideas: BankIdea[]
   categories: IdeaFacet[]
+  collections?: IdeaCollection[]
   formats: IdeaFacet[]
   tags: { tag: string; count: number }[]
   total: number

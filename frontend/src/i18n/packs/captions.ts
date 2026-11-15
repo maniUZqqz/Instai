@@ -1,4 +1,4 @@
-// Word-by-word captions (0.19.0): the picker on the page settings and on the episode, with real preview pictures drawn by the render engine.
+// Word-by-word captions (0.20.0): the picker on the page settings and on the episode, with real preview pictures drawn by the render engine.
 export const fa: Record<string, string> = {
   'cap.title': 'زیرنویس کلمه‌به‌کلمه',
   'cap.intro': 'قالبِ زیرنویسِ ویدئوهای این صفحه. رنگ‌ها از سبکِ سریال می‌آیند و خوانایی همیشه بررسی می‌شود. نمونه‌ها را خودِ موتورِ ساخت می‌کشد، پس همان چیزی است که در ویدئو می‌بینید.',

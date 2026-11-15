@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { DevTemplate, StepKind, StylePreset, Suit, TemplateStep, ThemePreset, Job } from '../api/types'
 import type { PreviewStatus } from '../api/ideaTypes'
@@ -10,6 +10,8 @@ import { useAction, useHashTab, useJobRunner, useQuery, useTitle } from '../hook
 import { useI18n } from '../i18n'
 import { desc, invalidateLibrary, nm, styleImage, useLibrary, useTemplates, vocab } from '../library'
 
+/** The style gallery shows this many cards first and this many more on each press (116 cards at once asked for 116 pictures and made the page 7000 px tall). */
+export const STYLE_PAGE = 36
 const TABS = ['styles', 'themes', 'templates'] as const
 type Tab = (typeof TABS)[number]
 
@@ -72,13 +74,20 @@ const blankStyle = (): StyleDraft => ({
 })
 
 function StylesTab() {
-  const { t, lang } = useI18n()
+  const { t, lang, f: fmt } = useI18n()
   const lib = useLibrary()
   const confirm = useConfirm()
   const act = useAction()
   const [sel, setSel] = useState('')
   const [edit, setEdit] = useState<StyleDraft | null>(null)
   const f = useStyleFilter(lib.data?.styles ?? [])
+  const [count, setCount] = useState(STYLE_PAGE)
+  useEffect(() => setCount(STYLE_PAGE), [f.group, f.suit, f.q])        // a new filter starts again at the first page
+  useEffect(() => {
+    // a style that was just made / duplicated is selected: its card must be in the grid, not only in the panel below it
+    const at = f.list.findIndex((x) => x.key === sel)
+    if (at >= 0) setCount((n) => Math.max(n, at + 1))
+  }, [sel, f.list])
   if (lib.error) return <ErrorState error={lib.error} onRetry={lib.reload} />
   if (!lib.data) return <Loading />
   const cur = lib.data.styles.find((s) => s.key === sel)
@@ -105,8 +114,8 @@ function StylesTab() {
       )}
       <SamplesBar />
       <StyleFilters styles={lib.data.styles} f={f} name="lib" />
-      <div className="choice-grid style-grid">
-        {f.list.map((s) => (
+      <div className="choice-grid style-grid" data-testid="style-gallery">
+        {f.list.slice(0, count).map((s) => (
           <button key={s.key} type="button" className={'choice style-card as-button' + (sel === s.key ? ' selected' : '')} aria-pressed={sel === s.key} onClick={() => setSel(sel === s.key ? '' : s.key)}>
             <Swatch palette={s.palette} url={styleImage(s)} />
             <span className="strong">{nm(s, lang)}</span>
@@ -117,6 +126,12 @@ function StylesTab() {
         ))}
         {f.list.length === 0 && <p className="muted">{t('lib.none_found')}</p>}
       </div>
+      {f.list.length > count && (
+        <div className="row center">
+          <Button onClick={() => setCount((n) => n + STYLE_PAGE)} data-testid="styles-more">{t('lib.show_more', { n: Math.min(STYLE_PAGE, f.list.length - count), rest: fmt.num(f.list.length - count) })}</Button>
+          <Button variant="ghost" onClick={() => setCount(f.list.length)} data-testid="styles-all">{t('lib.show_all_n', { n: f.list.length })}</Button>
+        </div>
+      )}
       {cur && (
         <div className="stack">
           <StyleDetails style={cur} />

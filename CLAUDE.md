@@ -136,8 +136,17 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - The visual critique uses InstAI's own Ollama with the owner's vision model; Ollama off = wait (`ollama_down`); never a cloud model.
 - `render.mjs` has a `qa` mode (many frames, one browser, `INSTAI_QA:` geometry lines); the real acceptance run is `python -m instai.motion_plan.selftest <folder>` (57 frames + montage) and the self-test rows `motion_library` / `motion_frames` / `motion_critique`.
 
+## Everyday-screen audit (audit round ia_ui; reasons in `docs/DECISIONS.md`, "Quality audit of the everyday screens")
+- **Search has one rule in two languages**: `library.py` (`_fold`, `query_words`, `all_words_in`) and `frontend/src/library.ts` (`fold`, `queryWords`, `allWordsIn`); the idea bank adds the category / format / tag names (`bank.search_text`, `ideaHaystack`). A word of 3+ letters also matches with spaces and half-spaces removed. Change both sides together; `instai/ideabank/tag_names.py` must equal `frontend/src/ideaTags.ts` (a test checks).
+- **A long list is a page, not the whole list**: ideas show `IDEA_PAGE` (24), library styles `STYLE_PAGE` (36) with «نمایش بیشتر»; the wizard's `StylePicker` takes `suggestAround` (six cards) and opens the whole gallery in a scroll box. A look's picture is `Swatch` = a lazy `<img>` over the palette gradient, never a CSS `background-image` (that asks for every picture at once).
+- **Folded cards** use `components/Fold.tsx` (native `<details>`); the episode page shows the newest finished video in the «قدم بعدی» card (`pages/episode/Player.tsx`), the production tab only lists the facts of each version.
+- **The version pill lives in the Shell's top bar** (normal flow), not `position: fixed`.
+- **Settings keeps settings**: the catalogue of packs is on `/downloads` only; licences and workflows are the closed `LicencesFold` on `/models`. `/downloads` shows `free_gb`, asks from `big_bytes` (2 GB) and the server refuses a local download that leaves less than `spare_bytes` free (`ops.downloads.check_disk`, 409 `disk_low`).
+- Remotion page: the preview is the sticky second column; a style card draws the composition in that look with `Thumbnail` only once it is near the screen (`useSeen`); `/api/remotion/code` is fetched when the code tab opens.
+- UI tests for this round: `tests_ui/test_audit_ui.py` (1366 and 390 px).
 
-## Word-by-word captions (0.19.0; docs `docs/CAPTIONS.md`, self-test `docs/selftests/captions.md`)
+
+## Word-by-word captions (0.20.0; docs `docs/CAPTIONS.md`, self-test `docs/selftests/captions.md`)
 - Engine in `instai/render/` (`titles_ass`, `captions`, `contrast`, `safezones`, `srt`, `caption_previews`, `captions_check`), glue in `instai/production/captions.py`, API in `production/api_captions.py`. **Sizes are fractions of the frame height; colours come from the series look through `captions.resolve_style` and are contrast-checked - never put a colour in a preset.** Ported from NMarketing (`SOURCE:` notes); never import NMarketing.
 - A page's `visual.caption_style` ({preset, mode, zone}; `classic` + `burned` = the old subtitle) and `Episode.caption_style` (override). `publishing.caption_style` is a different thing (post text tone). A render with a non-default config adds `captions.hash_part` to `pipeline.timeline_hash`; a default one keeps the old hashes.
 - User text never reaches ASS raw: `titles_ass._esc` (braces, backslash). The `ass` filter always gets RELATIVE names (`ass=sub.ass:fontsdir=fonts`, ffmpeg run with `cwd=`).

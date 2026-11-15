@@ -21,11 +21,15 @@ def test_style_library_groups_suitability_search_and_color_theme_tab(browser, se
     failures: list[str] = []
     try:
         page.locator(".style-card").first.wait_for(timeout=15000)
+        assert page.locator(".style-card").count() == 36, "the gallery shows a page of cards first (audit round ia_ui), the rest on a press"
+        page.locator("[data-testid=styles-all]").click()
         n = page.locator(".style-card").count()
         assert n >= 100, f"{n} styles"
         assert page.locator(".filter-chip").count() == 9, "all + the eight art groups"
-        # the previews are drawn pictures, not empty boxes
-        assert page.locator(".style-card .swatch").first.evaluate("e => getComputedStyle(e).backgroundImage").startswith("url(")
+        # the previews are drawn pictures, not empty boxes (a lazily loaded <img> over the palette gradient)
+        pic = page.locator(".style-card .swatch img.swatch-img").first
+        assert pic.get_attribute("loading") == "lazy"
+        page.wait_for_function("() => { const i = document.querySelector('.style-card .swatch img.swatch-img'); return i && i.complete && i.naturalWidth > 0 }", timeout=15000)
         page.locator(".filter-chip").nth(4).click()
         page.wait_for_timeout(200)
         n2 = page.locator(".style-card").count()
@@ -72,6 +76,8 @@ def test_idea_bank_search_filters_and_start_a_project(browser, server, size, lan
     failures: list[str] = []
     try:
         page.locator(".idea-card").first.wait_for(timeout=15000)
+        assert page.locator(".idea-card").count() == 24, "a page of cards first (audit round ia_ui), the rest on a press"
+        page.locator("[data-testid=ideas-all]").click()
         n = page.locator(".idea-card").count()
         assert n >= 100, f"{n} ideas"
         chips = page.locator('[role=group] .filter-chip')

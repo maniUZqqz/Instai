@@ -1,5 +1,5 @@
-import { Player, type PlayerRef } from '@remotion/player'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Player, Thumbnail, type PlayerRef } from '@remotion/player'
+import { Component, memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { api } from '../api/client'
 import { JobView } from '../components/domain'
 import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Notice, NumberField, PageHead, Progress, Segmented, SelectField, Tabs, TextField, AreaField } from '../components/ui'
@@ -120,18 +120,58 @@ function SetupCard({ st, reload }: { st: RmStatus; reload: () => void }) {
   )
 }
 
-function KitChip({ k, active, onPick, lang }: { k: RmKit; active: boolean; onPick: () => void; lang: 'fa' | 'en' }) {
+/** A style's picture must never take the page down: a composition that fails for one look shows the palette strip instead. */
+class ThumbBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
+
+/** True once the element has come near the screen (and for good): the 116 pictures are made only for the cards that are looked at. */
+function useSeen<T extends Element>(): [RefObject<T>, boolean] {
+  const ref = useRef<T>(null)
+  const [seen, setSeen] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || seen) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setSeen(true)
+      return
+    }
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && (setSeen(true), io.disconnect()), { rootMargin: '120px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [seen])
+  return [ref, seen]
+}
+
+/** One look as a card: the chosen composition drawn in THIS look (a real frame of it, made only when the card is near the screen), then the name and how it moves. */
+const KitChip = memo(function KitChip({ k, active, onPick, lang, def, sample }: { k: RmKit; active: boolean; onPick: () => void; lang: 'fa' | 'en'; def: CompositionDef; sample: Values }) {
   const p = k.palette
+  const [ref, seen] = useSeen<HTMLButtonElement>()
+  const meta = useMemo(() => metaFor(def.id, { ...sample, size: 'landscape' }), [def.id, sample])
+  const inputProps = useMemo(() => ({ ...sample, kit: k as unknown as StyleKit, size: 'landscape' as const, fontBase: 'page' }), [sample, k])
   return (
-    <button type="button" className={'cur-pkg' + (active ? ' picked' : '')} aria-pressed={active} onClick={onPick} data-testid={'rm-style-' + k.key} style={{ textAlign: 'start', cursor: 'pointer', padding: '0.5rem 0.65rem' }}>
-      <div className="strong" dir="auto">{(lang === 'en' ? k.name_en : k.name_fa) || k.name}</div>
-      <div className="row" style={{ gap: '0.2rem', margin: '0.25rem 0' }} aria-hidden="true">
-        {[p.background, p.primary, p.secondary, p.accent, p.highlight].map((c, i) => <span key={i} style={{ width: 16, height: 16, borderRadius: 4, background: c, border: '1px solid rgba(128,128,128,.4)' }} />)}
+    <button ref={ref} type="button" className={'cur-pkg rm-kit' + (active ? ' picked' : '')} aria-pressed={active} onClick={onPick} data-testid={'rm-style-' + k.key} style={{ textAlign: 'start', cursor: 'pointer', padding: '0.4rem 0.5rem' }}>
+      <div className="rm-thumb" dir="ltr" aria-hidden="true" style={{ background: p.background }}>
+        {seen && (
+          <ThumbBoundary>
+            <Thumbnail component={def.component} compositionWidth={meta.width} compositionHeight={meta.height} frameToDisplay={Math.min(75, meta.durationInFrames - 1)} durationInFrames={meta.durationInFrames} fps={meta.fps} inputProps={inputProps} style={{ width: '100%', display: 'block' }} />
+          </ThumbBoundary>
+        )}
+        <div className="rm-thumb-chips">
+          {[p.background, p.primary, p.secondary, p.accent, p.highlight].map((c, i) => <span key={i} style={{ background: c }} />)}
+        </div>
       </div>
+      <div className="strong" dir="auto">{(lang === 'en' ? k.name_en : k.name_fa) || k.name}</div>
       <div className="small muted" dir="auto">{(lang === 'en' ? k.animation_en : k.animation_fa) || k.animation}</div>
     </button>
   )
-}
+})
 
 function CodeView({ def, code }: { def: CompositionDef; code: RmCode | undefined }) {
   const { t } = useI18n()
@@ -246,9 +286,14 @@ export default function RemotionPage() {
   const act = useAction()
   const status = useQuery<RmStatus>('/remotion/status', { interval: (d) => (d && d.ready ? 20000 : 2500) })
   const kits = useQuery<{ kits: RmKit[]; default: string; groups?: { key: string; fa: string; en: string }[] }>('/remotion/kits')
-  const code = useQuery<RmCode>('/remotion/code')
-  const renders = useQuery<RmRenders>('/remotion/renders', { interval: 8000 })
   const [tab, setTab] = useStored<TabKey>('rm.tab', 'preview')
+  // the code of the compositions (54 KB) is fetched when the code tab is opened for the first time, not with the page; the list of renders is polled only on its own tab
+  const [codeWanted, setCodeWanted] = useState(tab === 'code')
+  useEffect(() => {
+    if (tab === 'code') setCodeWanted(true)
+  }, [tab])
+  const code = useQuery<RmCode>(codeWanted ? '/remotion/code' : null)
+  const renders = useQuery<RmRenders>('/remotion/renders', { interval: () => (tab === 'renders' ? 8000 : false) })
   const [compId, setCompId] = useStored<string>('rm.comp', COMPOSITIONS[0].id)
   const [styleKey, setStyleKey] = useStored<string>('rm.style', '')
   const [size, setSize] = useStored<SizeId>('rm.size', 'landscape')
@@ -281,6 +326,8 @@ export default function RemotionPage() {
   const props = useMemo(() => propsOf(def, draft, lastPlan.current), [def, draft])
   if (def.id === 'ScenePlan' && props.spec) lastPlan.current = props.spec
   const planError = def.id === 'ScenePlan' ? parsePlan(draft.texts.spec ?? '').error : undefined
+  // every style card shows the composition with its OWN sample texts (not the ones being typed): the cards do not redraw at every keystroke
+  const sample = useMemo(() => propsOf(def, initialDraft(def, lang)), [def, lang])
   const meta = useMemo(() => metaFor(def.id, { ...props, size }), [def, props, size])
   const inputProps = useMemo(() => ({ ...props, kit: (kit ?? undefined) as StyleKit | undefined, size, fontBase: 'page' }), [props, kit, size])
 
@@ -328,102 +375,116 @@ export default function RemotionPage() {
   const portrait = meta.height > meta.width
   const setPlanText = (spec: Values) => setDraft({ ...draft, texts: { ...draft.texts, spec: JSON.stringify(spec, null, 2) } })
 
+  const picker = (
+    <Card title={t('rm.pick.title')}>
+      <div className="stack">
+        <div className="stack-sm" role="group" aria-label={t('rm.comp')}>
+          {groups.map((g, gi) => (
+            <div key={g.key} className="row" style={{ gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {gi === 3 && <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--border, rgba(128,128,128,.3))', margin: '0.25rem 0' }} />}
+              <span className="small muted" style={{ minWidth: '7rem' }}>{g.label}</span>
+              {COMPOSITIONS.filter((c) => c.group === g.key).map((c) => (
+                <Button key={c.id} size="sm" variant={c.id === def.id ? 'primary' : 'default'} aria-pressed={c.id === def.id} onClick={() => setCompId(c.id)} data-testid={'rm-comp-' + c.id}>{lang === 'en' ? c.en : c.fa}</Button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <p className="small" dir="auto">{lang === 'en' ? def.descEn : def.descFa}</p>
+        <Async q={kits} skeleton={<CardSkeletons n={1} />}>
+          {() => (
+            <div className="stack-sm">
+              <div className="strong">{t('rm.style')}</div>
+              <p className="small muted">{t('rm.style_hint')}</p>
+              {styleGroups.length > 0 && (
+                <Segmented<string> label={t('rm.style_groups')} value={styleGroup} onChange={setStyleGroup} options={[{ key: 'all', label: t('rm.style_all') }, ...styleGroups.map((g) => ({ key: g.key, label: lang === 'en' ? g.en : g.fa }))]} />
+              )}
+              <div className="rm-styles" data-testid="rm-styles">
+                {list.map((k) => <KitChip key={k.key} k={k} lang={lang} active={kit?.key === k.key} onPick={() => setStyleKey(k.key)} def={def} sample={sample} />)}
+              </div>
+            </div>
+          )}
+        </Async>
+      </div>
+    </Card>
+  )
+
+  const edit = (
+    <Card title={t('rm.edit.title')}>
+      <div className="stack">
+        {def.id === 'ScenePlan' && (
+          <>
+            <SelectField label={t('rm.plan.template')} value="" onChange={(v) => v && setPlanText(templatePlan(v, lang, size))} options={[{ value: '', label: t('rm.plan.template_pick') }, ...PLAN_TEMPLATES.map((x) => ({ value: x.id, label: lang === 'en' ? x.en : x.fa }))]} />
+            <PlanFromText lang={lang} style={kit?.key ?? ''} size={size} onPlan={setPlanText} />
+          </>
+        )}
+        {def.fields.map(field)}
+        {def.id === 'ScenePlan' && <PlanChecks plan={props.spec ? { ...props.spec, style: kit?.key ?? '', size } : undefined} lang={lang} />}
+        <SelectField label={t('rm.size')} value={size} onChange={(v) => setSize(v as SizeId)} options={(Object.keys(SIZES) as SizeId[]).map((k) => ({ value: k, label: lang === 'en' ? SIZES[k].en : SIZES[k].fa }))} />
+        <div className="row">
+          <Button variant="primary" icon="film" busy={act.busy || runner.busy} disabled={!kit || !!runner.busy || !!planError} onClick={() => render()} data-testid="rm-render">{t('rm.render.video')}</Button>
+          <Button icon="image" disabled={!kit || runner.busy || !!planError} onClick={() => render(playerRef.current?.getCurrentFrame() ?? 0)} data-testid="rm-still">{t('rm.render.still')}</Button>
+        </div>
+        {!status.data?.ready && <Notice tone="info" icon="clock">{t('rm.render.needs_setup')}</Notice>}
+        {runner.job && <JobView job={runner.job} offline={runner.offline} />}
+        {runner.result?.url && (
+          <div className="stack-sm" data-testid="rm-result">
+            <div className="strong">{t('rm.render.result')}</div>
+            {runner.result.kind === 'mp4' ? <video src={runner.result.url} controls style={{ width: '100%', maxWidth: portrait ? 280 : 560, borderRadius: 8 }} /> : <img src={runner.result.url} alt="" style={{ width: '100%', maxWidth: 560, borderRadius: 8 }} />}
+            <ExtLink href={runner.result.url} download>{t('rm.renders.download')}</ExtLink>
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+
+  // the live preview is in the second column and stays in view while the owner scrolls through the styles and the texts (on a phone it sits on top, small)
+  const preview = (
+    <aside className="rm-side" data-testid="rm-side" style={{ ['--rm-aspect' as string]: String(meta.width / meta.height) }}>
+      <Card title={t('rm.preview.title')} actions={<span className="small muted ltr" dir="ltr">{meta.width}×{meta.height} · {meta.fps ?? FPS} fps · {(meta.durationInFrames / (meta.fps ?? FPS)).toFixed(1)} s</span>}>
+        <div className="stack-sm">
+          <div dir="ltr" data-testid="rm-player" className={'rm-player ' + (portrait ? 'portrait' : 'landscape')}>
+            {kit ? (
+              <Player
+                ref={playerRef}
+                key={def.id + size}
+                initialFrame={Math.min(initialFrame, Math.max(0, meta.durationInFrames - 1))}
+                component={def.component}
+                inputProps={inputProps}
+                durationInFrames={meta.durationInFrames}
+                compositionWidth={meta.width}
+                compositionHeight={meta.height}
+                fps={meta.fps}
+                controls
+                loop
+                clickToPlay
+                acknowledgeRemotionLicense
+                style={{ width: '100%', borderRadius: 8, overflow: 'hidden' }}
+              />
+            ) : <Empty icon="film" title={t('rm.preview.no_style')} />}
+          </div>
+          {kit && <p className="small strong" dir="auto" data-testid="rm-chosen">{t('rm.chosen_style', { name: (lang === 'en' ? kit.name_en : kit.name_fa) || kit.name })}</p>}
+          <p className="small muted rm-hint">{t('rm.preview.hint')}</p>
+        </div>
+      </Card>
+    </aside>
+  )
+
   return (
     <div className="stack" data-testid="rm-page">
       <PageHead title={t('rm.title')} />
       <p className="muted">{t('rm.intro')}</p>
       <Async q={status} skeleton={<CardSkeletons n={1} />}>{(s) => <SetupCard st={s} reload={status.reload} />}</Async>
 
-      <Card title={t('rm.pick.title')}>
-        <div className="stack">
-          <div className="stack-sm" role="group" aria-label={t('rm.comp')}>
-            {groups.map((g, gi) => (
-              <div key={g.key} className="row" style={{ gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                {gi === 3 && <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--border, rgba(128,128,128,.3))', margin: '0.25rem 0' }} />}
-                <span className="small muted" style={{ minWidth: '7rem' }}>{g.label}</span>
-                {COMPOSITIONS.filter((c) => c.group === g.key).map((c) => (
-                  <Button key={c.id} size="sm" variant={c.id === def.id ? 'primary' : 'default'} aria-pressed={c.id === def.id} onClick={() => setCompId(c.id)} data-testid={'rm-comp-' + c.id}>{lang === 'en' ? c.en : c.fa}</Button>
-                ))}
-              </div>
-            ))}
-          </div>
-          <p className="small" dir="auto">{lang === 'en' ? def.descEn : def.descFa}</p>
-          <Async q={kits} skeleton={<CardSkeletons n={1} />}>
-            {() => (
-              <div className="stack-sm">
-                <div className="strong">{t('rm.style')}</div>
-                <p className="small muted">{t('rm.style_hint')}</p>
-                {styleGroups.length > 0 && (
-                  <Segmented<string> label={t('rm.style_groups')} value={styleGroup} onChange={setStyleGroup} options={[{ key: 'all', label: t('rm.style_all') }, ...styleGroups.map((g) => ({ key: g.key, label: lang === 'en' ? g.en : g.fa }))]} />
-                )}
-                <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(11rem, 1fr))', gap: '0.5rem', maxHeight: '15rem', overflow: 'auto' }} data-testid="rm-styles">
-                  {list.map((k) => <KitChip key={k.key} k={k} lang={lang} active={kit?.key === k.key} onPick={() => setStyleKey(k.key)} />)}
-                </div>
-              </div>
-            )}
-          </Async>
+      <div className="rm-split">
+        <div className="stack rm-main">
+          {picker}
+          <Tabs<TabKey> label={t('rm.tabs')} value={tab} onChange={setTab} tabs={[{ key: 'preview', label: t('rm.tab.preview') }, { key: 'code', label: t('rm.tab.code') }, { key: 'renders', label: t('rm.tab.renders'), badge: renders.data?.renders.length ? <Badge tone="info">{renders.data.renders.length}</Badge> : undefined }]} />
+          {tab === 'preview' && edit}
+          {tab === 'code' && <Card title={t('rm.code.title', { name: def.id })}><Async q={code} skeleton={<CardSkeletons n={1} />}>{(c) => <CodeView def={def} code={c} />}</Async></Card>}
+          {tab === 'renders' && <Card title={t('rm.renders.title')}><Renders data={renders.data} /></Card>}
         </div>
-      </Card>
-
-      <Tabs<TabKey> label={t('rm.tabs')} value={tab} onChange={setTab} tabs={[{ key: 'preview', label: t('rm.tab.preview') }, { key: 'code', label: t('rm.tab.code') }, { key: 'renders', label: t('rm.tab.renders'), badge: renders.data?.renders.length ? <Badge tone="info">{renders.data.renders.length}</Badge> : undefined }]} />
-
-      {tab === 'preview' && (
-        <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(20rem, 1fr))', gap: '1rem', alignItems: 'start' }}>
-          <Card title={t('rm.edit.title')}>
-            <div className="stack">
-              {def.id === 'ScenePlan' && (
-                <>
-                  <SelectField label={t('rm.plan.template')} value="" onChange={(v) => v && setPlanText(templatePlan(v, lang, size))} options={[{ value: '', label: t('rm.plan.template_pick') }, ...PLAN_TEMPLATES.map((x) => ({ value: x.id, label: lang === 'en' ? x.en : x.fa }))]} />
-                  <PlanFromText lang={lang} style={kit?.key ?? ''} size={size} onPlan={setPlanText} />
-                </>
-              )}
-              {def.fields.map(field)}
-              {def.id === 'ScenePlan' && <PlanChecks plan={props.spec ? { ...props.spec, style: kit?.key ?? '', size } : undefined} lang={lang} />}
-              <SelectField label={t('rm.size')} value={size} onChange={(v) => setSize(v as SizeId)} options={(Object.keys(SIZES) as SizeId[]).map((k) => ({ value: k, label: lang === 'en' ? SIZES[k].en : SIZES[k].fa }))} />
-              <div className="row">
-                <Button variant="primary" icon="film" busy={act.busy || runner.busy} disabled={!kit || !!runner.busy || !!planError} onClick={() => render()} data-testid="rm-render">{t('rm.render.video')}</Button>
-                <Button icon="image" disabled={!kit || runner.busy || !!planError} onClick={() => render(playerRef.current?.getCurrentFrame() ?? 0)} data-testid="rm-still">{t('rm.render.still')}</Button>
-              </div>
-              {!status.data?.ready && <Notice tone="info" icon="clock">{t('rm.render.needs_setup')}</Notice>}
-              {runner.job && <JobView job={runner.job} offline={runner.offline} />}
-              {runner.result?.url && (
-                <div className="stack-sm" data-testid="rm-result">
-                  <div className="strong">{t('rm.render.result')}</div>
-                  {runner.result.kind === 'mp4' ? <video src={runner.result.url} controls style={{ width: '100%', maxWidth: portrait ? 280 : 560, borderRadius: 8 }} /> : <img src={runner.result.url} alt="" style={{ width: '100%', maxWidth: 560, borderRadius: 8 }} />}
-                  <ExtLink href={runner.result.url} download>{t('rm.renders.download')}</ExtLink>
-                </div>
-              )}
-            </div>
-          </Card>
-          <Card title={t('rm.preview.title')} actions={<span className="small muted ltr" dir="ltr">{meta.width}×{meta.height} · {meta.fps ?? FPS} fps · {(meta.durationInFrames / (meta.fps ?? FPS)).toFixed(1)} s</span>}>
-            <div className="stack-sm">
-              <div dir="ltr" data-testid="rm-player" style={{ width: '100%', maxWidth: portrait ? 300 : '100%', margin: '0 auto' }}>
-                {kit ? (
-                  <Player
-                    ref={playerRef}
-                    key={def.id + size}
-                    initialFrame={Math.min(initialFrame, Math.max(0, meta.durationInFrames - 1))}
-                    component={def.component}
-                    inputProps={inputProps}
-                    durationInFrames={meta.durationInFrames}
-                    compositionWidth={meta.width}
-                    compositionHeight={meta.height}
-                    fps={meta.fps}
-                    controls
-                    loop
-                    clickToPlay
-                    acknowledgeRemotionLicense
-                    style={{ width: '100%', borderRadius: 8, overflow: 'hidden' }}
-                  />
-                ) : <Empty icon="film" title={t('rm.preview.no_style')} />}
-              </div>
-              <p className="small muted">{t('rm.preview.hint')}</p>
-            </div>
-          </Card>
-        </div>
-      )}
-      {tab === 'code' && <Card title={t('rm.code.title', { name: def.id })}><CodeView def={def} code={code.data} /></Card>}
-      {tab === 'renders' && <Card title={t('rm.renders.title')}><Renders data={renders.data} /></Card>}
+        {preview}
+      </div>
     </div>
   )
 }

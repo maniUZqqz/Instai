@@ -3,8 +3,8 @@ import { useI18n } from '../i18n'
 import type { VersionInfo } from '../ops/types'
 
 /**
- * The version of InstAI in the corner of EVERY screen (studio, /lab, the not-found page): one small pill like "v0.6.0".
- * Rendered once in App.tsx outside <Routes>, so no screen can forget it. A click opens "What is new" in a NEW tab (an unsaved form on
+ * The version of InstAI on EVERY screen (studio, /lab, the not-found page): one small pill like "v0.6.0" in the top bar's normal flow (it was a fixed pill in
+ * the corner, which covered buttons and the sidebar's last line). Rendered once by the Shell, so no screen can forget it. A click opens "What is new" in a NEW tab (an unsaved form on
  * the current screen must not be lost). The number comes from the VERSION file through /api/version; asked once per page load, remembered
  * for ten minutes in sessionStorage. If the server cannot be reached nothing is shown (the page itself keeps working).
  */

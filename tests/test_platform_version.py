@@ -67,15 +67,20 @@ def test_bat_files_read_the_same_file_the_server_reads(tmp_path):
     assert raw.strip() == raw.rstrip(b"\r\n") and b"\n" not in raw.rstrip(b"\r\n")
 
 
-def test_the_badge_is_in_the_app_root_so_it_shows_on_every_screen():
+def test_the_badge_is_in_the_shell_so_it_shows_on_every_screen():
+    """Audit round ia_ui: it was a fixed pill in the corner (covered the «ویرایش» button, the sidebar's last line and «تغییر در تنظیمات»); now it sits in the top bar's
+    normal flow. Every screen (studio, /lab, the not-found page) is a child route of the Shell, so one place is enough."""
     app = (SRC / "App.tsx").read_text(encoding="utf-8")
-    assert "VersionBadge" in app and "<Routes>" in app
-    assert app.index("<VersionBadge") > app.index("</Routes>"), "outside <Routes>: studio, /lab and not-found pages all get it"
+    shell = (SRC / "components" / "Shell.tsx").read_text(encoding="utf-8")
+    assert "<VersionBadge" in shell and "<Route element={<Shell />}>" in app and "<VersionBadge" not in app
+    assert shell.index("<VersionBadge") > shell.index('<header className="topbar">') and shell.index("<VersionBadge") < shell.index("</header>")
     badge = (SRC / "components" / "VersionBadge.tsx").read_text(encoding="utf-8")
     assert "/api/version" in badge and "/whats-new" in badge and "data-testid" in badge
     assert "whats-new" in app, "the page the badge opens exists"
     css = (SRC / "styles.css").read_text(encoding="utf-8")
     assert ".version-badge" in css
+    block = css[css.index(".version-badge {"):css.index("}", css.index(".version-badge {"))]
+    assert "position: fixed" not in block, "in the normal flow of the top bar, not fixed over the page"
 
 
 def test_the_built_ui_contains_the_badge_and_the_new_pages():

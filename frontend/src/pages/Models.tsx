@@ -9,6 +9,7 @@ import { ModelTestGate, TestButton, useModelTest } from '../components/ModelTest
 import { Async, AreaField, Badge, Button, Card, CardSkeletons, Empty, ExtLink, Notice, PageHead, TextField, type Tone } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { LicencesFold } from './ModelLicences'
 import { ScheduleField } from '../ops/ScheduleField'
 import type { When } from '../ops/types'
 
@@ -143,6 +144,7 @@ export default function Models() {
               <FeaturesCard m={m} />
               <ItemsCard m={m} />
               <OffersCard m={m} onFinished={() => rescan(true)} />
+              <LicencesFold />
               <PathsCard m={m} onSaved={(p) => q.setData(p)} />
             </>
           )}

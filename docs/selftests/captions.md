@@ -1,4 +1,4 @@
-# Self-test: word-by-word captions - 0.19.0
+# Self-test: word-by-word captions - 0.20.0
 
 Row `captions` (group `pc`) of the PC self-test (`instai/ops/pcselftest.py`, `check_captions`; real action in `instai/render/captions_check.py`). CPU only: libass runs on the CPU, so it is
 fully verifiable on any PC with the project's ffmpeg (no GPU PC needed).
