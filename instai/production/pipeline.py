@@ -147,7 +147,8 @@ def asset_ok(a: Asset | None, want_hash: str | None = None) -> bool:
 
 
 def missing_keyframes(ep: Episode, mode: str) -> list[Shot]:
-    return [s for s in services.all_shots(ep) if not asset_ok(current(s, "keyframe"), keyframe_hash(s, ep, mode))]
+    # a motion-graphics shot is DRAWN by Remotion from its narration (instai/motion_plan): it has no keyframe to make
+    return [s for s in services.all_shots(ep) if s.technique != "motion_graphics" and not asset_ok(current(s, "keyframe"), keyframe_hash(s, ep, mode))]
 
 
 def missing_narration(ep: Episode) -> list[Shot]:
@@ -226,9 +227,14 @@ def advance(ep: Episode, mode: str) -> list[Job]:
             jobs.append(_enqueue_step(ep, "prod.tts", mode, _h([(s.pk, narration_hash(s, ep)) for s in tts]), f"گفتار ({len(tts)} شات)"))
         if jobs:
             return jobs
-        pending = Job.objects.filter(episode=ep, kind__in=("prod.keyframes", "prod.tts"), status__in=(Job.QUEUED, Job.RUNNING))
+        pending = Job.objects.filter(episode=ep, kind__in=("prod.keyframes", "prod.tts", "remotion.render"), status__in=(Job.QUEUED, Job.RUNNING))
         if pending.exists():
             return list(pending)
+        from instai.motion_plan import shots as motion
+
+        todo = motion.enqueue(ep, mode)         # one `remotion.render` job per motion-graphics shot whose clip is missing or stale (the narration exists: the clip is as long as the speech)
+        if todo:
+            return todo
         try:
             if mode == FINAL and wan_shots(ep) and missing_clips(ep):
                 services.transition(ep, states.ANIMATION, reason="video shots", actor="system")
@@ -495,6 +501,10 @@ def shot_specs_full(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[st
     shots = services.all_shots(ep)
     for i, s in enumerate(shots):
         kf, nar, clip = current(s, "keyframe"), current(s, "narration"), current(s, "shot_clip")
+        if s.technique == "motion_graphics":
+            from instai.motion_plan import shots as motion
+
+            clip = motion.current_clip(s)                 # the Remotion clip of THIS shot (not a stale video clip of an earlier technique)
         layers = None
         puppet_scene = None
         if s.technique == "puppet_2d":
@@ -512,7 +522,7 @@ def shot_specs_full(ep: Episode, mode: str) -> tuple[list[asm.ShotSpec], list[st
         last = i == len(shots) - 1
         specs.append(asm.ShotSpec(
             key=str(s.pk), duration=s.duration_sec, image=str(asset_storage.storage.path_for(kf.path)) if kf else None,
-            video=str(asset_storage.storage.path_for(clip.path)) if (clip and mode == FINAL) else None, layers=layers, camera=s.camera or {},
+            video=str(asset_storage.storage.path_for(clip.path)) if (clip and (mode == FINAL or s.technique == "motion_graphics")) else None, layers=layers, camera=s.camera or {},
             technique=s.technique, transition="cut" if last else (s.transition or "cut"),
             audio=str(asset_storage.storage.path_for(nar.path)) if nar else None, audio_duration=(nar.duration_sec or 0.0) if nar else 0.0,
             subtitle=s.narration, puppet=puppet_scene))

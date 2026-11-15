@@ -16,6 +16,7 @@ import SeriesBuilder from './pages/SeriesBuilder'
 import Wizard from './pages/Wizard'
 import { CharactersTab } from './pages/workspace/CharactersTab'
 import PublishingCentre, { PublishingTab } from './pages/workspace/Publishing'
+import CoversPage from './covers/CoversPage'
 import { ProfilesTab } from './pages/workspace/ProfilesTab'
 import { EpisodesTab, HistoryTab, Overview, SeriesTab, Workspace } from './pages/workspace/Workspace'
 import { labRoutes } from './lab/routes'
@@ -66,6 +67,7 @@ export default function App() {
         <Route path="episodes/:id" element={<EpisodeEditor />} />
         <Route path="choice/:id" element={<ChoiceEditor />} />
         <Route path="publishing" element={<PublishingCentre />} />
+        <Route path="covers" element={<CoversPage />} />
         <Route path="library" element={<LibraryPage />} />
         <Route path="ideas" element={<IdeasPage />} />
         <Route path="monitor" element={<Monitor />} />

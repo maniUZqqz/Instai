@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import json
 import re
 import time
 
@@ -84,6 +85,34 @@ def clean_props(composition: str, raw: dict) -> dict:
         return {"title": _text(raw.get("title"), "title", required=True), "steps": out, "outro": _text(raw.get("outro"), "outro")}
     if composition == "LowerThird":
         return {"name": _text(raw.get("name"), "name", required=True), "role": _text(raw.get("role"), "role"), "backdrop": raw.get("backdrop") is not False}
+    if composition == toolchain.PLAN_COMPOSITION:
+        from instai.motion_plan import specs as plan_specs
+
+        spec = raw.get("spec")
+        if isinstance(spec, str):
+            try:
+                spec = json.loads(spec)
+            except ValueError:
+                raise _bad("spec", "طرح صحنه JSON معتبر نیست.", "the scene plan is not valid JSON")
+        try:
+            clean = plan_specs.normalize_spec(spec if isinstance(spec, dict) else {})
+        except plan_specs.SpecError as e:
+            raise _bad("spec", str(e), e.en)
+        clean.pop("total_s", None)
+        return {"spec": clean}
+    scene_type = next((t for t, cid in toolchain.SCENE_COMPOSITIONS.items() if cid == composition), "")
+    if scene_type:
+        from instai.motion_plan import specs as plan_specs
+
+        values = {k: v for k, v in raw.items() if k not in ("kit", "size", "fontBase")}
+        try:
+            sc = plan_specs.normalize_scene({"type": scene_type, "duration": raw.get("duration") or 4, **values}, 0)
+        except plan_specs.SpecError as e:
+            raise _bad("props", str(e), e.en)
+        sc.pop("type", None)
+        sc.pop("duration", None)
+        sc.pop("example", None)       # the library's pieces always say «example» unless they name a source (specs._honesty adds it again on the render side)
+        return sc
     raise DomainError("not_found", "این قالب وجود ندارد.", http_status=404, message_en="Unknown composition")
 
 

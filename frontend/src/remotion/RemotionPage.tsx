@@ -2,16 +2,19 @@ import { Player, Thumbnail, type PlayerRef } from '@remotion/player'
 import { Component, memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { api } from '../api/client'
 import { JobView } from '../components/domain'
-import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Notice, PageHead, Progress, Segmented, SelectField, Tabs, TextField, AreaField } from '../components/ui'
+import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Notice, NumberField, PageHead, Progress, Segmented, SelectField, Tabs, TextField, AreaField } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useStored, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
 import { COMPOSITIONS, FPS, SIZES, byId, metaFor, type CompositionDef, type SizeId } from '../../../remotion/src/catalog'
+import { PLAN_TEMPLATES, templatePlan } from '../../../remotion/src/components/defs'
 import type { StyleKit } from '../../../remotion/src/kit/theme'
-import type { RmCode, RmKit, RmRenders, RmStatus } from './types'
+import type { MotionNarrationPlan, MotionValidate, RmCode, RmKit, RmRenders, RmStatus } from './types'
 
 type TabKey = 'preview' | 'code' | 'renders'
 type Values = Record<string, any>
 type Draft = { values: Values; texts: Record<string, string> }
+type Field = CompositionDef['fields'][number]
+type Cols = NonNullable<Field['cols']>
 
 const stepsToText = (steps: { title: string; body?: string }[]) => steps.map((s) => (s.body ? `${s.title} | ${s.body}` : s.title)).join('\n')
 const textToSteps = (text: string) =>
@@ -24,23 +27,62 @@ const textToSteps = (text: string) =>
       return i < 0 ? { title: l, body: '' } : { title: l.slice(0, i).trim(), body: l.slice(i + 1).trim() }
     })
 
+const DIGITS = '۰۱۲۳۴۵۶۷۸۹'
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩'
+const toLatinDigits = (v: string) => v.replace(/[۰-۹٠-٩]/g, (d) => String(Math.max(DIGITS.indexOf(d), ARABIC_DIGITS.indexOf(d))))
+
+/** objects <-> text lines «a | b | c» (one object per line, one column per field of `cols`) */
+const rowsToText = (rows: Record<string, any>[] | undefined, cols: Cols) =>
+  (rows ?? []).map((r) => cols.map((c) => String(r[c.key] ?? '')).join(' | ').replace(/(\s*\|\s*)+$/, '')).join('\n')
+const textToRows = (text: string, cols: Cols) =>
+  text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => {
+      const parts = l.split('|').map((x) => x.trim())
+      const o: Record<string, any> = {}
+      cols.forEach((c, i) => {
+        const v = parts[i]
+        if (v !== undefined && v !== '') o[c.key] = c.kind === 'number' ? Number(toLatinDigits(v)) || 0 : v
+      })
+      return o
+    })
+    .filter((o) => Object.keys(o).length)
+
+/** the scene plan the JSON box holds: the parsed plan, or why it cannot be read */
+function parsePlan(text: string): { value?: Values; error?: string } {
+  try {
+    const v = JSON.parse(text)
+    return v && typeof v === 'object' && !Array.isArray(v) ? { value: v } : { error: 'a JSON object is needed' }
+  } catch (e) {
+    return { error: String((e as Error).message || e) }
+  }
+}
+
 function initialDraft(def: CompositionDef, lang: 'fa' | 'en'): Draft {
   const d = def.defaults(lang) as Values
   const values: Values = {}
   const texts: Record<string, string> = {}
   for (const f of def.fields) {
-    if (f.type === 'lines') texts[f.key] = (d[f.key] as string[]).join('\n')
+    if (f.type === 'lines') texts[f.key] = ((d[f.key] as string[]) ?? []).join('\n')
     else if (f.type === 'steps') texts[f.key] = stepsToText(d[f.key])
-    else values[f.key] = d[f.key]
+    else if (f.type === 'rows') texts[f.key] = rowsToText(d[f.key], f.cols ?? [])
+    else if (f.type === 'json') texts[f.key] = JSON.stringify(d[f.key], null, 2)
+    else values[f.key] = d[f.key] ?? (f.type === 'checkbox' ? false : '')
   }
   return { values, texts }
 }
 
-function propsOf(def: CompositionDef, draft: Draft): Values {
+function propsOf(def: CompositionDef, draft: Draft, lastPlan?: Values): Values {
   const p: Values = { ...draft.values }
   for (const f of def.fields) {
     if (f.type === 'lines') p[f.key] = draft.texts[f.key].split('\n').filter((l) => l.trim())
     if (f.type === 'steps') p[f.key] = textToSteps(draft.texts[f.key])
+    if (f.type === 'rows') p[f.key] = textToRows(draft.texts[f.key], f.cols ?? [])
+    if (f.type === 'json') p[f.key] = parsePlan(draft.texts[f.key]).value ?? lastPlan
+    if (f.type === 'number' && p[f.key] !== undefined && p[f.key] !== '') p[f.key] = Number(p[f.key])
+    if ((f.type === 'text' || f.type === 'textarea') && p[f.key] === '') delete p[f.key]
   }
   return p
 }
@@ -135,7 +177,8 @@ function CodeView({ def, code }: { def: CompositionDef; code: RmCode | undefined
   const { t } = useI18n()
   const [file, setFile] = useState<string>('')
   const [copied, setCopied] = useState(false)
-  const comp = code?.compositions.find((c) => c.id === def.id)
+  const own = code?.compositions.find((c) => c.id === def.id)
+  const comp = own?.same_as ? code?.compositions.find((c) => c.id === own.same_as) : own      // the library's compositions all play ScenePlan: its code is shown
   const shared = code?.shared ?? []
   const shown = file ? shared.find((s) => s.file === file) : comp
   const text = (shown && 'code' in shown ? shown.code : '') || ''
@@ -152,7 +195,7 @@ function CodeView({ def, code }: { def: CompositionDef; code: RmCode | undefined
     <div className="stack" data-testid="rm-code">
       <Notice tone="info" icon="info">{t('rm.code.hint')}</Notice>
       <div className="row">
-        <Button size="sm" variant={file ? 'default' : 'primary'} onClick={() => setFile('')}>{def.id}.tsx</Button>
+        <Button size="sm" variant={file ? 'default' : 'primary'} onClick={() => setFile('')}>{(comp?.file ?? def.file).split('/').pop()}</Button>
         {shared.map((s) => <Button key={s.file} size="sm" variant={file === s.file ? 'primary' : 'default'} onClick={() => setFile(s.file)}>{s.name}</Button>)}
         <span className="spacer" />
         <Button size="sm" icon="copy" onClick={copy} disabled={!text}>{copied ? t('rm.code.copied') : t('rm.code.copy')}</Button>
@@ -181,6 +224,58 @@ function Renders({ data }: { data: RmRenders | undefined }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/** The rule checks of a scene plan, live: the cleaned plan's length, the silent corrections and what the QA would fix (no browser needed). */
+function PlanChecks({ plan, lang }: { plan: Values | undefined; lang: 'fa' | 'en' }) {
+  const { t } = useI18n()
+  const [res, setRes] = useState<MotionValidate | { error: string } | null>(null)
+  useEffect(() => {
+    if (!plan) return
+    let live = true
+    const id = window.setTimeout(() => {
+      api.post<MotionValidate>('/motion/plan/validate', { spec: plan }).then((r) => live && setRes(r)).catch((e) => live && setRes({ error: String(e?.message ?? e) }))
+    }, 600)
+    return () => {
+      live = false
+      window.clearTimeout(id)
+    }
+  }, [plan])
+  if (!res) return null
+  if ('error' in res) return <Notice tone="err" icon="alert">{res.error}</Notice>
+  const bad = res.findings.filter((f) => f.severity !== 'info')
+  return (
+    <div className="stack-sm" data-testid="rm-plan-checks">
+      <div className="row" style={{ gap: '0.5rem', flexWrap: 'wrap' }}>
+        <Badge tone={bad.length ? 'warn' : 'ok'}>{lang === 'en' ? res.summary_en : res.summary_fa}</Badge>
+        <span className="small muted">{t('rm.plan.length', { x: res.timeline.total.toFixed(1) })}</span>
+      </div>
+      {res.notes.map((n, i) => <p key={'n' + i} className="small muted" dir="auto">{lang === 'en' ? n.en : n.fa}</p>)}
+      {res.findings.map((f, i) => <p key={i} className="small" dir="auto"><Badge tone={f.severity === 'error' ? 'err' : f.severity === 'warn' ? 'warn' : 'neutral'}>{lang === 'en' ? f.label_en : f.label}</Badge> {lang === 'en' ? f.message_en : f.message}</p>)}
+    </div>
+  )
+}
+
+/** Plan from words: the narration of a shot becomes a plan by the deterministic builder (no model), to start from. */
+function PlanFromText({ lang, style, size, onPlan }: { lang: 'fa' | 'en'; style: string; size: SizeId; onPlan: (spec: Values) => void }) {
+  const { t } = useI18n()
+  const act = useAction()
+  const [text, setText] = useState('')
+  const [secs, setSecs] = useState<number | null>(10)
+  const make = () =>
+    void act.run(async () => {
+      const r = await api.post<MotionNarrationPlan>('/motion/plan/fallback', { narration: text, seconds: secs ?? 10, style, size, lang })
+      onPlan(r.spec)
+    })
+  return (
+    <div className="stack-sm" data-testid="rm-plan-text">
+      <AreaField label={t('rm.plan.text')} hint={t('rm.plan.text_hint')} rows={3} value={text} onChange={setText} dir="auto" />
+      <div className="row">
+        <NumberField label={t('rm.plan.seconds')} min={2} max={120} step={1} value={secs} onChange={setSecs} />
+        <Button icon="spark" busy={act.busy} disabled={!text.trim()} onClick={make} data-testid="rm-plan-make">{t('rm.plan.make')}</Button>
+      </div>
     </div>
   )
 }
@@ -221,13 +316,16 @@ export default function RemotionPage() {
   const setDraft = (d: Draft) => setDrafts((all) => ({ ...all, [def.id]: d }))
   const playerRef = useRef<PlayerRef>(null)
   const runner = useJobRunner({ onFinished: () => renders.reload() })
+  const lastPlan = useRef<Values | undefined>(undefined)
 
   const all = kits.data?.kits ?? []
   const styleGroups = (kits.data?.groups ?? []).filter((g) => all.some((k) => k.group === g.key))
   const [styleGroup, setStyleGroup] = useState('all')
   const list = styleGroup === 'all' ? all : all.filter((k) => k.group === styleGroup)
   const kit: RmKit | undefined = all.find((k) => k.key === styleKey) ?? all.find((k) => k.key === kits.data?.default) ?? all[0]
-  const props = useMemo(() => propsOf(def, draft), [def, draft])
+  const props = useMemo(() => propsOf(def, draft, lastPlan.current), [def, draft])
+  if (def.id === 'ScenePlan' && props.spec) lastPlan.current = props.spec
+  const planError = def.id === 'ScenePlan' ? parsePlan(draft.texts.spec ?? '').error : undefined
   // every style card shows the composition with its OWN sample texts (not the ones being typed): the cards do not redraw at every keystroke
   const sample = useMemo(() => propsOf(def, initialDraft(def, lang)), [def, lang])
   const meta = useMemo(() => metaFor(def.id, { ...props, size }), [def, props, size])
@@ -245,28 +343,45 @@ export default function RemotionPage() {
     })
   }
 
-  const field = (f: CompositionDef['fields'][number]) => {
+  const field = (f: Field) => {
     const label = lang === 'en' ? f.en : f.fa
-    if (f.type === 'text') return <TextField key={f.key} label={label} value={String(draft.values[f.key] ?? '')} onChange={(v) => setDraft({ ...draft, values: { ...draft.values, [f.key]: v } })} dir="auto" maxLength={400} />
-    if (f.type === 'checkbox') return <CheckField key={f.key} label={label} checked={draft.values[f.key] !== false} onChange={(v) => setDraft({ ...draft, values: { ...draft.values, [f.key]: v } })} />
+    const setValue = (v: unknown) => setDraft({ ...draft, values: { ...draft.values, [f.key]: v } })
+    const setText = (v: string) => setDraft({ ...draft, texts: { ...draft.texts, [f.key]: v } })
+    if (f.type === 'text') return <TextField key={f.key} label={label} value={String(draft.values[f.key] ?? '')} onChange={setValue} dir="auto" maxLength={400} />
+    if (f.type === 'textarea') return <AreaField key={f.key} label={label} rows={3} value={String(draft.values[f.key] ?? '')} onChange={setValue} dir="auto" />
+    if (f.type === 'number') return <NumberField key={f.key} label={label} min={f.min} max={f.max} step={1} value={draft.values[f.key] === '' || draft.values[f.key] === undefined ? null : Number(draft.values[f.key])} onChange={(v) => setValue(v ?? '')} />
+    if (f.type === 'checkbox') return <CheckField key={f.key} label={label} checked={draft.values[f.key] === true} onChange={setValue} />
     if (f.type === 'select')
-      return <SelectField key={f.key} label={label} value={String(draft.values[f.key] ?? '')} onChange={(v) => setDraft({ ...draft, values: { ...draft.values, [f.key]: v } })} options={(f.options ?? []).map((o) => ({ value: o.value, label: lang === 'en' ? o.en : o.fa }))} />
-    return <AreaField key={f.key} label={label} rows={f.type === 'steps' ? 6 : 5} value={draft.texts[f.key] ?? ''} onChange={(v) => setDraft({ ...draft, texts: { ...draft.texts, [f.key]: v } })} dir="auto" />
+      return <SelectField key={f.key} label={label} value={String(draft.values[f.key] ?? '')} onChange={setValue} options={(f.options ?? []).map((o) => ({ value: o.value, label: lang === 'en' ? o.en : o.fa }))} />
+    if (f.type === 'json')
+      return (
+        <div key={f.key} className="stack-sm">
+          <AreaField label={label} rows={16} value={draft.texts[f.key] ?? ''} onChange={setText} dir="ltr" hint={t('rm.plan.json_hint')} />
+          {planError && <Notice tone="err" icon="alert">{t('rm.plan.json_bad')} <span className="ltr" dir="ltr">{planError}</span></Notice>}
+        </div>
+      )
+    return <AreaField key={f.key} label={label} rows={f.type === 'steps' || f.type === 'rows' ? 6 : 5} value={draft.texts[f.key] ?? ''} onChange={setText} dir="auto" hint={f.type === 'rows' ? t('rm.rows_hint') : undefined} />
   }
 
   const groups: { key: CompositionDef['group']; label: string }[] = [
     { key: 'titles', label: t('rm.group.titles') },
     { key: 'kinetic', label: t('rm.group.kinetic') },
     { key: 'explainers', label: t('rm.group.explainers') },
+    { key: 'plan', label: t('rm.group.plan') },
+    { key: 'scene', label: t('rm.group.scene') },
+    { key: 'data', label: t('rm.group.data') },
+    { key: 'text', label: t('rm.group.text') },
   ]
   const portrait = meta.height > meta.width
+  const setPlanText = (spec: Values) => setDraft({ ...draft, texts: { ...draft.texts, spec: JSON.stringify(spec, null, 2) } })
 
   const picker = (
     <Card title={t('rm.pick.title')}>
       <div className="stack">
         <div className="stack-sm" role="group" aria-label={t('rm.comp')}>
-          {groups.map((g) => (
-            <div key={g.key} className="row" style={{ gap: '0.5rem', alignItems: 'center' }}>
+          {groups.map((g, gi) => (
+            <div key={g.key} className="row" style={{ gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {gi === 3 && <hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--border, rgba(128,128,128,.3))', margin: '0.25rem 0' }} />}
               <span className="small muted" style={{ minWidth: '7rem' }}>{g.label}</span>
               {COMPOSITIONS.filter((c) => c.group === g.key).map((c) => (
                 <Button key={c.id} size="sm" variant={c.id === def.id ? 'primary' : 'default'} aria-pressed={c.id === def.id} onClick={() => setCompId(c.id)} data-testid={'rm-comp-' + c.id}>{lang === 'en' ? c.en : c.fa}</Button>
@@ -296,11 +411,18 @@ export default function RemotionPage() {
   const edit = (
     <Card title={t('rm.edit.title')}>
       <div className="stack">
+        {def.id === 'ScenePlan' && (
+          <>
+            <SelectField label={t('rm.plan.template')} value="" onChange={(v) => v && setPlanText(templatePlan(v, lang, size))} options={[{ value: '', label: t('rm.plan.template_pick') }, ...PLAN_TEMPLATES.map((x) => ({ value: x.id, label: lang === 'en' ? x.en : x.fa }))]} />
+            <PlanFromText lang={lang} style={kit?.key ?? ''} size={size} onPlan={setPlanText} />
+          </>
+        )}
         {def.fields.map(field)}
+        {def.id === 'ScenePlan' && <PlanChecks plan={props.spec ? { ...props.spec, style: kit?.key ?? '', size } : undefined} lang={lang} />}
         <SelectField label={t('rm.size')} value={size} onChange={(v) => setSize(v as SizeId)} options={(Object.keys(SIZES) as SizeId[]).map((k) => ({ value: k, label: lang === 'en' ? SIZES[k].en : SIZES[k].fa }))} />
         <div className="row">
-          <Button variant="primary" icon="film" busy={act.busy || runner.busy} disabled={!kit || !!runner.busy} onClick={() => render()} data-testid="rm-render">{t('rm.render.video')}</Button>
-          <Button icon="image" disabled={!kit || runner.busy} onClick={() => render(playerRef.current?.getCurrentFrame() ?? 0)} data-testid="rm-still">{t('rm.render.still')}</Button>
+          <Button variant="primary" icon="film" busy={act.busy || runner.busy} disabled={!kit || !!runner.busy || !!planError} onClick={() => render()} data-testid="rm-render">{t('rm.render.video')}</Button>
+          <Button icon="image" disabled={!kit || runner.busy || !!planError} onClick={() => render(playerRef.current?.getCurrentFrame() ?? 0)} data-testid="rm-still">{t('rm.render.still')}</Button>
         </div>
         {!status.data?.ready && <Notice tone="info" icon="clock">{t('rm.render.needs_setup')}</Notice>}
         {runner.job && <JobView job={runner.job} offline={runner.offline} />}
@@ -318,7 +440,7 @@ export default function RemotionPage() {
   // the live preview is in the second column and stays in view while the owner scrolls through the styles and the texts (on a phone it sits on top, small)
   const preview = (
     <aside className="rm-side" data-testid="rm-side" style={{ ['--rm-aspect' as string]: String(meta.width / meta.height) }}>
-      <Card title={t('rm.preview.title')} actions={<span className="small muted ltr" dir="ltr">{meta.width}×{meta.height} · {FPS} fps · {(meta.durationInFrames / FPS).toFixed(1)} s</span>}>
+      <Card title={t('rm.preview.title')} actions={<span className="small muted ltr" dir="ltr">{meta.width}×{meta.height} · {meta.fps ?? FPS} fps · {(meta.durationInFrames / (meta.fps ?? FPS)).toFixed(1)} s</span>}>
         <div className="stack-sm">
           <div dir="ltr" data-testid="rm-player" className={'rm-player ' + (portrait ? 'portrait' : 'landscape')}>
             {kit ? (

@@ -46,8 +46,11 @@ def catalog_ids() -> list[str]:
 def test_the_catalog_the_api_and_the_files_agree():
     from instai.remotion import toolchain
 
-    assert catalog_ids() == list(toolchain.COMPOSITIONS) == ["TitleCard", "KineticText", "Explainer", "LowerThird"]
-    for cid in toolchain.COMPOSITIONS:
+    assert catalog_ids() == list(toolchain.BASE_COMPOSITIONS) == ["TitleCard", "KineticText", "Explainer", "LowerThird"]
+    # the scene-plan engine: ScenePlan + one composition per component of the library (remotion/src/components/defs.ts; tests/test_motion_plan.py compares the two lists)
+    assert list(toolchain.COMPOSITIONS) == [*toolchain.BASE_COMPOSITIONS, "ScenePlan", *toolchain.SCENE_COMPOSITIONS.values()] and len(toolchain.COMPOSITIONS) == 24
+    assert re.findall(r"id: '(Scene[A-Za-z]+)'", (REMOTION / "src" / "components" / "defs.ts").read_text(encoding="utf-8")) == list(toolchain.SCENE_COMPOSITIONS.values())
+    for cid in toolchain.BASE_COMPOSITIONS:
         assert (REMOTION / "src" / "compositions" / f"{cid}.tsx").is_file()
         src = (REMOTION / "src" / "compositions" / f"{cid}.tsx").read_text(encoding="utf-8")
         assert f"export const {cid}:" in src and "useVazirmatn" in src and "normalizeKit" in src, f"{cid} uses the shared kit"
@@ -176,9 +179,13 @@ def test_status_code_and_kits_endpoints(api):
     s = api.get("/api/remotion/status").json()
     assert set(s) >= {"ready", "node", "packages", "browser", "state", "project", "auto"} and s["project"] is True
     code = api.get("/api/remotion/code").json()
-    assert [c["id"] for c in code["compositions"]] == ["TitleCard", "KineticText", "Explainer", "LowerThird"]
-    assert all(len(c["code"]) > 800 and "useCurrentFrame" in c["code"] for c in code["compositions"])
-    assert {x["name"] for x in code["shared"]} == {"theme.ts", "motion.ts", "Stage.tsx", "Look.tsx", "catalog.ts", "render.mjs"}
+    from instai.remotion import toolchain
+
+    assert [c["id"] for c in code["compositions"]] == list(toolchain.COMPOSITIONS)
+    own = [c for c in code["compositions"] if not c.get("same_as")]
+    assert [c["id"] for c in own] == [*toolchain.BASE_COMPOSITIONS, "ScenePlan"] and all(len(c["code"]) > 800 and "useCurrentFrame" in c["code"] for c in own)
+    assert all(c["same_as"] == "ScenePlan" and c["code"] == "" for c in code["compositions"] if c.get("same_as")), "the library's compositions all play ScenePlan: its code is sent once"
+    assert {x["name"] for x in code["shared"]} == {"theme.ts", "motion.ts", "Stage.tsx", "Look.tsx", "catalog.ts", "ScenePlan.tsx", "ctx.tsx", "adapter.json", "registry.ts", "defs.ts", "render.mjs"}
     kits = api.get("/api/remotion/kits").json()
     assert len(kits["kits"]) >= 20 and kits["default"] == "cinematic_realistic"
     keys = {g["key"] for g in kits["groups"]}
@@ -222,6 +229,29 @@ def test_render_requests_are_validated_and_cleaned(api):
     assert j.payload["props"] == {"title": "چطور؟", "steps": [{"title": "یک", "body": "دو"}, {"title": "سه", "body": ""}], "outro": "تمام"}, "unknown fields are dropped"
     s = post_render(api, still=42)
     assert s.status_code == 202 and Job.objects.get(pk=s.json()["job"]["id"]).payload["still"] == 42
+
+
+def test_the_scene_plan_and_the_library_pieces_are_validated_and_cleaned(api):
+    from instai.jobs.models import Job
+    from instai.remotion import toolchain
+
+    plan = {"version": 1, "size": "vertical", "lang": "fa", "scenes": [{"type": "kinetic_title", "duration": 4, "text": "سلام", "evil": "<x>"}, {"type": "stat", "duration": 4, "value": "5", "label": "عدد"}]}
+    r = post_render(api, composition="ScenePlan", props={"spec": plan})
+    assert r.status_code == 202, r.content
+    spec = Job.objects.get(pk=r.json()["job"]["id"]).payload["props"]["spec"]
+    assert spec["scenes"][0] == {"type": "kinetic_title", "duration": 4.0, "text": "سلام"} and spec["scenes"][1]["example"] is True, "the honesty label is forced by the server"
+    assert post_render(api, composition="ScenePlan", props={"spec": json.dumps(plan)}).status_code == 202, "the plan may come as JSON text"
+    assert post_render(api, composition="ScenePlan", props={"spec": "{not json"}).status_code == 400
+    assert post_render(api, composition="ScenePlan", props={"spec": {"scenes": []}}).status_code == 400
+    assert post_render(api, composition="ScenePlan", props={"spec": {"scenes": [{"type": "nope", "duration": 3}]}}).status_code == 400
+    ok = post_render(api, composition="SceneBarChart", props={"title": "مقایسه", "bars": [{"label": "الف", "value": 3}, {"label": "ب", "value": 5}], "unit": "٪", "evil": 1, "kit": {"x": 1}})
+    assert ok.status_code == 202, ok.content
+    props = Job.objects.get(pk=ok.json()["job"]["id"]).payload["props"]
+    assert props["bars"] == [{"label": "الف", "value": 3}, {"label": "ب", "value": 5}] and "evil" not in props and "kit" not in props and props["title"] == "مقایسه"
+    assert post_render(api, composition="SceneBarChart", props={"title": "x"}).status_code == 400, "a chart needs its bars"
+    assert post_render(api, composition="SceneCountdown", props={"label": "پخش", "from": 3, "finish_text": "شروع"}).status_code == 202
+    for cid in toolchain.SCENE_COMPOSITIONS.values():
+        assert post_render(api, composition=cid, props={"title": "t"}).status_code in (202, 400), cid       # every library composition is known to the API
 
 
 # ------------------------------------------------------------------ the render job (the Node side is a Python stand-in)
@@ -595,7 +625,8 @@ def test_real_render_of_every_composition(api, worker):
     st = toolchain.status()
     assert st["ready"], st
     for comp, props in (("TitleCard", {"title": "چغر", "subtitle": "مربی ورزشی همراه شما"}), ("KineticText", {"lines": ["*یک* ایده", "دو ایده"]}),
-                        ("Explainer", {"title": "سه گام", "steps": [{"title": "یک", "body": "الف"}, {"title": "دو", "body": "ب"}], "outro": "تمام"}), ("LowerThird", {"name": "نام", "role": "سمت"})):
+                        ("Explainer", {"title": "سه گام", "steps": [{"title": "یک", "body": "الف"}, {"title": "دو", "body": "ب"}], "outro": "تمام"}), ("LowerThird", {"name": "نام", "role": "سمت"}),
+                        ("SceneStat", {"value": "12", "suffix": "ساعت", "label": "نمونه"}), ("ScenePlan", {"spec": {"scenes": [{"type": "kinetic_title", "duration": 3, "text": "سلام دنیا"}]}})):
         j = finish(api, worker, post_render(api, composition=comp, props=props, still=20, size="square"))
         assert j["result"]["kind"] == "png" and j["result"]["bytes"] > 5000, (comp, j["result"])
     j = finish(api, worker, post_render(api, composition="TitleCard", props={"title": "ویدئو"}, size="square"))

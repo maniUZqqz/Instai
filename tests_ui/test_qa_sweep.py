@@ -23,7 +23,7 @@ import pytest
 VIEWPORTS = {"desktop": {"width": 1280, "height": 800}, "phone": {"width": 390, "height": 844}}
 SHOTS = Path(os.environ.get("INSTAI_UI_SHOTS", tempfile.gettempdir())) / "instai-ui-shots"
 LAB = ["workers", "voices", "rigs", "compare", "retake", "mix", "automation", "consistency", "notifications"]
-STATIC = ["/", "/pages", "/pages/new", "/library", "/monitor", "/queue", "/report", "/downloads", "/whats-new", "/remotion", "/publishing", "/system", "/models",
+STATIC = ["/", "/pages", "/pages/new", "/library", "/monitor", "/queue", "/report", "/downloads", "/whats-new", "/remotion", "/publishing", "/covers", "/system", "/models",
           "/settings", "/lab", *[f"/lab/{x}" for x in LAB], "/no-such-screen"]
 IGNORED = ("favicon",)
 PERSIAN = re.compile(r"[؀-ۿ]")
@@ -177,8 +177,12 @@ def test_remotion_page_every_composition_and_every_style_plays(browser, server):
         page.wait_for_selector("[data-testid^=rm-style-]", timeout=20000)
         keys = page.eval_on_selector_all("[data-testid^=rm-style-]", "els => els.map(e => e.getAttribute('data-testid').slice(9))")
         assert len(keys) == len(kits) >= 20, (len(keys), len(kits))
-        assert page.locator("[data-testid^=rm-comp-]").count() == 4
-        samples = {"TitleCard": "عنوان ویدیوی شما", "KineticText": "ایده|کلمه|متن|دو", "Explainer": "چطور کار می‌کند", "LowerThird": "نام و نام‌خانوادگی"}
+        assert page.locator("[data-testid^=rm-comp-]").count() == 24, "the four first compositions, the scene plan and the 19 pieces of the component library"
+        samples = {"TitleCard": "عنوان ویدیوی شما", "KineticText": "ایده|کلمه|متن|دو", "Explainer": "چطور کار می‌کند", "LowerThird": "نام و نام‌خانوادگی",
+                   "ScenePlan": "هر|ستاره|داستان|کلمه|سه نکته", "SceneTitle": "نخستین پرواز|سفر به ستاره‌ها", "SceneKineticTitle": "هر|ستاره|داستان", "SceneQuote": "جمله|به یاد", "SceneStat": "۱۲|12|ساعت|عدد",
+                   "SceneCounter": "قسمت|دقیقه|در یک نگاه", "SceneList": "سه نکته|نکتهٔ", "SceneSteps": "چهار گام|پرسش", "SceneChecklist": "چه چیزهایی|مورد", "SceneBeforeAfter": "اگر|دنیای",
+                   "SceneBarChart": "مقایسهٔ سه گزینه|الف", "SceneLineChart": "روند|اول", "SceneDonut": "سهم|الف", "SceneLowerThird": "سارا|خلبان", "SceneCaptions": "زیرنویس|جمله|کلمه",
+                   "SceneLogo": "سفر به ستاره‌ها|هر هفته", "SceneImageHero": "عنوان روی تصویر|ویژه", "SceneSocialCta": "قسمت بعد|دنبال", "SceneCountdown": "پخش|۳|3", "SceneSticker": "تازه"}
         for comp, want in samples.items():
             page.click(f"[data-testid=rm-comp-{comp}]")
             page.wait_for_timeout(400)

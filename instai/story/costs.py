@@ -9,11 +9,13 @@ from __future__ import annotations
 import math
 
 # planning defaults (seconds of GPU time). Replaced by BenchmarkResult medians when available.
-DEFAULTS = {"image": 60.0, "image_preview": 20.0, "video_5s": 540.0, "layer_split": 10.0, "puppet_layer": 5.0, "tts_gpu": 10.0}
+DEFAULTS = {"image": 60.0, "image_preview": 20.0, "video_5s": 540.0, "layer_split": 10.0, "puppet_layer": 5.0, "tts_gpu": 10.0,
+            # motion graphics are DRAWN by Remotion on the CPU: seconds of work per second of video (final / preview) + the fixed cost of the checks and the browser start
+            "motion_cpu_per_sec": 4.0, "motion_cpu_per_sec_preview": 1.5, "motion_cpu_fixed": 25.0}
 # techniques that need a generated keyframe image
 KEYFRAME = {"still_kenburns", "parallax_25d", "wan_i2v", "wan_flf", "talking_video"}
 VIDEO = {"wan_i2v", "wan_flf", "talking_video"}
-IMPLEMENTED = {"still_kenburns", "parallax_25d", "wan_i2v", "wan_flf", "puppet_2d"}  # techniques with a render path today; others fall back to still_kenburns
+IMPLEMENTED = {"still_kenburns", "parallax_25d", "wan_i2v", "wan_flf", "puppet_2d", "motion_graphics"}  # techniques with a render path today; others fall back to still_kenburns
 
 
 def measured() -> dict[str, float]:
@@ -41,6 +43,8 @@ def shot_estimate(technique: str, duration_sec: float, mode: str = "final", cost
     c = costs or table()[0]
     gpu, notes = 0.0, []
     cpu = max(1.0, duration_sec * (0.6 if mode == "preview" else 1.5))
+    if technique == "motion_graphics":     # Remotion draws every frame on the CPU (instai/motion_plan): no graphics card, no keyframe
+        cpu = duration_sec * (c.get("motion_cpu_per_sec_preview", 1.5) if mode == "preview" else c.get("motion_cpu_per_sec", 4.0)) + c.get("motion_cpu_fixed", 25.0)
     if technique in KEYFRAME:
         gpu += c["image_preview"] if mode == "preview" else c["image"]
     if technique == "parallax_25d":

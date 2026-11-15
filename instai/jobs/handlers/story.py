@@ -165,7 +165,14 @@ def storyboard(ctx):
     for n in res.notes:
         ctx.log(n, "warning" if info["fallback"] else "info")
     services.save_storyboard(ep, res.data, note="generated" + (" (fallback)" if info["fallback"] else ""))
-    return {"episode_id": ep.pk, "fallback": info["fallback"], "estimate": ep.estimate, "meta": res.meta()}
+    motion = 0
+    try:                                    # the motion-graphics shots get a first scene plan from their narration at once (no model; the owner sees it in the storyboard; production writes it again when the speech is known)
+        from instai.motion_plan import shots as motion_shots
+
+        motion = motion_shots.prepare_plans(ep)
+    except Exception:  # noqa: BLE001 - a plan is a convenience here: production makes it anyway
+        ctx.log("the first motion plans could not be made now; production makes them", "warning")
+    return {"episode_id": ep.pk, "fallback": info["fallback"], "estimate": ep.estimate, "meta": res.meta(), "motion_plans": motion}
 
 
 def _style(page, series=None) -> str:

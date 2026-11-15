@@ -28,10 +28,10 @@ export function useVazirmatn(fontBase?: string): void {
 
 export const FONT_STACK = "'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif"
 
-type Props = { kit: StyleKit; children: React.ReactNode; backdrop?: boolean; zoom?: boolean }
+type Props = { kit: StyleKit; children: React.ReactNode; backdrop?: boolean; zoom?: boolean; /** how far the page colour darkens toward the shadow colour at the far corner (0.65 = the classic vignette); the scene plan keeps a light page light */ fade?: number }
 
 /** The background world of a style: colours from its palette, shapes from its family, movement from its animation. */
-export const Stage: React.FC<Props> = ({ kit, children, backdrop = true, zoom = true }) => {
+export const Stage: React.FC<Props> = ({ kit, children, backdrop = true, zoom = true, fade = 0.65 }) => {
   const frame = useCurrentFrame()
   const { fps, durationInFrames, width, height } = useVideoConfig()
   const m = motionFor(kit.animation, kit.fps_feel, fps)
@@ -100,7 +100,7 @@ export const Stage: React.FC<Props> = ({ kit, children, backdrop = true, zoom = 
   }
   if (look) layers.push(...look.layers.map((l, i) => <React.Fragment key={'look' + i}>{l}</React.Fragment>))
   return (
-    <AbsoluteFill style={{ background: backdrop ? `linear-gradient(160deg, ${p.background} 0%, ${mix(p.background, p.shadow, 0.65)} 100%)` : 'transparent', fontFamily: FONT_STACK, overflow: 'hidden' }}>
+    <AbsoluteFill style={{ background: backdrop ? `linear-gradient(160deg, ${p.background} 0%, ${mix(p.background, p.shadow, fade)} 100%)` : 'transparent', fontFamily: FONT_STACK, overflow: 'hidden' }}>
       <AbsoluteFill style={{ transform: `scale(${s})`, transformOrigin: '50% 50%' }}>
         {look?.defs ? <svg width={0} height={0} style={{ position: 'absolute' }}><defs>{look.defs}</defs></svg> : null}
         {layers}

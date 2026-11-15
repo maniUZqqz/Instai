@@ -26,7 +26,7 @@ set "GPUCODE=%errorlevel%"
 echo.
 echo ================ 2/2  SMOKE TEST ================
 ".venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check --default-timeout 60 --retries 5 -r requirements-test.txt
-".venv\Scripts\python.exe" -m pytest -m gpu -s -q -p no:cacheprovider tests\test_gpu_smoke.py
+".venv\Scripts\python.exe" -m pytest -m gpu -s -q -p no:cacheprovider tests\test_gpu_smoke.py tests\test_covers_gpu.py
 echo.
 echo ================================================================
 if "%GPUCODE%"=="0" echo  GPU CHECK RESULT: GPU USED = YES
