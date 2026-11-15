@@ -296,6 +296,7 @@ function WizardBody({ formats, templates, navigate }: { formats: Formats; templa
         <div className="stack">
           <p className="muted">{t('wiz.look_intro')}</p>
           <StylePicker
+            suggestAround={(DEFAULT_STYLE[s.format] ?? FALLBACK_STYLE).style}
             value={{ style_key: s.styleKey, realism: s.realism, theme_key: s.themeKey }}
             onChange={(v) => {
               touched.current.style = true

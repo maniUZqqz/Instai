@@ -310,16 +310,28 @@ def _fold(text: str) -> str:
 _FILLER = {"style", "styles", "look", "looks", "like", "سبک", "استایل"}     # "Dan Koe style", "PS2 style", "Lego-like bricks": these words are not part of any name
 
 
+def query_words(q: str) -> list[str]:
+    """The words of a search: folded, without the filler words ("style", "سبک") unless nothing else is left."""
+    words = [w for w in _fold(q).split() if w]
+    return [w for w in words if w not in _FILLER] or words
+
+
+def all_words_in(words: list[str], hay: str) -> bool:
+    """Is every word in the (already folded) text? A word of three letters or more is also looked for in the text WITHOUT its spaces and half-spaces:
+    most phone keyboards type «روانشناسی» / «واقعگرا» without the half-space, while the stored name is «روان‌شناسی» / «واقع‌گرا»."""
+    compact = hay.replace(" ", "")
+    return all(w in hay or (len(w) >= 3 and w in compact) for w in words)
+
+
 def matches(entry: dict, q: str) -> bool:
     """Does a style/theme entry answer this search? Every word must hit the names, descriptions, tags or the search-only aliases."""
-    words = [w for w in _fold(q).split() if w]
-    words = [w for w in words if w not in _FILLER] or words
+    words = query_words(q)
     if not words:
         return True
     hay = _fold(" ".join([entry.get("name_fa", ""), entry.get("name_en", ""), entry.get("description_fa", ""), entry.get("description_en", ""),
                           " ".join(entry.get("tags") or []), " ".join(entry.get("search_terms") or []), entry.get("key", "").replace("_", " "),
                           entry.get("known_as", "")]))       # the owner's own name for the look ("Lego-like bricks") finds it exactly as he wrote it
-    return all(w in hay for w in words)
+    return all_words_in(words, hay)
 
 
 def filter_styles(rows: list[dict], *, q: str = "", group: str = "", realism: str = "", suitability: str = "", family: str = "") -> list[dict]:

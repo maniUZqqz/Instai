@@ -81,8 +81,9 @@ export function styleImage(s: Pick<StylePreset, 'thumbnail_url' | 'preview_url'>
   return s.thumbnail_url || s.preview_url || null
 }
 
-// Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server.
-const FILLER = new Set(['style', 'styles', 'look', 'looks', 'like', 'سبک', 'استایل'])
+// Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server
+// (instai/styles/library.py: _fold, query_words, all_words_in - keep the two in step).
+export const FILLER = new Set(['style', 'styles', 'look', 'looks', 'like', 'سبک', 'استایل'])
 // Brackets, quotes and commas around a pasted name ("Chrome 22K (chrome metallic type)", «Pixel Art») are no part of any word; the same set as `_PUNCTUATION` in instai/styles/library.py.
 const PUNCTUATION = /[()[\]{}<>«»"“”‘’,;:!?،؛؟/\\|]/g
 export function fold(text: string): string {
@@ -95,13 +96,24 @@ export function fold(text: string): string {
     .replace(/-/g, ' ')
     .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - (c.charCodeAt(0) >= 0x06f0 ? 0x06f0 : 0x0660)))
 }
+/** The words of a search: folded, without the filler words unless nothing else is left. */
+export function queryWords(q: string): string[] {
+  const words = fold(q).split(/\s+/).filter(Boolean)
+  const kept = words.filter((w) => !FILLER.has(w))
+  return kept.length ? kept : words
+}
+/** Is every word in the (already folded) text? A word of three letters or more is also looked for in the text WITHOUT its spaces and half-spaces: phone keyboards
+ *  type «روانشناسی» / «واقعگرا» without the half-space while the stored name is «روان‌شناسی» / «واقع‌گرا». */
+export function allWordsIn(words: string[], hay: string): boolean {
+  const compact = hay.replace(/\s+/g, '')
+  return words.every((w) => hay.includes(w) || (w.length >= 3 && compact.includes(w)))
+}
 /** Does a style answer this search? Every word must be in its names, descriptions, tags or search-only names. */
 export function styleMatches(s: StylePreset, q: string): boolean {
-  let words = fold(q).split(/\s+/).filter(Boolean)
-  words = words.filter((w) => !FILLER.has(w)).length ? words.filter((w) => !FILLER.has(w)) : words
+  const words = queryWords(q)
   if (!words.length) return true
   const hay = fold([s.name_fa, s.name_en, s.description_fa, s.description_en, ...(s.tags ?? []), ...(s.search_terms ?? []), s.key.replace(/_/g, ' '), s.known_as ?? ''].join(' '))
-  return words.every((w) => hay.includes(w))
+  return allWordsIn(words, hay)
 }
 
 /** A CSS gradient made from a palette (swatch of a style / theme card). */

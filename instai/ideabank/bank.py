@@ -20,6 +20,7 @@ from instai.styles import library as styles
 from .models import IdeaMark, IdeaUse, UserIdea
 from .seed_base import CATEGORIES
 from .seeds import BUILTIN_IDEAS
+from .tag_names import TAG_FA
 
 FIELDS = {
     "category": "mystery", "format": formats.CUSTOM, "tags": [], "title_fa": "", "title_en": "", "logline_fa": "", "logline_en": "", "hook_fa": "", "hook_en": "",
@@ -120,21 +121,44 @@ def get_idea(key: str) -> dict | None:
 
 # ------------------------------------------------------------------ search / filter
 
+# Hand-picked groups that sit beside the categories as chips of their own: the ideas that carry one of these tags. «ایده‌های چغر / ورزش» = the
+# fitness / coaching ideas that belong to the owner's own product (Chagher); a tag he adds to his own idea moves it in, nothing else to maintain.
+COLLECTIONS = {
+    "chagher": {"fa": "ایده‌های چغر / ورزش", "en": "Chagher / fitness ideas", "tags": ("fitness", "gym", "sports", "coaching")},
+}
+
+
+def in_collection(idea: dict, key: str) -> bool:
+    c = COLLECTIONS.get(key)
+    return bool(c) and any(t in c["tags"] for t in idea["tags"])
+
+
+def search_text(idea: dict) -> str:
+    """Everything a search can hit, in both languages: the texts, the tags (stored word + Persian name), the Persian/English names of the category and
+    the format, and the key. (The Persian labels matter: «اقتصاد» must find the ideas of the category «اقتصاد» although no sentence says it.)"""
+    cat = CATEGORIES.get(idea["category"]) or {}
+    fmt = formats.FORMATS.get(idea["format"]) or {}
+    return " ".join([idea["title_fa"], idea["title_en"], idea["logline_fa"], idea["logline_en"], idea["hook_fa"], idea["hook_en"],
+                     idea["premise_fa"], idea["premise_en"], " ".join(idea["tags"]), " ".join(TAG_FA.get(t, "") for t in idea["tags"]),
+                     cat.get("fa", ""), cat.get("en", ""), fmt.get("label_fa", ""), fmt.get("label_en", ""), idea["key"].replace("_", " ")])
+
+
 def matches(idea: dict, q: str) -> bool:
-    words = [w for w in styles._fold(q).split() if w]
+    words = styles.query_words(q)
     if not words:
         return True
-    hay = styles._fold(" ".join([idea["title_fa"], idea["title_en"], idea["logline_fa"], idea["logline_en"], idea["hook_fa"], idea["hook_en"],
-                                 idea["premise_fa"], idea["premise_en"], " ".join(idea["tags"]), idea["key"].replace("_", " ")]))
-    return all(w in hay for w in words)
+    return styles.all_words_in(words, styles._fold(search_text(idea)))
 
 
-def list_ideas(*, q: str = "", category: str = "", tag: str = "", fmt: str = "", favorite: bool = False, source: str = "", include_hidden: bool = False) -> list[dict]:
+def list_ideas(*, q: str = "", category: str = "", tag: str = "", fmt: str = "", favorite: bool = False, source: str = "", include_hidden: bool = False,
+               collection: str = "") -> list[dict]:
     out = []
     for i in all_ideas():
         if i["hidden"] and not include_hidden:
             continue
         if category and i["category"] != category:
+            continue
+        if collection and not in_collection(i, collection):
             continue
         if fmt and i["format"] != fmt:
             continue
@@ -165,7 +189,8 @@ def facets(rows: list[dict] | None = None) -> dict:
         for t in r["tags"]:
             tags[t] = tags.get(t, 0) + 1
     top = sorted(tags.items(), key=lambda kv: (-kv[1], kv[0]))[:40]
-    return {"categories": cats, "formats": [f for f in fmts if f["count"]], "tags": [{"tag": t, "count": n} for t, n in top], "total": len(rows)}
+    cols = [{"key": k, "fa": c["fa"], "en": c["en"], "tags": list(c["tags"]), "count": sum(1 for r in rows if in_collection(r, k))} for k, c in COLLECTIONS.items()]
+    return {"categories": cats, "collections": cols, "formats": [f for f in fmts if f["count"]], "tags": [{"tag": t, "count": n} for t, n in top], "total": len(rows)}
 
 
 def random_idea(category: str = "") -> dict | None:

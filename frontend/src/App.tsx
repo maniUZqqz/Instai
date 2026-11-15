@@ -21,7 +21,6 @@ import { ProfilesTab } from './pages/workspace/ProfilesTab'
 import { EpisodesTab, HistoryTab, Overview, SeriesTab, Workspace } from './pages/workspace/Workspace'
 import { labRoutes } from './lab/routes'
 import ChoiceEditor, { ChoiceListTab } from './pipeline/Choice'
-import { VersionBadge } from './components/VersionBadge'
 import QueuePage from './ops/Queue'
 import ReportPage from './ops/Report'
 import DownloadsPage from './ops/Downloads'
@@ -84,7 +83,6 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
-    <VersionBadge />
     </>
   )
 }
