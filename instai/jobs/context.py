@@ -99,6 +99,26 @@ class JobContext:
     def log(self, message: str, level: str = "info") -> None:
         queue.log_job(self.job, message, level)
 
+    def log_t(self, code: str, level: str = "info", **params) -> None:
+        """A line with a CODE and parameters (jobs/logtext.py): the report shows it in the interface language; the stored text is English."""
+        from . import logtext
+
+        queue.log_job(self.job, logtext.render(code, params, "en") or code, level, code=code, params=params)
+
+    def log_bi(self, fa: str, en: str, level: str = "info") -> None:
+        """A line that exists in both languages already (e.g. a fallback warning)."""
+        queue.log_job(self.job, en, level, code="bilingual", params={"fa": fa, "en": en})
+
+    def log_note(self, note: str, level: str = "info") -> None:
+        """A technical English pipeline note: shown in Persian when `logtext.NOTE_RULES` knows it, as it is otherwise."""
+        from . import logtext
+
+        fa = logtext.note_fa(note)
+        if fa:
+            self.log_bi(fa, note, level)
+        else:
+            self.log(note, level)
+
     def waiting(self, reason: str) -> None:
         queue.set_waiting(self.job, reason)
         queue.heartbeat(self.job, self.worker, self.lease_sec)

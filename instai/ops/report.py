@@ -599,7 +599,8 @@ def search_logs(params, start: datetime, end: datetime) -> list[dict]:
         for l in qs[:limit]:
             fa, en = kind_titles(l.job.kind)
             rows.append({"source": "job", "at": l.at.isoformat(), "level": l.level, "node": _node_of(l.job), "job": l.job_id, "kind": l.job.kind,
-                         "title_fa": fa, "title_en": en, "message": l.message, "explain": explain(l.message) if l.level in ("error", "warning") and explain(l.message)["known"] else None})
+                         "title_fa": fa, "title_en": en, "message": l.message, "text_fa": _lt(l)[0], "text_en": _lt(l)[1],
+                         "explain": explain(l.message) if l.level in ("error", "warning") and explain(l.message)["known"] else None})
     if source in ("all", "events"):
         qs2 = NodeEvent.objects.filter(at__gte=start, at__lte=end).order_by("-at", "-id")
         if q:
@@ -681,3 +682,10 @@ CSV_SECTIONS = ("jobs", "nodes", "samples", "sessions", "logs", "errors", "downl
 
 def _r(v):
     return "" if v is None else round(float(v), 1)
+
+
+def _lt(log: JobLog) -> tuple[str, str]:
+    """(Persian, English) text of a coded job log line, ('', '') for an old / free-text row."""
+    from instai.jobs import logtext
+
+    return logtext.texts(log.code, log.params)

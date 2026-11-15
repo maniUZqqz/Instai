@@ -84,15 +84,17 @@ export function styleImage(s: Pick<StylePreset, 'thumbnail_url' | 'preview_url'>
 // Words that are no part of any name ("PS2 style"); letters and digits of the Arabic and Persian alphabets are unified, as on the server
 // (instai/styles/library.py: _fold, query_words, all_words_in - keep the two in step).
 export const FILLER = new Set(['style', 'styles', 'look', 'looks', 'like', 'سبک', 'استایل'])
+// Brackets, quotes and commas around a pasted name ("Chrome 22K (chrome metallic type)", «Pixel Art») are no part of any word; the same set as `_PUNCTUATION` in instai/styles/library.py.
+const PUNCTUATION = /[()[\]{}<>«»"“”‘’,;:!?،؛؟/\\|]/g
 export function fold(text: string): string {
   return (text || '')
+    .replace(PUNCTUATION, ' ')
     .toLowerCase()
-    .replace(/[()[\]{}<>«»"“”‘’,;:!?،؛؟/\\|]/g, ' ')
-    .replace(/ي/g, 'ی')
-    .replace(/ك/g, 'ک')
-    .replace(/‌/g, ' ')
+    .replace(/\u064a/g, '\u06cc')
+    .replace(/\u0643/g, '\u06a9')
+    .replace(/\u200c/g, ' ')
     .replace(/-/g, ' ')
-    .replace(/[٠-٩۰-۹]/g, (c) => String(c.charCodeAt(0) - (c.charCodeAt(0) >= 0x06f0 ? 0x06f0 : 0x0660)))
+    .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) - (c.charCodeAt(0) >= 0x06f0 ? 0x06f0 : 0x0660)))
 }
 /** The words of a search: folded, without the filler words unless nothing else is left. */
 export function queryWords(q: string): string[] {

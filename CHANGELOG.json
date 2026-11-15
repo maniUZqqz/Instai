@@ -1,5 +1,103 @@
 [
   {
+    "version": "0.16.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "تحویل حرفه‌ای: بلندیِ صدا روی ۱۴- LUFS، بازرسیِ صدا، اندازه و بستهٔ هر شبکه و بازبینیِ کپشن",
+      "en": "Professional delivery: loudness at -14 LUFS, a sound check, the size and package of every network and a caption check"
+    },
+    "items": [
+      {
+        "fa": "بلندیِ صدا بعد از هر ساختِ نهایی با همان کورمتری که یوتیوب و ریلز دارند اندازه‌گیری و تا ±۰٫۸ واحد به هدف می‌رسد و اوجِ صدا زیر ۱- dBTP می‌ماند؛ فقط صدا دوباره کدگذاری می‌شود و تصویر دست‌نخورده است. صفحه‌های تازه روی ۱۴- LUFS می‌ایستند و صفحه‌های قدیمی همان ۱۶- می‌مانند (مهاجرتِ داده). نتیجه (قبل و بعد، دورها، اوج) روی خودِ فایل ثبت می‌شود و در «بررسی کیفیت» دیده می‌شود؛ بلندی را در «تنظیمات، صدا» انتخاب می‌کنید.",
+        "en": "After every final render the loudness is measured with the same meter YouTube and Reels use and brought to within ±0.8 units of the target, with the true peak kept below -1 dBTP; only the audio is re-encoded, the picture is untouched. New pages settle at -14 LUFS and old pages keep their -16 (a data migration). The result (before and after, rounds, peak) is stored on the file itself and shown in the quality check; the loudness is chosen in Settings, Audio."
+      },
+      {
+        "fa": "سه عیبِ صدا از روی خودِ فایل پیدا می‌شود و نامِ شات و ترک را می‌گوید: گفتارِ دوبار پخش‌شده (اکو)، موسیقی یا جلوهٔ هم‌بلندِ گفتار (روی استِم‌های خودِ قسمت سنجیده می‌شود) و فازِ برعکس. روی گفتارِ واقعیِ TTS و ساخت‌های آزمایشی کالیبره شد و روی ساختِ آزمایشی هشدارِ کاذب نمی‌دهد.",
+        "en": "Three audio faults are found from the file itself and named by shot and track: a doubled voice (echo), music or an effect as loud as the speech (measured on the episode's own stems) and a reversed phase. Calibrated on real TTS narration and test renders, and it raises no false alarm on the test render."
+      },
+      {
+        "fa": "جدولِ ۹ شبکه (ریلز، استوری، پست ۴:۵، مربع، یوتیوب افقی، شورتس، تیک‌تاک، تلگرام، آپارات) با اندازه، فریم، کیفیت، طولِ مجاز، حاشیهٔ امن و بلندیِ صدا (همه «تقریبی»). با کارتی که NVENC را بپذیرد از کارت گرافیک و وگرنه از پردازنده؛ هرگز برش نمی‌خورد: اگر شکلِ قسمت (۹:۱۶) با شبکه نخواند فایلی ساخته نمی‌شود و دلیلش به فارسی و انگلیسی در README می‌آید، یا برای همان شبکه «قابِ کامل با کناره‌های محو» را روشن می‌کنید.",
+        "en": "A table of nine networks (Reels, Stories, 4:5 post, square, YouTube landscape, Shorts, TikTok, Telegram, Aparat) with size, frame rate, quality, allowed length, safe margin and loudness (all «approximate»). Encoding uses the graphics card when it accepts NVENC and the CPU otherwise; nothing is ever cropped: when the episode's shape (9:16) does not fit a network no file is made and the README says why in both languages, or you switch on «whole frame with blurred sides» for that network."
+      },
+      {
+        "fa": "بستهٔ انتشار برای هر شبکه‌ای که صفحه هدف گرفته یک پوشه با فایلِ همان اندازه و بلندی دارد، به‌علاوهٔ فایلِ اصلی، کپشن، هشتگ، README و delivery.json؛ زیرنویسِ SRT و کاورِ هر شبکه اگر دیگر کارها ساخته باشند خودکار می‌آیند. چیزی منتشر نمی‌شود.",
+        "en": "The publishing package has one folder per network the page targets, with a file at that network's size and loudness, plus the original file, the caption, the hashtags, a README and delivery.json; the SRT subtitles and each network's cover come along automatically when they were made. Nothing is posted."
+      },
+      {
+        "fa": "کپشن فقط بازبینی می‌شود و هرگز بازنویسی نمی‌شود: عددِ ناقص، جملهٔ تکراری، دستورِ تصویر در متن، ایموجیِ زیاد، جملهٔ ناتمام و هشتگِ چسبیده؛ هشتگِ چسبیده فقط داخلِ بسته اصلاح می‌شود.",
+        "en": "The caption is only checked, never rewritten: a broken number, a repeated sentence, an image command in the text, too many emoji, an unfinished sentence and glued hashtags; a glued hashtag is repaired only inside the package."
+      },
+      {
+        "fa": "در رابط: تنظیمات صدا، تبِ انتشار (شبکه‌های صفحه، کارتِ تحویل و بررسیِ کپشن زیرِ هر مورد)، پنلِ کیفیت (متنِ انگلیسی هم) و دو ردیفِ تازه در آزمونِ خودکارِ رایانه (بلندیِ ۱۴- و اکو) که خودشان اجرا می‌شوند. نیازِ تازه: بستهٔ numpy که START.bat خودش نصب می‌کند. ساختِ قسمت فعلاً فقط ۹:۱۶ است؛ «ساختِ دوباره در نسبتِ دیگر» وجود ندارد و پیشنهاد داده نمی‌شود.",
+        "en": "In the interface: the audio settings, the Publishing tab (the page's networks and, under each item, the delivery card and the caption check), the quality panel (with English text) and two new rows in the PC's automatic self-test (-14 loudness and echo) that run by themselves. New requirement: the numpy package, which START.bat installs by itself. An episode is rendered in 9:16 only for now; «render again in another shape» does not exist and is not offered."
+      }
+    ]
+  },
+  {
+    "version": "0.15.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "بازبینی کیفیت: فیلم‌نامه‌ای که گیر نمی‌کند، هشدار برای شات‌هایی که عوض می‌شوند، متن فارسی بدون دستور و انگلیسی، و «نسخهٔ تازه آماده است»",
+      "en": "Quality audit: a script that no longer gets stuck, warnings for shots that change technique, Persian text without commands or English, and «a new version is ready»"
+    },
+    "items": [
+      {
+        "fa": "وقتی مدل زبانی خاموش است یا اعتبار ندارد، نوشتنِ فیلم‌نامهٔ اولِ قسمت دیگر برای همیشه روی «در حال نوشتن فیلم‌نامه» نمی‌ماند: کار در صف منتظر می‌ماند، قسمت به «برنامه‌ریزی‌شده» برمی‌گردد و وقتی مدل برگشت خودش ادامه می‌دهد. قسمتی که از قبل گیر کرده با باز شدن صفحه‌اش (یا با نبض ۳۰ ثانیه‌ای برنامه) آزاد می‌شود و یک دکمهٔ «برگرد و دوباره بنویس» هم دارد.",
+        "en": "With the language model off or out of credit, writing the first script of an episode no longer stays on «writing the script» for ever: the job waits in the queue, the episode goes back to «planned» and the job continues by itself when the model is back. An episode that is already stuck is freed when its page opens (or by the program's 30-second upkeep) and has a «go back and write again» button."
+      },
+      {
+        "fa": "شاتِ عروسکی که عروسک ندارد، پارالاکس بدون لایه و روش‌های ساخته‌نشده دیگر بی‌صدا تصویر ثابت با حرکت دوربین نمی‌شوند: کنار هر شات در فهرست شات‌ها نوشته می‌شود، «بررسی کیفیت» هشدار می‌دهد (تعداد، کدام شات‌ها، راه حل) و دیگر بدون ذکر هشدار «مشکل جدی ندارد» نمی‌گوید. پیش از «ساخت پیش‌نمایش / نسخهٔ نهایی» اگر شخصیتی عروسک ندارد، با یک کلیک عروسک چوبی خودکار ساخته می‌شود.",
+        "en": "A puppet shot without a puppet, parallax without layers and techniques that are not made yet no longer silently become a still with a camera move: the shot list says so beside each shot, the quality check warns (how many, which shots, the way out) and no longer says «no serious problem» without the warnings. Before «make preview / final» a character without a puppet gets one automatic stick-figure puppet with one click."
+      },
+      {
+        "fa": "اگر یکی از کارهای پایش خودکارِ هر ۳۰ ثانیه (آزاد کردن حافظهٔ کارت گرافیک، نمونه‌تصویر سبک‌ها، ...) خطا بدهد، بقیه ادامه می‌دهند و صفحهٔ «پایش» می‌گوید «پایش خودکار: خطا در ...».",
+        "en": "If one step of the automatic upkeep that runs every 30 seconds (releasing graphics memory, style sample pictures ...) fails, the others go on and the Monitor page says «Automatic upkeep: error in ...»."
+      },
+      {
+        "fa": "صفحه‌های فارسی بدون جملهٔ انگلیسی و دستور: متن بسته‌ها، مدل‌ها، مجوزها و گردش‌کارها در «تنظیمات، مدل‌ها و دانلودها» فارسی است؛ جای «Download-Models.bat --only piper» یا «pip install ...» یک دکمهٔ «نصب» است و خودِ دستور پشت «اطلاعات فنی» می‌ماند؛ پیام خطای صدا و موسیقی خط اولش فارسی است.",
+        "en": "Persian pages without English sentences or commands: the text of packages, models, licences and workflows in Settings, Models and Downloads is Persian; where «Download-Models.bat --only piper» or «pip install ...» stood there is an «Install» button and the command stays behind «Technical details»; speech and music errors start with a Persian line."
+      },
+      {
+        "fa": "«شروعِ پروژه از این ایده» حالا ایده را در اتاق توسعه نشان می‌دهد: کارتِ «ایدهٔ شروعِ این پروژه» بالای صفحهٔ سری، و گام اول (یادداشت طراحی شخصیت یا تخته ایده‌پردازی) خالی نیست. نامِ صفحهٔ خالی دیگر پذیرفته نمی‌شود.",
+        "en": "«Start a project from this idea» now shows the idea in the development room: an «idea this project started from» card at the top of the series page, and the first step (character brief or brainstorm board) is no longer empty. An empty page name is no longer accepted."
+      },
+      {
+        "fa": "عددها با رقم فارسی در صفحه‌های صف، سیستم و گزارش، شمارهٔ پست‌ها در نقشهٔ داستان انتخابی و خط‌های لاگِ کارها: «اجرا شد (تلاش ۱ از ۳)»، «در ۱۳٫۳ ثانیه تمام شد» و یادداشت‌های مونتاژ به زبان رابط نمایش داده می‌شوند (خط‌های قدیمیِ لاگ همان‌طور که بودند می‌مانند).",
+        "en": "Numbers with Persian digits on the queue, system and report pages, post numbers in the choice-story map, and the job log lines: «started (attempt 1 of 3)», «finished in 13.3 s» and the assembly notes are shown in the interface language (old log lines stay as they were)."
+      },
+      {
+        "fa": "وقتی نسخهٔ تازه‌ای از InstAI در گیت‌هاب هست، در نوار بالای صفحه «نسخهٔ تازه آماده است» می‌آید؛ یک کلیک (و یک پرسش) برنامه را می‌بندد، به‌روز می‌کند و دوباره باز می‌کند، بی‌آنکه مجبور باشید STOP و START بزنید. هر شب در ساعت بی‌کاری هم یک بار بررسی می‌شود. فقط روی رایانهٔ ویندوزیِ شما آزموده می‌شود، چون این بخش روی سرور اجرا نشد.",
+        "en": "When GitHub has a newer InstAI, «A new version is ready» appears in the top bar; one click (and one question) closes the program, updates it and opens it again, without STOP and START. It is also checked once every night in the idle window. It can only be tried on your Windows PC; this part could not be run on the server."
+      }
+    ]
+  },
+  {
+    "version": "0.14.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "آزمون خودکارِ خودِ رایانه: برنامه با کارهای واقعیِ کوچک می‌سنجد که روی همین رایانه (با GPU و ابزارها) کار می‌کند",
+      "en": "The PC tests itself: the program checks, with small real jobs, that it works on this computer (GPU and tools included)"
+    },
+    "items": [
+      {
+        "fa": "صفحهٔ «سیستم» (و یک خط روی صفحهٔ اول) کارت «آزمون خودکار این رایانه» دارد. برنامه خودش می‌سنجد: رمزگذاری ویدئو با ffmpeg، کشیدن متن فارسی با فونت خودش، پایگاه‌داده و فضای دیسک، به‌روزرسانی خودکار، شروع با ویندوز، ابزار «ویدئو با کد» و ساختن یک قاب با آن و ـ وقتی رایانهٔ GPUدار روشن شود ـ کارت گرافیک، رمزگذاری با کارت (NVENC)، مدل Ollama شما (روی GPU است یا CPU؟) و ComfyUI روی GPU.",
+        "en": "The System screen (and one line on the home screen) has an «Automatic self-test of this PC» card. The program tests itself: video encoding with ffmpeg, Persian text drawn with its own font, the database and the free disk, the automatic update, starting with Windows, the code-to-video tools and one frame rendered with them and - once the GPU PC is on - the graphics card, encoding on the card (NVENC), your Ollama model (on the GPU or the CPU?) and ComfyUI on the GPU."
+      },
+      {
+        "fa": "هر بررسی نتیجهٔ خودش را دارد: درست، هشدار، خطا (با علت و راه رفع)، اجرا نمی‌شود، یا «منتظر». «منتظر» یعنی چیزی که لازم دارد هنوز نیست (رایانهٔ GPUدار خاموش است، Ollama روشن نیست، Remotion هنوز نصب می‌شود)؛ همین که آماده شد خودش اجرا می‌شود. «همه‌چیز سالم» تا وقتی چیزی منتظر است نوشته نمی‌شود. با هر نسخهٔ تازه، هر روز و هر وقت چیزی که منتظرش بودند آماده شود خودکار اجرا می‌شود (INSTAI_PC_SELFTEST_AUTO=0 خاموشش می‌کند).",
+        "en": "Every check has its own result: passed, warning, failed (with the reason and the fix), not applicable, or «waiting». Waiting means what it needs is not there yet (the GPU PC is off, Ollama is not running, Remotion is still installing); it runs by itself as soon as it can. «All sound» is never shown while something waits. It runs by itself with every new version, every day and whenever something it waited for is ready (INSTAI_PC_SELFTEST_AUTO=0 switches it off)."
+      },
+      {
+        "fa": "بررسی «به‌روزرسانی خودکار» می‌گوید این پوشه می‌تواند خودش را به‌روز کند یا نه: اگر START.bat قدیمی باشد (پوشه از یک «Download ZIP» قدیمی مانده)، همین را با یک جملهٔ روشن و کار لازم می‌نویسد؛ و نسخهٔ این پوشه را با نسخهٔ GitHub می‌سنجد (تازه‌تر هست، یکی است، یا این پوشه جلوتر است و هنوز روی GitHub نرفته).",
+        "en": "The «Automatic update» check says whether this folder can update itself: when START.bat is old (the folder is from an old Download-ZIP) it says so with one plain sentence and the one thing to do; and it compares this folder's version with GitHub's (newer there, the same, or this folder is ahead and not pushed yet)."
+      },
+      {
+        "fa": "برای توسعه: آزمون پایداری پایگاه‌داده (۴۰ میلی‌ثانیه) دیگر بی‌دلیل قرمز نمی‌شود (شبیه‌سازِ «فرایند دیگر» خودش زیر بار از کار می‌افتاد)، و بازبینی صفحه‌ها دکمه‌های داخل بخشِ بستهٔ <details> را «بدون نام» حساب نمی‌کند.",
+        "en": "For development: the 40 ms database stress test no longer fails by itself (its «other process» stand-in gave up under load), and the page sweep no longer counts buttons inside a closed <details> as nameless."
+      }
+    ]
+  },
+  {
     "version": "0.13.0",
     "date": "2026-11-14",
     "title": {

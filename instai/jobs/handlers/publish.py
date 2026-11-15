@@ -3,11 +3,11 @@ from __future__ import annotations
 from instai.jobs.registry import handler
 
 
-@handler("publish.export", resource="cpu", timeout=1800)
+@handler("publish.export", resource="cpu", timeout=3 * 3600)      # one file per network the page targets (docs/DELIVERY.md): a long episode on a CPU-only PC takes a while
 def export(ctx):
     from instai.publishing import services
 
-    return services.export_package(ctx.payload["publication_id"])
+    return services.export_package(ctx.payload["publication_id"], ctx)
 
 
 @handler("publish.send", resource="net", timeout=1800)

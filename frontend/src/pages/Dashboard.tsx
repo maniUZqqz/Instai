@@ -5,6 +5,7 @@ import { useApp } from '../components/Shell'
 import { Async, Badge, Card, CardSkeletons, Empty, Link, LinkButton, Notice, PageHead } from '../components/ui'
 import { useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { PcSelfTestStrip } from './PcSelfTest'
 
 export default function Dashboard() {
   const { t, f, tr } = useI18n()
@@ -50,6 +51,8 @@ export default function Dashboard() {
                 </div>
               </Card>
             </div>
+
+            <PcSelfTestStrip />
 
             {d.needs_action.length > 0 && (
               <Card title={t('dash.needs_action')}>

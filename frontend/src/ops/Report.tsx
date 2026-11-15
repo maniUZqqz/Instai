@@ -280,8 +280,8 @@ function Logs({ query, nodes }: { query: string; nodes: NodeReport[] }) {
           <div key={i} className={'log-line lvl-' + r.level} title={r.explain ? (lang === 'en' ? r.explain.what_en : r.explain.what_fa) : undefined}>
             <span style={{ opacity: 0.6 }}>{f.dateTime(r.at)}</span>{' '}
             <span className="badge neutral">{r.node === 'local' ? t('ops.node.local_short') : r.node}</span>{' '}
-            {r.source === 'job' && <span style={{ opacity: 0.75 }}>#{r.job} {lang === 'en' ? r.title_en : r.title_fa} · </span>}
-            {r.source === 'event' && r.kind !== 'log' && r.kind !== 'error' ? (lang === 'en' ? r.text_en : r.text_fa) : r.message}
+            {r.source === 'job' && <span style={{ opacity: 0.75 }}>#{f.num(r.job)} {lang === 'en' ? r.title_en : r.title_fa} · </span>}
+            {r.source === 'event' && r.kind !== 'log' && r.kind !== 'error' ? (lang === 'en' ? r.text_en : r.text_fa) : (lang === 'en' ? r.text_en : r.text_fa) || r.message}
           </div>
         ))}
       </div>

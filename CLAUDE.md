@@ -106,6 +106,22 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **The art-style stage validates its look** (`ladder._checked_look`); the animatic's ladder hash is its shape, not its pictures (`preprod.animatic_shape_hash`).
 - `coexist.release_idle` leaves ComfyUI's models alone while ComfyUI's own queue is busy (`ComfyClient.queue_busy`).
 
+## Delivery (0.16; docs in `docs/DELIVERY.md`, numbers in `docs/BENCHMARKS.md`, ported from NMarketing v3.02)
+- **Loudness** (`render/loudness.py`): `step_assemble` settles a FINAL render to the page's `audio.target_lufs` (new pages -14, old pages keep -16 through `pages/migrations/0004`) before the Asset is made; the result is kept in `provenance["loudness"]`. A new render path that makes a final file records the same dict.
+- **Sound check** (`render/audioqc.py`, needs numpy): echo, music over the voice (stems rendered with `assemble.track_filters` + `assemble.DUCK_FILTER`), phase; the rows `audio_echo` / `audio_masking` / `audio_phase` carry `message` (fa) AND `message_en` and name the shot and the track. A new QC row needs both texts.
+- **Delivery table** (`render/delivery.py`): the nine network keys; a network the episode's shape does not fit gets NO file (never a crop) unless the owner chose `fit = "blur"`. A `PublishTarget.platform` goes through `delivery.network_for`.
+- **Package** (`publishing/delivery_package.py`): one folder per targeted network; the caption is never rewritten, hashtags are repaired only inside the package. SRT and covers are looked up by asset (`find_srt`, `cover_for`), never required.
+- **Self-test rows** `delivery_loudness`, `delivery_echo` in `ops/pcselftest.py` (group pc, every PC).
+- UI: `components/DeliveryCard.tsx` (networks card + delivery/check card), the audio form in `ProfilesTab.tsx`, `message_en` in the quality panel; keys `dl.*` in `i18n/packs/delivery.ts`.
+
+## Audit round «ia_core» (0.15.0; reasons in `docs/DECISIONS.md`, "Audit round «ia_core»")
+- **Never roll an episode back with `services.transition` from a job's `except`**: use `services.release_scripting` (compare-and-set, never raises) and let the original exception reach the worker.
+- **A new technique that may not be rendered as planned** goes into `production/fallbacks.shot_fallback` (fa + en text); never write a fallback note by hand. `GET/POST /episodes/<id>/preflight` and `auto_rig` on produce make the stick-figure puppet.
+- **A new automation step of the worker** = one entry in `worker.tick_steps()` + a label in `TICK_LABELS` (fa + en); it must not rely on the steps before it.
+- **A new catalogue text (package, model, licence, workflow, installer item)** needs its Persian twin in `core/fa_catalog_data.py` (`tests/test_core_audit_catalog.py` checks); a hint on the System page = Persian sentence + `action` (a button) + the command in `tech`. Never put `pip install`, `Download-Models.bat --only ...` or a Windows path in a Persian sentence.
+- **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
+- **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
+
 ## Everyday-screen audit (audit round ia_ui; reasons in `docs/DECISIONS.md`, "Quality audit of the everyday screens")
 - **Search has one rule in two languages**: `library.py` (`_fold`, `query_words`, `all_words_in`) and `frontend/src/library.ts` (`fold`, `queryWords`, `allWordsIn`); the idea bank adds the category / format / tag names (`bank.search_text`, `ideaHaystack`). A word of 3+ letters also matches with spaces and half-spaces removed. Change both sides together; `instai/ideabank/tag_names.py` must equal `frontend/src/ideaTags.ts` (a test checks).
 - **A long list is a page, not the whole list**: ideas show `IDEA_PAGE` (24), library styles `STYLE_PAGE` (36) with «نمایش بیشتر»; the wizard's `StylePicker` takes `suggestAround` (six cards) and opens the whole gallery in a scroll box. A look's picture is `Swatch` = a lazy `<img>` over the palette gradient, never a CSS `background-image` (that asks for every picture at once).

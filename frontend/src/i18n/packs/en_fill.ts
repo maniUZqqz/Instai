@@ -11,7 +11,7 @@ export const en: Record<string, string> = {
   'pf.caption_style_hint': 'e.g. "short, with a question at the end".',
   'pf.content_rules_hint': 'Rules every episode must follow, e.g. "no graphic violence".',
   'pf.engine_hint': 'In auto mode MOSS is used, and Piper if MOSS is not there.',
-  'pf.lufs_hint': 'About -16 suits social networks.',
+  'pf.lufs_hint': '-14 suits YouTube, Shorts, Reels and TikTok; -16 suits Telegram and Aparat.',
   'pf.max_gpu_hint': 'An estimate above this ceiling shows a warning.',
   'pf.negative_hint': 'Write in English, comma separated, e.g. text, watermark, extra fingers',
   'pf.page_name_hint': 'Seen only inside the app.',

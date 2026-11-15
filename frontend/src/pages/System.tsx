@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { api } from '../api/client'
+import { api, errorText } from '../api/client'
 import type { BenchPayload, BenchResult, Hardware, HardwareItem, Job } from '../api/types'
 import { JobView } from '../components/domain'
 import { Icon } from '../components/Icon'
-import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Notice, PageHead, type Tone } from '../components/ui'
+import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, LinkButton, Notice, PageHead, type Tone } from '../components/ui'
+import { useToast } from '../components/feedback'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { PcSelfTestCard } from './PcSelfTest'
 
 const STATUS_TONE: Record<string, Tone> = { ok: 'ok', warn: 'warn', missing: 'err', error: 'err' }
 
@@ -15,6 +17,7 @@ export default function System() {
   return (
     <div className="stack-lg">
       <PageHead title={t('nav.system')} />
+      <PcSelfTestCard />
       <HardwareSection />
       <BenchmarkSection />
     </div>
@@ -73,7 +76,24 @@ function HardwareSection() {
 
 function ItemCard({ it }: { it: HardwareItem }) {
   const { t, tr } = useI18n()
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
   const tone = STATUS_TONE[it.status] ?? 'neutral'
+  // «نصب»: the same installers as the Models page (a package, or a language model); a plain link opens the page that has the button
+  const fix = async () => {
+    const a = it.action
+    if (!a) return
+    setBusy(true)
+    try {
+      if (a.package) await api.post('/downloads', { packages: [a.package] })
+      else if (a.ollama) await api.post('/downloads/ollama', { model: a.ollama })
+      toast.ok(t('sys.fix_started'))
+    } catch (e) {
+      toast.err(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
   const models = (it.data?.models as { name: string; size_gb: number; params?: string }[] | undefined) ?? []
   return (
     <div className="card flat stack-sm">
@@ -84,8 +104,18 @@ function ItemCard({ it }: { it: HardwareItem }) {
           {tr('sys.status_' + it.status, it.status)}
         </Badge>
       </div>
-      <div className="small">{it.detail}</div>
-      {it.hint && it.status !== 'ok' && <Notice tone={it.status === 'warn' ? 'warn' : 'info'}>{it.hint}</Notice>}
+      <div className={'small' + (/[؀-ۿ]/.test(it.detail || '') ? '' : ' ltr')}>{it.detail}</div>
+      {it.hint && it.status !== 'ok' && (
+        <Notice tone={it.status === 'warn' ? 'warn' : 'info'}>
+          <span>{it.hint}</span>
+          {it.action && (
+            <span className="row" style={{ marginBlockStart: '0.4rem' }}>
+              {it.action.link ? <LinkButton size="sm" to={it.action.link}>{t('sys.fix_open')}</LinkButton> : <Button size="sm" icon="download" busy={busy} onClick={fix}>{t('sys.fix_install')}</Button>}
+            </span>
+          )}
+        </Notice>
+      )}
+      {it.tech && it.status !== 'ok' && <details><summary className="small" style={{ cursor: 'pointer' }}>{t('common.tech')}</summary><code className="small ltr" style={{ display: 'block', marginBlockStart: '0.25rem' }}>{it.tech}</code></details>}
       {models.length > 0 && (
         <details>
           <summary className="small" style={{ cursor: 'pointer' }}>{t('sys.models_list', { n: models.length })}</summary>

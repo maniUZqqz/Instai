@@ -15,6 +15,7 @@ from datetime import datetime
 from django.utils import timezone
 
 from instai.core.errors import DomainError
+from instai.core.fa_digits import fa_numbers
 from instai.jobs import queue, schedule
 from instai.jobs.models import Job, WorkerNode
 
@@ -132,7 +133,8 @@ def reschedule(job: Job, when) -> Job:
     sched, moment = _schedule(when)
     now = timezone.now()
     Job.objects.filter(pk=job.pk, status=Job.QUEUED).update(window=sched["window"], run_after=moment or now, ready_at=moment or now, wait_code="", waiting_reason="")
-    queue.log_job(job, "rescheduled: " + ("now" if moment is None else moment.isoformat()) + (f" window {sched['window']}" if sched["window"] else ""))
+    when_txt = ("now" if moment is None else moment.isoformat()) + (f" window {sched['window']}" if sched["window"] else "")
+    queue.log_job(job, "rescheduled: " + when_txt, code="rescheduled", params={"when": ("همین حالا" if moment is None else "ساعت " + fa_numbers(timezone.localtime(moment).strftime("%H:%M"))) + (f" (بازهٔ {fa_numbers(sched['window'])})" if sched["window"] else "")})
     job.refresh_from_db()
     return job
 

@@ -110,6 +110,17 @@ def test_a_full_name_pasted_with_its_brackets_and_quotes_still_finds_its_style()
     assert library.filter_styles(lib, q="(zzzz not a style)") == []
 
 
+def test_the_browser_side_search_ignores_the_same_punctuation_as_the_server():
+    """The Library and the pickers filter in the browser (`frontend/src/library.ts` fold): the set of ignored characters must be the server's."""
+    from pathlib import Path
+
+    ts = (Path(__file__).resolve().parents[1] / "frontend" / "src" / "library.ts").read_text(encoding="utf-8")
+    line = next(l for l in ts.splitlines() if l.startswith("const PUNCTUATION"))
+    for ch in "()[]{}<>«»\"“”‘’,;:!?،؛؟/\\|":
+        assert ch in line or "\\u%04x" % ord(ch) in line or ("\\" + ch) in line, f"{ch!r} is ignored by the server's search but not by the browser's"
+    assert ".replace(PUNCTUATION, ' ')" in ts
+
+
 def _tokens(text: str) -> set[str]:
     """Lower-case word stems: 'Cel-shading' -> {cel, shading}; 'Particles' -> {particle}; 'colour' and 'color' agree."""
     words = re.findall(r"[a-z0-9.]+", text.lower().replace("colour", "color"))

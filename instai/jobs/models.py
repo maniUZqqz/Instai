@@ -67,7 +67,9 @@ class JobLog(models.Model):
     job = models.ForeignKey(Job, related_name="logs", on_delete=models.CASCADE)
     at = models.DateTimeField(auto_now_add=True)
     level = models.CharField(max_length=8, default="info")
-    message = models.TextField()
+    message = models.TextField()                                   # the technical / English text (search, old rows, anything without a code)
+    code = models.CharField(max_length=40, blank=True, default="")  # a line with a code is shown in the interface language (jobs/logtext.py)
+    params = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["id"]
