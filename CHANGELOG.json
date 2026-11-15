@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.19.1",
+    "date": "2026-11-15",
+    "title": {
+      "fa": "اصلاح صفحهٔ قسمت: متن کنار ویدئو وقتی قسمت کاور دارد",
+      "en": "Episode page fix: the text beside the video when the episode has a cover"
+    },
+    "items": [
+      {
+        "fa": "در صفحهٔ قسمت، وقتی قسمت کاور داشت (تصویر کاور پوستر پخش‌کننده می‌شود)، ستونِ متن کنارِ ویدئو، یعنی دکمهٔ «تأیید قسمت» و خلاصهٔ بازبینی کیفیت، به صفر پیکسل فشرده می‌شد و صفحه به کنار اسکرول می‌خورد. حالا پخش‌کننده عرضِ ثابت دارد و متن همیشه کنارش می‌ماند، در لپ‌تاپ، تبلت و گوشی.",
+        "en": "On the episode page, when the episode had a cover (the cover picture becomes the player's poster), the text column beside the video, that is the «Approve» button and the quality summary, shrank to 0 px and the page scrolled sideways. The player now has a fixed width and the text always stays beside it, on a laptop, a tablet and a phone."
+      }
+    ]
+  },
+  {
     "version": "0.19.0",
     "date": "2026-11-14",
     "title": {
