@@ -298,7 +298,7 @@ def test_anime_comparison_same_stills_and_seeds_vote_sets_the_page_default(api, 
 
     page, ep_id, shots, _ = prepared_episode(api, worker, ["still_kenburns"] * 3, with_sheet=False)
     run_final(api, worker, ep_id)                                          # keyframes exist now
-    cands = {c["id"]: c for c in api.get("/api/anime/candidates").json()}
+    cands = {c["id"]: c for c in api.get("/api/anime/candidates", HTTP_X_LANG="en").json()}          # a Persian page gets Persian notes (the catalogue middleware); this test reads the original
     assert cands["wan22"]["available"] and cands["anisora"]["available"] and cands["animegen"]["available"]          # the fake ComfyUI has every node/model
     assert cands["anisora"]["needs"] == ["ComfyUI-GGUF"] and "extra restrictions" in cands["anisora"]["licence"] and cands["animegen"]["commercial"] == "yes"
     r = api.post("/api/comparisons", {"episode": ep_id, "seeds": [5, 6], "candidates": ["wan22", "anisora", "animegen"], "prompt": "she turns and smiles"}, format="json")
