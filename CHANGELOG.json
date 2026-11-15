@@ -1,5 +1,35 @@
 [
   {
+    "version": "0.20.0",
+    "date": "2026-11-15",
+    "title": {
+      "fa": "بازبینی کیفیت، دور دوم: صفحهٔ مقایسهٔ مدل‌ها و خودکارسازی فارسی، تاریخچهٔ قسمت فارسی، رقم فارسی در بررسی کیفیت و خطای نصب Remotion به فارسی",
+      "en": "Quality audit, second pass: the model-comparison and automation pages in Persian, the episode history in Persian, Persian digits in the quality check and the Remotion setup error in Persian"
+    },
+    "items": [
+      {
+        "fa": "صفحهٔ «مقایسهٔ مدل‌های انیمه»: توضیح و مجوزِ هر مدل به فارسی است و به‌جای یک خط فرمان، پیوندی به صفحهٔ «دانلودها» هست. در صفحهٔ «خودکارسازی» هم دلیلِ اینکه انتشار خودکار انجام نمی‌شود به فارسی نوشته می‌شود.",
+        "en": "The anime model-comparison page: the note and licence of each model are in Persian and, instead of a command line, there is a link to the Downloads page. On the automation page the reason automatic posting is off is written in Persian too."
+      },
+      {
+        "fa": "تاریخچهٔ قسمت و تاریخچهٔ صفحه: دلیلِ هر تغییر («فیلم‌نامه آماده شد»، «ساختِ فیلم تمام شد»، «بررسی کیفیت گذشت (۱ هشدار)» ...) به فارسی نشان داده می‌شود، حتی برای ردیف‌های قدیمی؛ پیش‌تر کلمه‌های انگلیسیِ ذخیره‌شده دیده می‌شد.",
+        "en": "The episode history and the page history show the reason of each change («script ready», «render finished», «quality check passed (1 warning)» ...) in Persian, old rows too; they used to show the stored English words."
+      },
+      {
+        "fa": "عددهای «بررسی کیفیت» (مدت، فریم بر ثانیه، رشته‌های بازِ داستان، بازه‌های سیاه و ثابت ...) و نامِ قسمت‌هایی که خودِ برنامه می‌نویسد («قسمت ۱») با رقم فارسی نوشته می‌شوند؛ نسخهٔ انگلیسیِ همان جمله‌ها تغییری نکرد.",
+        "en": "The numbers of the quality check (duration, frames per second, open story threads, black and still stretches ...) and the names of the episodes the program writes itself («Episode 1» in Persian) are written with Persian digits; the English version of the same sentences is unchanged."
+      },
+      {
+        "fa": "اگر نصبِ ابزارِ «ویدئو با کد» (Remotion) به مشکل بخورد، دلیلش یک جملهٔ فارسی است (Node.js نیست، اینترنت نیست، فضای دیسک کم است ...) و نه یک خط انگلیسی؛ هم در آزمونِ خودکار و هم در صفحهٔ Remotion.",
+        "en": "When the install of the code-to-video tool (Remotion) fails, the reason is one Persian sentence (no Node.js, no internet, too little disk space ...) and not an English line, in the automatic self-test and on the Remotion page."
+      },
+      {
+        "fa": "برای نگهداری: چهار آزمونی که از دورِ پیش شکسته مانده بود درست شد (آزمون‌ها دیگر از گیت‌هاب سراغ نسخهٔ تازه نمی‌گیرند) و آزمونِ مرورگر همهٔ صفحه‌های فارسی را در پهنای رایانه و گوشی برای جملهٔ انگلیسی، خط فرمان و رقم لاتین می‌گردد.",
+        "en": "For maintenance: the four tests left failing by the previous pass are fixed (the tests no longer ask GitHub for a newer version) and the browser test sweeps every Persian page at desktop and phone width for English sentences, command lines and Latin digits."
+      }
+    ]
+  },
+  {
     "version": "0.19.1",
     "date": "2026-11-15",
     "title": {
@@ -174,7 +204,7 @@
         "en": "If one step of the automatic upkeep that runs every 30 seconds (releasing graphics memory, style sample pictures ...) fails, the others go on and the Monitor page says «Automatic upkeep: error in ...»."
       },
       {
-        "fa": "صفحه‌های فارسی بدون جملهٔ انگلیسی و دستور: متن بسته‌ها، مدل‌ها، مجوزها و گردش‌کارها در «تنظیمات، مدل‌ها و دانلودها» فارسی است؛ جای «Download-Models.bat --only piper» یا «pip install ...» یک دکمهٔ «نصب» است و خودِ دستور پشت «اطلاعات فنی» می‌ماند؛ پیام خطای صدا و موسیقی خط اولش فارسی است.",
+        "fa": "صفحه‌های فارسی بدون جملهٔ انگلیسی و دستور: متن بسته‌ها، مدل‌ها، مجوزها و گردش‌کارها در «تنظیمات، مدل‌ها و دانلودها» فارسی است؛ جای دستورهای خط فرمان یک دکمهٔ «نصب» است و خودِ دستور پشت «اطلاعات فنی» می‌ماند؛ پیام خطای صدا و موسیقی خط اولش فارسی است.",
         "en": "Persian pages without English sentences or commands: the text of packages, models, licences and workflows in Settings, Models and Downloads is Persian; where «Download-Models.bat --only piper» or «pip install ...» stood there is an «Install» button and the command stays behind «Technical details»; speech and music errors start with a Persian line."
       },
       {
