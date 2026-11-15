@@ -1,6 +1,8 @@
 """Phase 4 API: automation level + budgets + render windows, the publication schedule, notifications, publishing targets/adapters and the explicit publish action."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 from datetime import datetime, timezone
 
 from django.shortcuts import get_object_or_404
@@ -35,7 +37,7 @@ def automation_dict(page: ContentPage) -> dict:
             "next_window": scheduling.next_window_open(cfg.render_windows, now, cfg.utc_offset_minutes),
             "publishing": {"per_week": prof["per_week"], "days": prof["days"], "time": prof["time"], "next_slots": slots},
             "auto_publish": {"enabled": cfg.auto_publish_enabled, "confirmed_at": cfg.auto_publish_confirmed_at, "confirm_text": CONFIRM_TEXT,
-                             "can_post_now": adapters.can_auto_publish(page, target)[0], "why_not": adapters.can_auto_publish(page, target)[1],
+                             "can_post_now": adapters.can_auto_publish(page, target)[0], "why_not": adapters.can_auto_publish(page, target)[1], "why_not_fa": adapters.why_not_fa(adapters.can_auto_publish(page, target)[1]),
                              "feature_flag": adapters.feature_enabled()},
             "explain": {"manual": "nothing runs by itself", "assisted": "previews run by themselves; costly steps ask you", "automatic": "script, final render and the publication package run within the budgets; you approve the episode"}}
 
@@ -162,7 +164,7 @@ def publication_publish(request, pk):
     ad = adapters.adapter_for(p.target)
     if ad.name != "manual" and not ad.ready(p.target):
         raise DomainError("not_ready", "پیش‌نیازهای انتشار با API کامل نیست: " + "؛ ".join(r["text"] for r in ad.requirements(p.target) if not r["ok"]), http_status=409)
-    return job_response(queue.enqueue("publish.send", {"publication_id": p.pk}, episode=p.episode, page=p.episode.series.page_id, title=f"انتشار قسمت {p.episode.number}", max_attempts=1))
+    return job_response(queue.enqueue("publish.send", {"publication_id": p.pk}, episode=p.episode, page=p.episode.series.page_id, title=f"انتشار قسمت {fa_digits(p.episode.number)}", max_attempts=1))
 
 
 urlpatterns = [

@@ -61,6 +61,37 @@ def clear_cache() -> None:
     _NOW.update(val=None, at=0.0)
 
 
+_FA_REASONS = (
+    ("npm was not found", "ابزارِ نصبِ بسته‌ها (npm) کنار Node.js پیدا نشد؛ Node.js را دوباره نصب کنید."),
+    ("Node.js 18 or newer was not found", "Node.js نسخهٔ ۱۸ یا بالاتر روی این رایانه نیست؛ از سایت Node.js نصبش کنید."),
+    ("Node.js could not be downloaded", "Node.js دانلود نشد (اینترنت قطع است یا سایتش بسته است)."),
+    ("the portable Node.js was unpacked but does not start", "Node.js باز شد ولی اجرا نمی‌شود."),
+    ("the npm packages could not be installed", "بسته‌های Remotion نصب نشد؛ جزئیاتش در گزارشِ نصب است."),
+    ("no Chrome / Chromium was found", "مرورگر Chrome یا Chromium پیدا نشد؛ یکی را نصب کنید."),
+    ("no browser found and the headless shell could not be downloaded", "مرورگر پیدا نشد و مرورگرِ بی‌صفحه هم دانلود نشد."),
+    ("the headless shell was unpacked but", "مرورگرِ بی‌صفحه باز شد ولی فایلِ اجراییِ آن نیست."),
+    ("the Remotion renderer did not load", "موتورِ ساختِ ویدئو (Remotion) بالا نیامد."),
+)
+
+
+def fa_reason(error: str) -> str:
+    """A setup error (English, from scripts/setup_remotion.py) as one Persian sentence the owner can act on. Unknown texts get a generic line."""
+    import re
+
+    from instai.core.fa_digits import fa_numbers
+
+    e = (error or "").strip()
+    if not e:
+        return ""
+    m = re.match(r"not enough free disk space on (.+?) \(([\d.]+) GB free, ([\d.]+) GB needed\)", e)
+    if m:
+        return fa_numbers(f"فضای خالیِ دیسک {m.group(1)} کافی نیست ({m.group(2)} گیگابایت خالی، {m.group(3)} گیگابایت لازم).")
+    for key, fa in _FA_REASONS:
+        if e.startswith(key):
+            return fa
+    return "نصب به مشکلی خورد؛ جزئیاتِ فنی در گزارشِ نصب است."
+
+
 def status() -> dict:
     """{ready, node, packages, browser, state, phase, message_fa, message_en, error, remotion, project} for the page. Installs nothing."""
     m = setup_module()
@@ -81,6 +112,9 @@ def status() -> dict:
         "project": PROJECT.is_dir(), "auto": m.env_value("INSTAI_REMOTION_AUTO") not in ("0", "false", "no"),
         "node_version_wanted": m.NODE_VERSION,
     }
+    out["error_fa"] = fa_reason(out["error"])
+    if out["error"]:                                                # the Persian page says the reason in Persian (the English line stays in `error`)
+        out["message_fa"] = "نصب Remotion کامل نشد: " + out["error_fa"]
     return out
 
 

@@ -63,7 +63,7 @@ def setup(ctx):
     if rc != 0:
         why = st.get("error") or tail[-300:]
         raise ProviderError("Remotion setup failed: " + why, retryable=True, code="remotion_setup_failed",
-                            fa="نصب Remotion کامل نشد. دلیلش: " + why[:200] + " — دوباره امتحان کنید؛ از همان‌جا ادامه می‌دهد.")
+                            fa="نصب Remotion کامل نشد. دلیلش: " + (st.get("error_fa") or "جزئیات در گزارش کار است.") + " — دوباره امتحان کنید؛ از همان‌جا ادامه می‌دهد.")
     if not st["ready"] and st["state"] == "running":      # the START.bat run in the background holds the lock: wait for it instead of reporting "done"
         raise ProviderError("the Remotion setup of START.bat is still running", code="remotion_setup", wait="remotion_setup",
                             fa="نصب Remotion از قبل (با START.bat) در پس‌زمینه در حال انجام است؛ این کار منتظر پایان آن می‌ماند.")

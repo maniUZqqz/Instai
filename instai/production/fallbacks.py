@@ -72,7 +72,7 @@ def shot_fallback(shot, ep, mode: str = "preview", *, have_clip: bool | None = N
                       f"{sl_en}: the technique \"{TECH_EN.get(t, t)}\" is not made yet; {still_en}")
     if t == "wan_i2v" and mode == "final" and have_clip is False:
         return _entry(shot, "no_clip", f"{sl_fa}: کلیپِ ویدئویی (Wan) آماده نشد؛ {still_fa}",
-                      f"{sl_en}: the Wan video clip could not be made; {still_en}")
+                      f"{sl_en}: no Wan clip available (the Wan video clip could not be made); {still_en}")
     return None
 
 

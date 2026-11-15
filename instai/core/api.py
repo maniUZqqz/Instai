@@ -1,6 +1,8 @@
 """System endpoints: hardware, benchmark, settings, providers, models/downloads, formats, dashboard."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 import json
 import subprocess
 import sys
@@ -206,9 +208,9 @@ def dashboard(request):
                             for e in Episode.objects.select_related("series__page", "arc").order_by("-updated_at")[:8]],
         "upcoming_publications": [{"id": p.pk, "episode": p.episode_id, "episode_title": p.episode.title, "scheduled_at": p.scheduled_at, "status": p.status}
                                   for p in Publication.objects.filter(status="scheduled", scheduled_at__gte=now).order_by("scheduled_at")[:5]],
-        "needs_action": [{"type": "episode_failed", "episode": e.pk, "title": f"{e.series.page.name} - قسمت {e.number}", "error": e.error[:200]} for e in failed_eps[:10]] +
+        "needs_action": [{"type": "episode_failed", "episode": e.pk, "title": f"{e.series.page.name} - قسمت {fa_digits(e.number)}", "error": e.error[:200]} for e in failed_eps[:10]] +
                         [{"type": "job_failed", "job": j.pk, "title": j.title, "error": j.error[:200]} for j in failed_jobs[:10]] +
-                        [{"type": "ready_for_approval", "episode": e.pk, "title": f"{e.series.page.name} - قسمت {e.number}"}
+                        [{"type": "ready_for_approval", "episode": e.pk, "title": f"{e.series.page.name} - قسمت {fa_digits(e.number)}"}
                          for e in Episode.objects.filter(state=states.READY_FOR_APPROVAL).select_related("series__page")[:10]],
         "gpu": {"present": gpu is not None, "name": gpu["name"] if gpu else None, "total_mb": gpu["total_mb"] if gpu else None,
                 "used_mb": gpu["used_mb"] if gpu else None, "utilization": gpu["utilization"] if gpu else None,

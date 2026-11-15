@@ -153,5 +153,18 @@ def can_auto_publish(page, target) -> tuple[bool, str]:
     return (not missing), ("missing: " + ", ".join(missing) if missing else "")
 
 
+def why_not_fa(text: str) -> str:
+    """The Persian twin of what `can_auto_publish` says (the English text stays the machine-readable one)."""
+    known = {"automatic publishing is not enabled for this page": "انتشار خودکار برای این صفحه روشن نشده است.",
+             "no API publish target": "هدفِ انتشار از راهِ API تنظیم نشده است."}
+    if text in known:
+        return known[text]
+    if text.startswith("missing: "):
+        from instai.core.fa_digits import fa_numbers
+
+        return fa_numbers("این موارد هنوز آماده نیست: " + text[len("missing: "):])
+    return text
+
+
 def settings_hint() -> dict:
     return {"price_in": settings_store.get_setting("openai_price_in_per_1k"), "price_out": settings_store.get_setting("openai_price_out_per_1k")}

@@ -20,7 +20,7 @@ FIELDS: dict[str, tuple[dict, ...]] = {
     "vram": (D.VRAM,), "notes": (D.NOTE,), "note": (D.NOTE,), "verified": (D.VERIFIED,), "detail": (D.SERVICE,), "badge": (D.SERVICE,), "hint": (D.SERVICE,),
     "auto_note": (D.SERVICE,),
 }
-PREFIXES = ("/api/models", "/api/downloads/catalog", "/api/system/hardware", "/api/voices/engines")
+PREFIXES = ("/api/models", "/api/downloads/catalog", "/api/system/hardware", "/api/voices/engines", "/api/anime/candidates")
 
 # two or more lowercase English words in a row (product names are Capitalised / ALLCAPS / carry digits, so they pass)
 _WORD = r"[a-z][a-z'\-]{2,}"

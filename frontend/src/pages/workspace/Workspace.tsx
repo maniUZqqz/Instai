@@ -8,6 +8,7 @@ import { useConfirm } from '../../components/feedback'
 import { useAction, useQuery, useTitle } from '../../hooks'
 import { ANIME, EXPLAINER, useFormats } from '../../formats'
 import { useI18n } from '../../i18n'
+import { eventReason } from '../../api/eventReason'
 import { nm, useTemplates } from '../../library'
 import { Outlet } from 'react-router-dom'
 import { useState } from 'react'
@@ -353,7 +354,7 @@ export function EpisodesTab() {
 
 // ---------------------------------------------------------------- history
 export function HistoryTab() {
-  const { t, f, tr } = useI18n()
+  const { t, f, tr, lang } = useI18n()
   const { page } = useWs()
   const q = useQuery<HistoryEvent[]>(`/pages/${page.id}/history`)
   return (
@@ -389,7 +390,7 @@ export function HistoryTab() {
                         <StateBadge state={e.to} label={e.to_label} />
                       </td>
                       <td className="small">
-                        {e.reason || '—'} <span className="muted">({tr('actor.' + e.actor, e.actor)})</span>
+                        {eventReason(e.reason, lang, t) || '—'} <span className="muted">({tr('actor.' + e.actor, e.actor)})</span>
                       </td>
                     </tr>
                   ))}

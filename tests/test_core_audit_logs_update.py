@@ -87,6 +87,7 @@ def updater(monkeypatch, tmp_path):
 
     from instai.ops import update
 
+    monkeypatch.setenv("INSTAI_UPDATE_IN_TESTS", "1")                  # the suite's guard (ops/update.disabled) lets this test's fake GitHub through
     monkeypatch.setenv("INSTAI_NO_UPDATE", "0")
     monkeypatch.setattr(settings, "DATA_DIR", tmp_path)
     monkeypatch.setattr(update, "_known_commit", lambda: "")
