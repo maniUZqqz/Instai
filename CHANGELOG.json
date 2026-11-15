@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.23.0",
+    "date": "2026-11-15",
+    "title": {
+      "fa": "نشانِ «نسخهٔ تازه آماده است» دیگر صفحه را در گوشی به پهلو نمی‌کشد",
+      "en": "The «a new version is ready» badge no longer pushes every page sideways on a phone"
+    },
+    "items": [
+      {
+        "fa": "وقتی نسخهٔ تازه‌ای از برنامه آماده بود، جملهٔ «نسخهٔ تازه آماده است» نوارِ بالا را در گوشی (۳۹۰ پیکسل) تا ۵۶۵ پیکسل پهن می‌کرد؛ همهٔ صفحه‌ها به پهلو اسکرول می‌خوردند و لبهٔ چپ بریده می‌شد. حالا در گوشی فقط دکمهٔ دانلود دیده می‌شود (متنِ کامل با نگه‌داشتنِ انگشت و برای صفحه‌خوان هست) و در صفحهٔ بزرگ همان جمله کامل می‌ماند؛ اگر جا کم باشد نوارِ بالا به دو ردیف می‌شود.",
+        "en": "When a newer version was ready, its sentence made the top bar 565 px wide on a 390 px phone: every page scrolled sideways and the left edge was clipped. Now a phone shows only the download button (the full text stays in the long-press tip and for screen readers), a big screen keeps the full sentence, and the top bar wraps to two rows when space runs out."
+      },
+      {
+        "fa": "برای نگهداری: آزمونِ مرورگری وضعیتِ «نسخهٔ تازه» را ساختگی روشن می‌کند و با پنجرهٔ واقعیِ باریک (نه شبیه‌ساز موبایل) همهٔ صفحه‌ها را در ۳۹۰ پیکسل و پهنای‌های ۳۲۰ تا ۱۰۲۴ و شلوغ‌ترین نوارِ بالا می‌سنجد؛ هر دکمهٔ تازه در نوارِ بالا باید همین سنجش را پاس کند.",
+        "en": "For maintenance: a browser test fakes the «new version» state and measures every screen at 390 px, the widths 320 to 1024 and the busiest top bar in a real narrow window (not a mobile emulator); a new top-bar button must pass the same check."
+      }
+    ]
+  },
+  {
     "version": "0.22.0",
     "date": "2026-11-15",
     "title": {
