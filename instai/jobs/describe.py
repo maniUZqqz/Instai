@@ -51,6 +51,9 @@ KIND_TEXT: dict[str, tuple[str, str]] = {
     "downloads.ollama": ("دانلود مدل Ollama", "Downloading an Ollama model"),
     "remotion.setup": ("آماده‌سازی Remotion (ویدئو با کد)", "Setting up Remotion (video with code)"),
     "remotion.render": ("ساخت ویدئو با Remotion", "Rendering a video with Remotion"),
+    "motion.plan": ("نوشتن طرح صحنه برای گرافیک متحرک", "Writing the scene plan of a motion-graphics shot"),
+    "motion.qa": ("بازبینی طرح گرافیک متحرک (قاعده‌ها و فریم‌ها)", "Checking a motion-graphics plan (rules and real frames)"),
+    "motion.critique": ("نقد تصویری طرح گرافیک متحرک با مدل بینایی", "Visual critique of a motion-graphics plan by the vision model"),
     "styles.preview": ("ساخت تصویر نمونهٔ سبک‌ها", "Making sample images of the styles"),
     "ideas.generate": ("ساخت ایده‌های تازه", "Generating new ideas"),
 }

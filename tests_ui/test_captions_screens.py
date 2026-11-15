@@ -24,7 +24,11 @@ def catalogue(seeded) -> dict:
 
 
 def wait_pictures(page, scope, count: int):
-    """Every preview <img> of the picker has been decoded by the browser (a real picture, not an empty box)."""
+    """Every preview <img> of the picker has been decoded by the browser (a real picture, not an empty box). The pictures load lazily, so each one is scrolled to first."""
+    imgs = page.locator(scope + " .cap-thumb img")
+    page.wait_for_function("([sel, n]) => document.querySelectorAll(sel + ' .cap-thumb img').length >= n", arg=[scope, count], timeout=60000)
+    for i in range(count):
+        imgs.nth(i).scroll_into_view_if_needed()
     page.wait_for_function(
         "([sel, n]) => { const im = [...document.querySelectorAll(sel + ' .cap-thumb img')]; return im.length >= n && im.every(i => i.complete && i.naturalWidth > 20) }",
         arg=[scope, count], timeout=90000)

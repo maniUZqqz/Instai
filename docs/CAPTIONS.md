@@ -1,4 +1,4 @@
-# Word-by-word captions (0.18.0)
+# Word-by-word captions (0.19.0)
 
 Shorts, Reels and TikTok viewers watch muted: big captions that mark the word being spoken are read, a fixed subtitle is skimmed. InstAI had one fixed style and never marked
 the spoken word. This is NMarketing's tried caption engine (seven presets, ASS through libass, no tag injection) ported to the series / episode producer: the same words as an

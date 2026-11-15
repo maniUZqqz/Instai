@@ -1,6 +1,6 @@
 [
   {
-    "version": "0.18.0",
+    "version": "0.19.0",
     "date": "2026-11-15",
     "title": {
       "fa": "زیرنویسِ کلمه‌به‌کلمه با هفت قالب برای شورتس و ریلز: درشت، کادرِ تیره، کارائوکه، ساده، نئونی، ماشین‌تحریر و آرام",
@@ -26,6 +26,36 @@
       {
         "fa": "آزمونِ خودکارِ رایانه یک ردیفِ تازه دارد: هر هفت قالب با libass واقعی در قابِ عمودی و افقی کشیده می‌شود و باید زیرنویس داخلِ حاشیهٔ امن باشد.",
         "en": "The PC self-test has a new row: all seven presets are drawn with the real libass in a vertical and a landscape frame and every caption must be inside the safe zone."
+      }
+    ]
+  },
+  {
+    "version": "0.18.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "گرافیک متحرکِ واقعی برای قسمت‌ها: ۱۹ قطعهٔ آماده، طرح صحنه از روی گفتار، کنترل کیفیت روی فریم‌های واقعی و نقد تصویری",
+      "en": "Real motion graphics for episodes: 19 ready-made pieces, a scene plan from the narration, quality checks on real frames and a visual critique"
+    },
+    "items": [
+      {
+        "fa": "نماهایی که تکنیکشان «گرافیک متحرک» است دیگر به تصویر ثابت با حرکت دوربین برنمی‌گردند: گفتار هر نما به «طرح صحنه» (چند صحنه از قطعه‌های آماده: تیتر کلمه‌به‌کلمه، عدد بزرگ، فهرست، مرحله‌ها، نمودار ...) تبدیل می‌شود و با Remotion کشیده می‌شود. رنگ و حرکت از سبک سریال (یکی از ۱۱۶ سبک) می‌آید.",
+        "en": "Shots whose technique is «motion graphics» no longer fall back to a still image with a camera move: the narration of each shot becomes a «scene plan» (a few scenes of ready-made pieces: kinetic title, big number, list, steps, charts ...) drawn with Remotion. The colours and the motion come from the series style (one of the 116)."
+      },
+      {
+        "fa": "نوزده قطعهٔ آماده (کارت قسمت، نقل‌قول، عدد و شمارنده، فهرست و مرحله و چک‌لیست، قبل و بعد، سه نمودار، نوار نام شخصیت، زیرنویس کلمه‌به‌کلمه، نشان سریال، تصویر کلیدی، کارت «دنبال کنید + قسمت بعد»، شمارش معکوس، استیکر) با اندازهٔ افقی، عمودی و مربع؛ همه در صفحهٔ «ویدئو با کد» پیش‌نمایش زنده و دکمهٔ ساخت دارند.",
+        "en": "Nineteen ready-made pieces (episode card, quote, number and counters, list / steps / checklist, before-after, three charts, character name bar, word-by-word captions, series sting, key art, «subscribe + next episode» card, countdown, sticker) in landscape, vertical and square; all have a live preview and a render button on the «Video with code» page."
+      },
+      {
+        "fa": "عددهای نمودار و آمار تا وقتی منبعِ تأییدشده ندارند برچسب «نمونهٔ نمایشی» می‌خورند و این برچسب را نمی‌شود برداشت؛ مدل هرگز منبع نمی‌نویسد.",
+        "en": "The numbers of charts and statistics carry an «example» label until a verified source is named, and the label cannot be switched off; the model never writes a source."
+      },
+      {
+        "fa": "کنترل کیفیت: قاعده‌ها (زمان خواندن، شلوغی، کنتراست، ناحیهٔ امن پلتفرم، بیرون‌زدگی و روی‌هم‌افتادن متن) روی فریم‌های واقعی سنجیده و تا سه دور خودکار اصلاح می‌شوند؛ هر اصلاح یک نسخهٔ برگشت‌پذیر است. «نقد تصویری» با مدل بینایی‌ای که در Ollama نصب کرده‌اید فریم‌ها را می‌بیند؛ اگر Ollama خاموش باشد کار منتظر می‌ماند و خودش ادامه می‌دهد.",
+        "en": "Quality control: the rules (reading time, crowding, contrast, the platform's safe area, text spilling out or overlapping) are measured on real frames and fixed automatically for up to three rounds; every fix is a reversible version. The «visual critique» shows the frames to the vision model you installed in Ollama; when Ollama is off the job waits and goes on by itself."
+      },
+      {
+        "fa": "در کارت هر نمای گرافیک متحرک (استوری‌بورد): پیش‌نمایش زنده، درخواست به زبان ساده («تیتر بزرگ‌تر شود»)، برگشت و جلوتر، فهرست نسخه‌ها. آزمون خودکار رایانه سه ردیف تازه دارد (کتابخانه، قاب هر قطعه در سه اندازه، نقد تصویری).",
+        "en": "On the card of each motion-graphics shot (storyboard): a live preview, requests in plain words («make the title bigger»), undo and redo, the list of versions. The PC self-test has three new rows (the library, a frame of every piece in three sizes, the visual critique)."
       }
     ]
   },

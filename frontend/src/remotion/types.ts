@@ -36,7 +36,7 @@ export interface RmKit {
 }
 
 export interface RmCode {
-  compositions: { id: string; file: string; code: string }[]
+  compositions: { id: string; file: string; code: string; same_as?: string }[]
   shared: { name: string; file: string; code: string }[]
 }
 
@@ -60,4 +60,69 @@ export interface RmRenders {
     created_at: string
     error: string
   }[]
+}
+
+/** one finding of the rule checks (instai/motion_plan/qa.py) */
+export interface MotionFinding {
+  code: string
+  label: string
+  label_en: string
+  severity: 'error' | 'warn' | 'info'
+  scene: number | null
+  message: string
+  message_en: string
+  auto: boolean
+  shot?: { kind: string; frame: number }
+}
+
+export interface MotionValidate {
+  spec: Record<string, any>
+  notes: { fa: string; en: string }[]
+  timeline: { starts: number[]; ends: number[]; total: number; fps: number }
+  findings: MotionFinding[]
+  summary_fa: string
+  summary_en: string
+}
+
+export interface MotionNarrationPlan {
+  spec: Record<string, any>
+  origin: string
+}
+
+export interface MotionRound {
+  n: number
+  verdict: 'ok' | 'fix'
+  issues: { scene: number; problem: string; severity: string }[]
+  applied: Record<string, any>[]
+  rejected: { op: Record<string, any>; why: string; why_en: string }[]
+  before: { scene: number; frame: number; image_rel: string }[]
+  after: { scene: number; frame: number; image_rel: string }[]
+}
+
+export interface MotionPlanDto {
+  id: number
+  shot_id: number | null
+  title: string
+  origin: string
+  spec: Record<string, any> & { scenes: Record<string, any>[]; total_s?: number }
+  rev: number
+  can_undo: boolean
+  can_redo: boolean
+  qa: { fixed?: number; ok?: boolean; geometry?: boolean; geometry_error?: string; remaining?: MotionFinding[]; info?: MotionFinding[]; rounds?: { n: number; applied: { message: string; message_en: string }[] }[] }
+  critique: { state?: string; message?: string; message_en?: string; rounds?: MotionRound[] }
+  history?: { n: number; label: string; source: string; current: boolean; created_at: string }[]
+}
+
+export interface MotionShotState {
+  shot_id: number
+  technique: string
+  plan: MotionPlanDto | null
+  kit: RmKit
+  size: 'landscape' | 'vertical' | 'square'
+  seconds: number
+  narration_ready: boolean
+  lang: string
+  edited: boolean
+  stale: boolean
+  clip: { asset_id: number; url: string; duration: number | null; current: boolean } | null
 }
