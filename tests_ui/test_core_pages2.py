@@ -77,3 +77,40 @@ def test_the_episode_events_and_production_tabs_are_plain_persian(browser, serve
         assert bad == [], "production: " + "\n".join(bad[:20])                       # «15.0 فریم بر ثانیه», «مدت 21.6 ثانیه», «0 رشته‌ی باز» became Persian digits
     finally:
         ctx.close()
+
+
+def _running_job(text_fa: str, text_en: str) -> dict:
+    """A running job as the API sends it (what `describe.activity` builds is pinned by tests/test_core_audit_progress.py)."""
+    return {"id": 9001, "kind": "prod.final", "resource": "cpu", "title": "ساخت نسخهٔ نهایی", "status": "running", "payload": {}, "result": {}, "progress": 0.4,
+            "progress_text": text_en, "priority": 0, "attempts": 1, "max_attempts": 3, "cancel_requested": False, "error": "", "error_code": "", "waiting_reason": "",
+            "created_at": "2026-11-15T10:00:00Z", "started_at": "2026-11-15T10:00:05Z", "finished_at": None, "duration_sec": None, "gpu_seconds": 0, "estimated_sec": None,
+            "page": None, "episode": None,
+            "activity": {"title_fa": "ساخت نسخهٔ نهایی", "title_en": "Building the final version", "for_fa": "", "for_en": "", "phase": "running", "model": "", "device": "",
+                         "device_fa": "", "device_en": "", "warn": False, "line_fa": text_fa, "line_en": text_en, "note_fa": text_fa, "note_en": text_en,
+                         "step": None, "steps": None, "tokens": None, "tps": None, "eta_sec": None}}
+
+
+@pytest.mark.parametrize("size", SIZES)
+def test_a_running_job_on_the_home_page_shows_its_progress_line_in_persian(browser, server, seeded, size):
+    def fake(route):
+        data = route.fetch().json()
+        data["active_jobs"] = [_running_job("کلیپِ شاتِ ۳ از ۵", "shot clip 3/5")]
+        route.fulfill(json=data)
+
+    from tests_ui.test_qa_sweep import VIEWPORTS
+
+    ctx = browser.new_context(viewport=VIEWPORTS[size], locale="fa-IR", has_touch=(size == "phone"))
+    ctx.add_init_script("try { localStorage.setItem('instai.lang', 'fa'); } catch (e) {}")
+    page = ctx.new_page()
+    try:
+        page.route("**/api/dashboard*", fake)
+        page.goto(server + "/", wait_until="domcontentloaded")
+        page.wait_for_timeout(2500)
+        text = page.inner_text("main")
+        assert "کلیپِ شاتِ ۳ از ۵" in text, text[:500]
+        assert "shot clip" not in text, text[:500]
+        assert violations(page.evaluate(JS_TEXT)) == []
+        sw, iw = page.evaluate("[document.documentElement.scrollWidth, window.innerWidth]")
+        assert sw <= iw + 1
+    finally:
+        ctx.close()

@@ -8,6 +8,7 @@ import { StyleDetails, StyleFilters, Swatch, useStyleFilter } from '../component
 import { AreaField, Badge, Button, Card, CheckField, ErrorState, ExtLink, Loading, Notice, NumberField, PageHead, SelectField, Tabs, TextField } from '../components/ui'
 import { useAction, useHashTab, useJobRunner, useQuery, useTitle } from '../hooks'
 import { useI18n } from '../i18n'
+import { jobNote } from '../components/domain'
 import { desc, invalidateLibrary, nm, styleImage, useLibrary, useTemplates, vocab } from '../library'
 
 /** The style gallery shows this many cards first and this many more on each press (116 cards at once asked for 116 pictures and made the page 7000 px tall). */
@@ -152,7 +153,7 @@ function StylesTab() {
 /** Real sample pictures of the built-in styles, made by the image model (ComfyUI) on the GPU: how many exist, the time the rest needs, one button.
  *  The job waits by itself when ComfyUI is off and goes on with the next style after each finished picture. */
 function SamplesBar() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const toast = useToast()
   const st = useQuery<PreviewStatus>('/library/previews', { interval: (d) => (d && d.pending > 0 ? 8000 : false) })
   const run = useJobRunner({
@@ -184,7 +185,7 @@ function SamplesBar() {
         <div className="row">
           <Button icon="image" variant="primary" busy={run.busy} onClick={start}>{t('lib.samples_make', { n: d.pending })}</Button>
           <span className="small muted">{t('lib.samples_time', { min: mins })}</span>
-          {run.job && !run.succeeded && <span className="small">{run.job.waiting_reason || run.job.progress_text || run.job.status}</span>}
+          {run.job && !run.succeeded && <span className="small">{run.job.waiting_reason || jobNote(run.job, lang) || run.job.status}</span>}
           {run.failed && run.job && <Notice tone="warn">{(run.job.error || '').split('\n')[0]}</Notice>}
         </div>
       )}
