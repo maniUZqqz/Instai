@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.22.0",
+    "date": "2026-11-15",
+    "title": {
+      "fa": "خطِ پیشرفتِ کارها به فارسی: «کلیپِ شاتِ ۳ از ۵» به‌جای «shot clip 3/5»",
+      "en": "The progress line of running jobs in Persian: the home page and the queue no longer show English words while a job runs"
+    },
+    "items": [
+      {
+        "fa": "وقتی کاری در حال اجراست (ساخت قسمت، دانلود، کپشن، کاور ...) خطِ پیشرفتش در صفحهٔ اصلی، صف و نوارِ ساختنِ نمونه‌ها فارسی و با رقم فارسی است: «کلیپِ شاتِ ۳ از ۵»، «در حال کدگذاریِ ویدئو»، «تصویرِ کلیدیِ ۲ از ۸». پیش‌تر همان خط انگلیسی نشان داده می‌شد؛ متنِ ذخیره‌شدهٔ کار و نسخهٔ انگلیسیِ رابط تغییری نکردند.",
+        "en": "While a job runs (an episode build, a download, captions, a cover ...) its progress line on the home page, the queue and the sample bar is Persian with Persian digits; it used to be English. The stored text of the job and the English interface are unchanged."
+      },
+      {
+        "fa": "برای نگهداری: آزمونی همهٔ خط‌های پیشرفتِ برنامه را می‌گردد و اگر یکی معادل فارسی نداشته باشد می‌شکند؛ خطِ پیشرفتِ تازه باید معادلش را در jobs/progress_text.py بگیرد.",
+        "en": "For maintenance: a test scans every progress line the program writes and fails when one has no Persian twin; a new progress line needs its twin in jobs/progress_text.py."
+      }
+    ]
+  },
+  {
     "version": "0.21.0",
     "date": "2026-11-15",
     "title": {
