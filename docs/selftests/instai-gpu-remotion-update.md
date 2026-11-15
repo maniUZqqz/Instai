@@ -18,7 +18,7 @@ Everything below is automatic after `START.bat` (it updates, prepares Remotion i
 Fixtures for a quick manual job (Remotion): composition `TitleCard`, props `{"title": "چغر", "subtitle": "مربی ورزشی همراه شما"}`, style `cinematic_realistic`, size `landscape`;
 pass = an mp4 of 150 frames at 30 fps (1920x1080) in the "Rendered videos" tab.
 
-## Motion graphics (0.16.0): the scene-plan engine
+## Motion graphics (0.18.0): the scene-plan engine
 
 Everything below is automatic too (the PC self-test of the System screen runs the three rows by itself, each when its own requirement is there); this is how to see it with your own eyes.
 

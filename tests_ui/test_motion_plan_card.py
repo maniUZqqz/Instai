@@ -1,4 +1,4 @@
-"""The scene-plan block on the storyboard card of a motion-graphics shot (0.16.0): the scenes, the live preview in the series' look, a request in plain words, undo, in Persian and in English,
+"""The scene-plan block on the storyboard card of a motion-graphics shot (0.18.0): the scenes, the live preview in the series' look, a request in plain words, undo, in Persian and in English,
 on a desktop and on a phone. Needs the built UI (python scripts/build_ui.py --force) like every test in this folder."""
 from __future__ import annotations
 

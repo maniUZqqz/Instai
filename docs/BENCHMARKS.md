@@ -55,7 +55,7 @@ Everything below was measured; nothing is estimated. The mixes are synthetic (no
   Final render of that episode: -14.0 LUFS, true peak -6.6 dBTP (the one-pass was already on target), no echo (all 6 windows tonal), channels in phase.
 * A final render of the e2e test episode (3 shots, 1080x1920, fake providers, no music) lands within 0.8 LU of -14 at the page's default; the same episode with the page saved at -16 lands within 0.8 of -16 and
   goes back to -14 when the profile is changed (the target is part of the timeline hash).
-## Motion-graphics components (0.16.0; measured 2026-11-14, NOT on the owner's PC)
+## Motion-graphics components (0.18.0; measured 2026-11-14, NOT on the owner's PC)
 
 Where: the NMarketing server (Ubuntu 22.04, 2 CPUs, no GPU), Node.js 20.18, Remotion 4.0.538, Chromium headless shell with SOFTWARE GL (`swangle`), the real project (`remotion/`, nothing faked). The owner's PC (a real browser, probably a GPU) is expected to be faster in the browser part; the Python part is the same. Re-measure there with `python -m instai.motion_plan.selftest <folder>` (the PC self-test row `motion_frames` does it and keeps the time in its metrics).
 
