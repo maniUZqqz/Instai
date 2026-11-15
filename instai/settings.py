@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "instai.identity",
     "instai.choice",
     "instai.channel",
+    "instai.covers",
     "instai.ops",
 ]
 

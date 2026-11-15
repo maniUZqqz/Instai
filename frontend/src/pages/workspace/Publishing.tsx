@@ -4,7 +4,8 @@ import type { EpisodeBrief, PageBrief, Publication } from '../../api/types'
 import { useConfirm } from '../../components/feedback'
 import { JobView, StateBadge } from '../../components/domain'
 import { DeliveryCard, NetworksCard } from '../../components/DeliveryCard'
-import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Link, Loading, Notice, PageHead, SelectField, TagsField, TextField, AreaField, type Tone } from '../../components/ui'
+import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, ExtLink, Link, Loading, Notice, PageHead, SelectField, Tabs, TagsField, TextField, AreaField, type Tone } from '../../components/ui'
+import { CoverStudio } from '../../covers/CoverStudio'
 import { useAction, useJobRunner, useQuery, useTitle } from '../../hooks'
 import { useI18n } from '../../i18n'
 import { useWs } from './Workspace'
@@ -25,7 +26,7 @@ export function PublishingTab() {
   return <PublishingPanel pageId={page.id} />
 }
 
-export function PublishingPanel({ pageId }: { pageId: number }) {
+function PublicationItems({ pageId, onMakeCover }: { pageId: number; onMakeCover: (episode: number) => void }) {
   const { t } = useI18n()
   const pubs = useQuery<Publication[]>(`/pages/${pageId}/publications`)
   const eps = useQuery<EpisodeBrief[]>(`/pages/${pageId}/episodes`)
@@ -44,7 +45,6 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
   }
   return (
     <div className="stack">
-      <h2>{t('ws.tab_publishing')}</h2>
       <Notice tone="info">{t('pub.manual_note')}</Notice>
       <Card title={t('dl.nets_title')}>
         <NetworksCard pageId={pageId} onChanged={() => setNetTick((n) => n + 1)} />
@@ -76,7 +76,7 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
           ) : (
             <div className="stack">
               {list.map((p) => (
-                <PublicationCard key={p.id} p={p} onChanged={pubs.reload} netTick={netTick} />
+                <PublicationCard key={p.id} p={p} onChanged={pubs.reload} netTick={netTick} onMakeCover={onMakeCover} />
               ))}
             </div>
           )
@@ -86,7 +86,7 @@ export function PublishingPanel({ pageId }: { pageId: number }) {
   )
 }
 
-function PublicationCard({ p, onChanged, netTick = 0 }: { p: Publication; onChanged: () => void; netTick?: number }) {
+function PublicationCard({ p, onChanged, netTick = 0, onMakeCover }: { p: Publication; onChanged: () => void; netTick?: number; onMakeCover: (episode: number) => void }) {
   const { t, f, tr } = useI18n()
   const confirm = useConfirm()
   const [caption, setCaption] = useState(p.caption)
@@ -138,6 +138,12 @@ function PublicationCard({ p, onChanged, netTick = 0 }: { p: Publication; onChan
     >
       <div className="stack">
         {!eligible && <Notice tone="warn">{t('pub.not_ready')}</Notice>}
+        <div className="row">
+          {p.cover_url ? <img className="cv-thumb" src={p.cover_url} alt={t('pub.cover')} loading="lazy" /> : <span className="small muted">{t('pub.cover_none')}</span>}
+          <Button size="sm" icon="image" onClick={() => onMakeCover(p.episode)}>
+            {t('pub.cover_make')}
+          </Button>
+        </div>
         <AreaField label={t('pub.caption')} value={caption} onChange={setCaption} />
         <TagsField label={t('strat.hashtags')} value={tags} onChange={setTags} ltr />
         <DeliveryCard pubId={p.id} caption={caption} tags={tags} savedAt={`${p.status}|${p.package_url ?? ''}|${netTick}`} />
@@ -176,6 +182,58 @@ function PublicationCard({ p, onChanged, netTick = 0 }: { p: Publication; onChan
         {p.scheduled_at && <p className="small muted">{t('pub.scheduled_for', { when: f.dateTime(p.scheduled_at) })}</p>}
       </div>
     </Card>
+  )
+}
+
+export function PublishingPanel({ pageId }: { pageId: number }) {
+  const { t } = useI18n()
+  const [tab, setTab] = useState<'items' | 'cover'>('items')
+  const [episode, setEpisode] = useState(0)
+  return (
+    <div className="stack">
+      <h2>{t('ws.tab_publishing')}</h2>
+      <Tabs
+        tabs={[
+          { key: 'items', label: t('pub.tab_items') },
+          { key: 'cover', label: t('pub.tab_cover') },
+        ]}
+        value={tab}
+        onChange={setTab}
+        label={t('ws.tab_publishing')}
+      />
+      {tab === 'items' ? (
+        <PublicationItems
+          pageId={pageId}
+          onMakeCover={(ep) => {
+            setEpisode(ep)
+            setTab('cover')
+          }}
+        />
+      ) : (
+        <CoverTab pageId={pageId} episode={episode} setEpisode={setEpisode} />
+      )}
+    </div>
+  )
+}
+
+/** The «Cover» tab: pick an episode and make its cover (the chosen one goes into the publishing package by itself). */
+function CoverTab({ pageId, episode, setEpisode }: { pageId: number; episode: number; setEpisode: (id: number) => void }) {
+  const { t } = useI18n()
+  const eps = useQuery<EpisodeBrief[]>(`/pages/${pageId}/episodes`)
+  const list = eps.data ?? []
+  const cur = episode || list[0]?.id || 0
+  if (eps.loading && !eps.data) return <Loading />
+  if (list.length === 0) return <Empty icon="film" title={t('pub.tab_cover')} text={t('cv.no_episodes')} />
+  return (
+    <div className="stack">
+      <SelectField
+        label={t('pub.cover_pick')}
+        value={String(cur)}
+        onChange={(v) => setEpisode(Number(v))}
+        options={list.map((e) => ({ value: String(e.id), label: `${e.series_title ?? ''} · ${t('cv.target_episode', { n: e.number, title: e.title })}` }))}
+      />
+      <CoverStudio key={cur} target={{ page: pageId, episode: cur, kind: 'episode' }} />
+    </div>
   )
 }
 

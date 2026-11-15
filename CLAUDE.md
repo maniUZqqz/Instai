@@ -122,7 +122,14 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
 - **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
 
-## Word-by-word captions (0.17.0; docs `docs/CAPTIONS.md`, self-test `docs/selftests/captions.md`)
+
+## Cover maker (0.17.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
+- `instai/covers/engine/` is the NMarketing thumbnail engine ported (pure Pillow + numpy, no Django, no NMarketing import: a `SOURCE:` note names the file it came from). A new layout = a function of a `Ctx` + a `StyleDef` row (`styles.py` / `styles_instai.py`) + its concept and background prompt in `hooks.py` + a note in `archetypes.py`; `tests/test_covers_engine.py` renders EVERY layout in EVERY format in both languages.
+- **Persian text goes through `typo._shape` / `typo._kw` (libraqm when it works, else `fa_text`)**; use `typo.basic_layout()` in tests to force the built-in path. A font must have drawable glyphs at the Arabic presentation-form code points (Estedad does not): add one only after `tests/test_covers_text.py` passes for it.
+- A cover is a `Cover` design with 1-6 versions; the job `covers.make` makes them on the CPU and - for an AI background - waits for ComfyUI (`compute.require_workflow`, a WAIT) after the cover is already usable. Versions are `Asset(role="other")`; `service.use_cover` registers the chosen one as `role="cover"` (what `publishing.export_package` ships).
+- The cover API uses `?fmt=` (DRF reserves `?format=`). UI: `frontend/src/covers/` + `i18n/packs/covers.ts`; server rows are read with `pick(row, 'title' | 'label' | 'note')`.
+
+## Word-by-word captions (0.18.0; docs `docs/CAPTIONS.md`, self-test `docs/selftests/captions.md`)
 - Engine in `instai/render/` (`titles_ass`, `captions`, `contrast`, `safezones`, `srt`, `caption_previews`, `captions_check`), glue in `instai/production/captions.py`, API in `production/api_captions.py`. **Sizes are fractions of the frame height; colours come from the series look through `captions.resolve_style` and are contrast-checked - never put a colour in a preset.** Ported from NMarketing (`SOURCE:` notes); never import NMarketing.
 - A page's `visual.caption_style` ({preset, mode, zone}; `classic` + `burned` = the old subtitle) and `Episode.caption_style` (override). `publishing.caption_style` is a different thing (post text tone). A render with a non-default config adds `captions.hash_part` to `pipeline.timeline_hash`; a default one keeps the old hashes.
 - User text never reaches ASS raw: `titles_ass._esc` (braces, backslash). The `ass` filter always gets RELATIVE names (`ass=sub.ass:fontsdir=fonts`, ffmpeg run with `cwd=`).

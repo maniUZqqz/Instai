@@ -2105,6 +2105,128 @@ tr.q-waiting_gpu td { background: color-mix(in srgb, var(--warn-soft) 45%, trans
 /* a long picker inside a panel (idea start): the gallery scrolls inside its own box instead of making the page 15 000 px tall */
 .scroll-box { max-height: 26rem; overflow-y: auto; padding: 0.25rem; border: 1px solid var(--border, rgba(127,127,127,0.25)); border-radius: 0.75rem; }
 
+
+/* The cover maker (/covers and the Cover tab of Publishing) */
+.cv-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 1rem;
+  align-items: start;
+}
+.cv-side {
+  position: sticky;
+  inset-block-start: 4.5rem;
+}
+@media (max-width: 1000px) {
+  .cv-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cv-side {
+    position: static;
+    order: -1;
+  }
+}
+.cv-preview {
+  position: relative;
+  width: 100%;
+  background: var(--surface-3);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  direction: ltr;
+}
+.cv-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.cv-preview-busy {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  inset-block-end: 0.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+.cv-guide-safe {
+  position: absolute;
+  border: 2px solid rgba(34, 197, 94, 0.95);
+  pointer-events: none;
+}
+.cv-guide-avoid {
+  position: absolute;
+  background: rgba(239, 68, 68, 0.28);
+  border: 2px solid rgba(239, 68, 68, 0.9);
+  pointer-events: none;
+}
+.cv-key {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+.cv-key-safe {
+  border: 2px solid rgba(34, 197, 94, 0.95);
+}
+.cv-key-avoid {
+  background: rgba(239, 68, 68, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.9);
+}
+.cv-idea {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.cv-variants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 0.9rem;
+}
+.cv-variant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.6rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cv-variant.chosen {
+  border-color: var(--primary);
+}
+.cv-variant img {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+.cv-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.cv-hist-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.cv-hist-row img,
+.cv-thumb {
+  width: 7.5rem;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+
 /* word-by-word captions picker (components/CaptionPicker.tsx): the pictures are drawn by the render engine, the guides are physical (a button column is on the RIGHT of the frame in any UI language) */
 .cap-grid.vertical { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
 .cap-grid.landscape { grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }

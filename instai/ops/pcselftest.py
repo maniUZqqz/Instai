@@ -49,6 +49,7 @@ REFRESH_HEAVY_S = 7 * 24 * 3600         # tool and GPU checks, once a week
 VERSION_RETRY_S = 6 * 3600              # a result of an older version is made again by itself, but several updates in one day do not repeat the heavy checks
 CONCLUSIVE = ("ok", "warn", "fail", "skip")       # the check really ran (or does not apply); "pending" means it still has to
 _LAST_AUTO = [0.0]
+_CTX = [None]                       # the job context of the self-test run that is going on (the GPU checks that need `compute.run_task` read it)
 _FA_DIGITS = str.maketrans("0123456789.", "۰۱۲۳۴۵۶۷۸۹٫")
 GITHUB_REPO = "maniUZqqz/Instai"
 
@@ -569,6 +570,18 @@ def _remotion_ready() -> bool:
     return bool(toolchain.status()["ready"])
 
 
+def check_covers(work: Path) -> dict:
+    from instai.covers import selftest
+
+    return selftest.check_covers(work)
+
+
+def check_covers_bg(work: Path) -> dict:
+    from instai.covers import selftest
+
+    return selftest.check_covers_bg(work)
+
+
 CHECKS = [
     {"key": "database", "group": "pc", "fa": "پایگاه‌داده", "en": "Database", "fn": check_database},
     {"key": "disk", "group": "pc", "fa": "فضای دیسک", "en": "Disk space", "fn": check_disk},
@@ -581,10 +594,12 @@ CHECKS = [
     {"key": "autostart", "group": "pc", "fa": "راه‌اندازی خودکار با ویندوز", "en": "Start with Windows", "fn": check_autostart},
     {"key": "remotion_toolchain", "group": "tools", "fa": "ابزار «ویدئو با کد» (Remotion)", "en": "Code-to-video toolchain (Remotion)", "fn": check_remotion_toolchain},
     {"key": "remotion_render", "group": "tools", "fa": "ساخت یک قاب با Remotion", "en": "Rendering a frame with Remotion", "fn": check_remotion_render, "ready": _remotion_ready},
+    {"key": "covers", "group": "tools", "fa": "سازندهٔ کاور (همهٔ طرح‌ها و اندازه‌ها)", "en": "Cover maker (every layout and size)", "fn": check_covers},
     {"key": "gpu_card", "group": "gpu", "fa": "کارت گرافیک", "en": "Graphics card", "fn": check_gpu_card, "ready": _gpu_present},
     {"key": "nvenc", "group": "gpu", "fa": "رمزگذاری با کارت گرافیک (NVENC)", "en": "Encoding on the graphics card (NVENC)", "fn": check_nvenc, "ready": _nvenc_ready},
     {"key": "ollama_run", "group": "gpu", "fa": "مدل زبانی Ollama روی GPU", "en": "Ollama language model on the GPU", "fn": check_ollama_run, "ready": _ollama_ready},
     {"key": "comfyui", "group": "gpu", "fa": "ComfyUI (تصویر و ویدئو) روی GPU", "en": "ComfyUI (image and video) on the GPU", "fn": check_comfyui, "ready": _comfy_ready},
+    {"key": "covers_bg", "group": "gpu", "fa": "پس‌زمینهٔ هوش مصنوعیِ کاور روی GPU", "en": "AI background of a cover on the GPU", "fn": check_covers_bg, "ready": _comfy_ready},
 ]
 BY_KEY = {c["key"]: c for c in CHECKS}
 
@@ -608,6 +623,7 @@ def run(ctx=None, *, gpu: bool = True, only: list[str] | None = None) -> dict:
     from instai.version import read_version
 
     old = load_report() or {}
+    _CTX[0] = ctx
     work_root = Path(tempfile.mkdtemp(prefix="pcselftest-"))
     rows: list[dict] = []
     started = datetime.now(timezone.utc)

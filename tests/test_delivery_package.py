@@ -224,6 +224,7 @@ def test_a_cover_made_by_the_cover_maker_also_ships_its_jpeg_when_that_module_ex
     page, ep, video, pub = build(tmp_path, targets=[("ig_reel", True, "")])
     Image.new("RGB", (64, 64), "#336699").save(tmp_path / "c.png")
     asset_storage.register(tmp_path / "c.png", f"episodes/{ep.pk}/covers/c.png", kind="image", role="cover", page=page, episode=ep, probe=False, provenance={"tool": "instai.covers"})
+    monkeypatch.setitem(sys.modules, "instai.covers", None)          # the cover maker exists now: make it unimportable on purpose for the 'not installed' half
     export(pub)
     assert "cover.png" in names(pub) and "cover.jpg" not in names(pub)                  # no cover maker installed: just the file
     fake = types.ModuleType("instai.covers.service")
