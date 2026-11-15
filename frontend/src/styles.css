@@ -1996,6 +1996,34 @@ a.skip-link:focus {
     display: inline;
   }
 }
+/* "a new version is ready" (ops/UpdateBadge.tsx): the sentence is ~240 px wide; on a 390 px phone it pushed the top bar to 565 px and every page scrolled sideways.
+   It may shrink (ellipsis), the label goes under 760 px, the version too under 560 px; the top bar wraps as a last resort so nothing can leave the screen. */
+.upd-badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.upd-badge-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 760px) {
+  .upd-badge-text {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .upd-badge-ver {
+    display: none;
+  }
+  .upd-badge {
+    min-width: 40px;
+  }
+  .topbar {
+    flex-wrap: wrap;
+  }
+}
 .q-counter {
   padding: 0.6rem 0.9rem;
   border-inline-start: 4px solid var(--border-strong);
