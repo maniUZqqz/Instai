@@ -638,6 +638,11 @@ def run_qc(ep: Episode, video: Asset) -> dict:
         checks.append({"name": "claims", "level": "warn" if (nums or unsup or not ep.research) else "ok", "value": {"numbers": nums, "unsupported": unsup},
                        "message": ("ادعای بدون منبع / عددِ بی‌منبع: " + "، ".join(nums)) if (nums or unsup) else (
                            "ادعاها منبع دارند" if ep.research else "پژوهش و منبع برای این قسمت ثبت نشده است")})
+    from instai.core.fa_digits import fa_numbers
+
+    for c in checks:                                         # the Persian sentence carries Persian digits; the English twin (`message_en`) is untouched
+        if isinstance(c.get("message"), str):
+            c["message"] = fa_numbers(c["message"])
     report["ok"] = not any(c["level"] == "fail" for c in checks)
     report["warnings"] = sum(1 for c in checks if c["level"] == "warn")
     return report

@@ -1,6 +1,8 @@
 """Series, plan, continuity, episodes, script, storyboard, shots, production and approvals."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 from django.shortcuts import get_object_or_404
 from django.urls import path
 from rest_framework.decorators import api_view
@@ -186,7 +188,7 @@ def memory_entry(request, pk):
 def series_arcs(request, pk):
     s = get_object_or_404(Series, pk=pk)
     idx = (s.arcs.order_by("-index").first().index + 1) if s.arcs.exists() else 1
-    a = StoryArc.objects.create(series=s, index=idx, title=request.data.get("title") or f"بخش {idx}", summary=request.data.get("summary", ""))
+    a = StoryArc.objects.create(series=s, index=idx, title=request.data.get("title") or f"بخش {fa_digits(idx)}", summary=request.data.get("summary", ""))
     return Response(arc_dict(a), status=201)
 
 
@@ -210,7 +212,7 @@ def series_episodes(request, pk):
         n = int(request.data.get("number") or (s.episodes.order_by("-number").first().number + 1 if s.episodes.exists() else 1))
         if s.episodes.filter(number=n).exists():
             raise bad("شماره‌ی قسمت تکراری است.", number=["duplicate"])
-        e = Episode.objects.create(series=s, number=n, title=request.data.get("title") or f"قسمت {n}", logline=request.data.get("logline", ""),
+        e = Episode.objects.create(series=s, number=n, title=request.data.get("title") or f"قسمت {fa_digits(n)}", logline=request.data.get("logline", ""),
                                    duration_sec=int(request.data.get("duration_sec") or s.page.profile("production")["episode_length_sec"]),
                                    state=states.PLANNED)
         EpisodeEvent.objects.create(episode=e, from_state=states.DRAFT, to_state=states.PLANNED, reason="added by hand", actor="user")
@@ -319,7 +321,7 @@ def _to_scripting(e: Episode) -> None:
 def generate_script(request, pk):
     e = _ep(pk)
     _to_scripting(e)
-    job = queue.enqueue("story.script", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"فیلم‌نامه‌ی قسمت {e.number}",
+    job = queue.enqueue("story.script", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"فیلم‌نامه‌ی قسمت {fa_digits(e.number)}",
                         idempotency_key=f"script:{e.pk}:{e.updated_at.timestamp()}")
     return job_response(job)
 
@@ -349,7 +351,7 @@ def approve_script(request, pk):
     if e.state != states.SCRIPT_REVIEW:
         raise DomainError("invalid_transition", "فقط در حالت «بازبینی فیلم‌نامه» می‌توان فیلم‌نامه را تأیید کرد.")
     services.transition(e, states.STORYBOARDING, reason="script approved", actor="user")
-    job = queue.enqueue("story.continuity", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"به‌روزرسانی حافظه‌ی داستان (قسمت {e.number})",
+    job = queue.enqueue("story.continuity", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"به‌روزرسانی حافظه‌ی داستان (قسمت {fa_digits(e.number)})",
                         idempotency_key=f"continuity:{e.pk}:{e.updated_at.timestamp()}")
     return Response({"episode": episode_dict(e), "job": JobSerializer(job).data}, status=200)
 
@@ -368,7 +370,7 @@ def generate_storyboard(request, pk):
                 services.transition(e, states.STORYBOARDING, reason="rework: new storyboard", actor="user")
         else:
             raise DomainError("not_ready", "ابتدا فیلم‌نامه را بسازید و تأیید کنید.")
-    job = queue.enqueue("story.storyboard", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"استوری‌بورد قسمت {e.number}",
+    job = queue.enqueue("story.storyboard", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"استوری‌بورد قسمت {fa_digits(e.number)}",
                         idempotency_key=f"storyboard:{e.pk}:{e.updated_at.timestamp()}")
     return job_response(job)
 
@@ -403,7 +405,7 @@ def approve_storyboard(request, pk):
 def episode_research(request, pk):
     e = _ep(pk)
     job = queue.enqueue("story.research", {"episode_id": e.pk, "topic": request.data.get("topic", "")}, episode=e, page=e.series.page_id,
-                        title=f"پژوهش و منبع (قسمت {e.number})", idempotency_key=f"research:{e.pk}:{e.updated_at.timestamp()}")
+                        title=f"پژوهش و منبع (قسمت {fa_digits(e.number)})", idempotency_key=f"research:{e.pk}:{e.updated_at.timestamp()}")
     return job_response(job)
 
 

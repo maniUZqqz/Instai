@@ -15,6 +15,8 @@ Everything here is idempotent: running tick twice does the same as once.
 """
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -107,7 +109,7 @@ def _link(ep: Episode) -> str:
 
 
 def _label(ep: Episode) -> str:
-    return f"{ep.series.page.name} - قسمت {ep.number}"
+    return f"{ep.series.page.name} - قسمت {fa_digits(ep.number)}"
 
 
 # ------------------------------------------------------------------ one episode
@@ -133,15 +135,15 @@ def step_episode(page, ep: Episode, level: str, now: datetime) -> list[dict]:
                 return acts
             if ep.state == states.DRAFT:
                 services.transition(ep, states.PLANNED, actor="system", reason="automatic: next episode")
-            queue.enqueue("story.script", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"فیلم‌نامه‌ی قسمت {ep.number} (خودکار)",
+            queue.enqueue("story.script", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"فیلم‌نامه‌ی قسمت {fa_digits(ep.number)} (خودکار)",
                           idempotency_key=f"auto-script:{ep.pk}")
             acts.append({"episode": ep.pk, "action": "script_started"})
 
     elif st == states.SCRIPT_REVIEW:
         if level == "automatic":
             services.transition(ep, states.STORYBOARDING, actor="system", reason="automatic: script approved")
-            queue.enqueue("story.continuity", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"حافظهٔ داستان (قسمت {ep.number})", idempotency_key=f"auto-cont:{ep.pk}")
-            queue.enqueue("story.storyboard", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"استوری‌بورد قسمت {ep.number} (خودکار)",
+            queue.enqueue("story.continuity", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"حافظهٔ داستان (قسمت {fa_digits(ep.number)})", idempotency_key=f"auto-cont:{ep.pk}")
+            queue.enqueue("story.storyboard", {"episode_id": ep.pk}, episode=ep, page=page.pk, title=f"استوری‌بورد قسمت {fa_digits(ep.number)} (خودکار)",
                           idempotency_key=f"auto-board:{ep.pk}")
             acts.append({"episode": ep.pk, "action": "script_approved"})
         else:

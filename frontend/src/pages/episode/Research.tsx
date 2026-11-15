@@ -7,6 +7,7 @@ import { SourcesPanel } from '../../components/SourcesPanel'
 import { Async, Badge, Button, Card, CardSkeletons, Empty, Notice, TextField } from '../../components/ui'
 import { useAction, useJobRunner, useQuery } from '../../hooks'
 import { useI18n } from '../../i18n'
+import { eventReason } from '../../api/eventReason'
 
 const STANCES = ['established', 'contested', 'speculative'] as const
 
@@ -148,7 +149,7 @@ export function Versions({ ep, onRestored }: { ep: Episode; onRestored: (e: Epis
 
 // ---------------------------------------------------------------- events
 export function Events({ ep }: { ep: Episode }) {
-  const { t, f, tr } = useI18n()
+  const { t, f, tr, lang } = useI18n()
   const q = useQuery<EpisodeEvent[]>(`/episodes/${ep.id}/events`, { interval: 6000 })
   return (
     <Async q={q} skeleton={<CardSkeletons n={1} />}>
@@ -158,7 +159,7 @@ export function Events({ ep }: { ep: Episode }) {
             <li key={e.id} className="card flat row between">
               <span className="row">
                 <StateBadge state={e.to} label={e.to_label} />
-                {e.reason && <span className="small">{e.reason}</span>}
+                {e.reason && <span className="small">{eventReason(e.reason, lang, t)}</span>}
               </span>
               <span className="small muted">
                 {tr('actor.' + e.actor, e.actor)} · {f.dateTime(e.at)}

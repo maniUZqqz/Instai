@@ -2,6 +2,8 @@
 and the posting schedule. The model writes the creative content; this module checks it and is the fallback when no model answers."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 import datetime as dt
 
 DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -34,7 +36,7 @@ def skeleton_season(n: int, runtime: int, *, fa: bool = True, characters: list[s
         opens = [] if last else [f"t{i}"]
         closes = [f"t{j}" for j in range(1, n) if min(n, j + (2 if j % 3 == 1 else 1)) == i]
         logline = f"{tag} " + ("قهرمان یک مانع تازه را پشت سر می‌گذارد." if fa else "The hero gets past a new obstacle.")
-        eps.append({"number": i, "title": (f"قسمت {i}" if fa else f"Episode {i}") + (f": {title}" if title else ""),
+        eps.append({"number": i, "title": (f"قسمت {fa_digits(i)}" if fa else f"Episode {i}") + (f": {title}" if title else ""),
                     "hook": f"{tag} {hooks[(i - 1) % len(hooks)]}{_again(i, len(hooks))}".strip(), "logline": logline.strip(),
                     "escalation": "هر قدم خطرناک‌تر از قبلی است." if fa else "Every step is more dangerous than the last.", "twist": "نقشه به‌هم می‌ریزد." if fa else "The plan falls apart.",
                     "cliffhanger": (cliffs[(i - 1) % len(cliffs)] + _again(i, len(cliffs)) if not last else ("آزاد است… اما کسی او را می‌پاید." if fa else "He is free… but someone is watching.")),

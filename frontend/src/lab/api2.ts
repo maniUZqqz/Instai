@@ -167,7 +167,7 @@ export interface AutomationInfo {
   window_open_now: boolean
   next_window: string
   publishing: { per_week: number; days: string[]; time: string; next_slots: string[] }
-  auto_publish: { enabled: boolean; confirmed_at: string | null; confirm_text: string; can_post_now: boolean; why_not: string; feature_flag: boolean }
+  auto_publish: { enabled: boolean; confirmed_at: string | null; confirm_text: string; can_post_now: boolean; why_not: string; why_not_fa?: string; feature_flag: boolean }
   explain: Record<string, string>
 }
 

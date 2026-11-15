@@ -5,6 +5,8 @@ It reads the structured `task` / `meta` the agents pass (real providers ignore t
 """
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits as _d
+
 import hashlib
 import json
 import time
@@ -136,8 +138,8 @@ def series_plan(meta: dict) -> dict:
     arcs = []
     for i in range(1, arcs_n + 1):
         arcs.append({
-            "title": (f"بخش {i}" if fa else f"Arc {i}"),
-            "summary": (f"بخش {i} از داستان «{title}»؛ {hero} با چالش تازه‌ای روبه‌رو می‌شود." if fa
+            "title": (f"بخش {_d(i)}" if fa else f"Arc {i}"),
+            "summary": (f"بخش {_d(i)} از داستان «{title}»؛ {hero} با چالش تازه‌ای روبه‌رو می‌شود." if fa
                         else f"Arc {i} of '{title}': {hero} faces a new challenge."),
             "goal": "پیشبردِ هدفِ اصلی" if fa else "Advance the main goal",
             "cliffhanger": "یک راز تازه فاش می‌شود" if fa else "A new secret is revealed",
@@ -147,11 +149,11 @@ def series_plan(meta: dict) -> dict:
         arc = min(arcs_n, (k - 1) * arcs_n // n + 1)
         if fa:
             lines = {
-                "anime_whatif": f"اگر در لحظه‌ی انشعاب، {hero} راه دیگری را انتخاب می‌کرد، در قسمت {k} چه می‌شد؟",
-                "recurring_character": f"{hero} در قسمت {k} با موقعیتی خنده‌دار روبه‌رو می‌شود.",
-                "concept_explainer": f"قسمت {k}: بخشی از «{premise}» به زبان ساده.",
+                "anime_whatif": f"اگر در لحظه‌ی انشعاب، {hero} راه دیگری را انتخاب می‌کرد، در قسمت {_d(k)} چه می‌شد؟",
+                "recurring_character": f"{hero} در قسمت {_d(k)} با موقعیتی خنده‌دار روبه‌رو می‌شود.",
+                "concept_explainer": f"قسمت {_d(k)}: بخشی از «{premise}» به زبان ساده.",
             }
-            eps.append({"number": k, "arc": arc, "title": f"قسمت {k}", "logline": lines.get(fmt, f"قسمت {k} از {title}"),
+            eps.append({"number": k, "arc": arc, "title": f"قسمت {_d(k)}", "logline": lines.get(fmt, f"قسمت {_d(k)} از {title}"),
                         "goal": "پیشبرد داستان" if fmt != "concept_explainer" else "فهم یک ایده‌ی کلیدی",
                         "cliffhanger": "اما چیزی ناگهان تغییر می‌کند..." if k < n else "پایان فصل", "duration_sec": dur})
         else:
@@ -242,7 +244,7 @@ def script(meta: dict) -> dict:
     for j, s in enumerate(sentences):
         sp = speakers[1] if (len(speakers) > 1 and j % 4 == 3) else speakers[0]
         blocks.append({"speaker": sp, "text": s, "emotion": ("هیجان" if j % 3 == 0 else "آرام") if fa else ("excited" if j % 3 == 0 else "calm")})
-    title = ep.get("title") or (f"قسمت {k}" if fa else f"Episode {k}")
+    title = ep.get("title") or (f"قسمت {_d(k)}" if fa else f"Episode {k}")
     return {"title": title, "hook": sentences[0], "language": "fa" if fa else "en", "blocks": blocks,
             "cta": ep.get("cliffhanger") or ("قسمت بعد را از دست ندهید." if fa else "Do not miss the next episode.")}
 
@@ -287,13 +289,13 @@ def continuity(meta: dict) -> dict:
     k = ep.get("number") or 1
     hero = _hero(meta)
     return {
-        "episode_summary": (f"در قسمت {k}، {hero} با یک انتخاب مهم روبه‌رو شد و مسیر داستان کمی تغییر کرد." if fa
+        "episode_summary": (f"در قسمت {_d(k)}، {hero} با یک انتخاب مهم روبه‌رو شد و مسیر داستان کمی تغییر کرد." if fa
                             else f"In episode {k}, {hero} faced an important choice and the story shifted slightly."),
-        "facts": [f"{hero} در قسمت {k} تصمیم تازه‌ای گرفت."] if fa else [f"{hero} made a new decision in episode {k}."],
+        "facts": [f"{hero} در قسمت {_d(k)} تصمیم تازه‌ای گرفت."] if fa else [f"{hero} made a new decision in episode {k}."],
         "character_states": [{"character": hero, "state": "مصمم" if fa else "determined"}],
         "relationships": [],
-        "timeline": [{"when": f"قسمت {k}" if fa else f"Episode {k}", "event": "تصمیم تازه" if fa else "A new decision"}],
-        "open_threads": [{"text": f"پیامد تصمیمِ قسمت {k} هنوز روشن نیست." if fa else f"The consequence of episode {k}'s decision is unclear.", "status": "open"}],
+        "timeline": [{"when": f"قسمت {_d(k)}" if fa else f"Episode {k}", "event": "تصمیم تازه" if fa else "A new decision"}],
+        "open_threads": [{"text": f"پیامد تصمیمِ قسمت {_d(k)} هنوز روشن نیست." if fa else f"The consequence of episode {k}'s decision is unclear.", "status": "open"}],
         "future_goals": ["پاسخ به پرسشِ باز" if fa else "Answer the open question"],
     }
 

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Job } from '../api/types'
 import { JobView } from '../components/domain'
-import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, Notice, PageHead, SelectField, TextField, AreaField } from '../components/ui'
+import { Async, Badge, Button, Card, CardSkeletons, CheckField, Empty, Link, Notice, PageHead, SelectField, TextField, AreaField } from '../components/ui'
 import { useAction, useJobRunner, useQuery, useTitle } from '../hooks'
 import type { PageLite } from './api'
 import type { AnimeCandidate, CompareClip, Comparison, EpisodeBrief, ProductionConfig } from './api2'
@@ -41,7 +41,7 @@ function Candidates({ list }: { list: AnimeCandidate[] }) {
               </ul>
             </details>
           )}
-          {!c.available && c.missing.length === 0 && <p className="small muted">{s('cp.install_hint', { pack: c.pack })}</p>}
+          {!c.available && c.missing.length === 0 && <p className="small muted">{s('cp.install_hint', { pack: c.pack })} <Link to="/downloads">{s('cp.open_downloads')}</Link></p>}
           <p className="small muted" data-testid={`candidate-est-${c.id}`}>
             {s('cp.expected', { time: f.duration(c.expected_seconds) })} · <em>{s('cp.estimate')}</em>
           </p>

@@ -1,6 +1,8 @@
 """Publishing centre (release 1): captions, hashtags, cover, schedule, status and a manual-export package. Nothing auto-publishes."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 from django.shortcuts import get_object_or_404
 from django.urls import path
 from django.utils.dateparse import parse_datetime
@@ -67,7 +69,7 @@ def publication_export(request, pk):
     if p.episode.state not in (states.READY_FOR_APPROVAL, states.APPROVED, states.SCHEDULED, states.PUBLISHED):
         raise DomainError("not_ready", "فقط قسمتِ «آماده‌ی تأیید» یا تأییدشده را می‌توان برای انتشار بسته‌بندی کرد.")
     return job_response(queue.enqueue("publish.export", {"publication_id": p.pk}, episode=p.episode, page=p.episode.series.page_id,
-                                      title=f"بسته‌ی انتشار قسمت {p.episode.number}", idempotency_key=f"export:{p.pk}:{p.updated_at.timestamp()}"))
+                                      title=f"بسته‌ی انتشار قسمت {fa_digits(p.episode.number)}", idempotency_key=f"export:{p.pk}:{p.updated_at.timestamp()}"))
 
 
 def _network_info(platform: str) -> dict:

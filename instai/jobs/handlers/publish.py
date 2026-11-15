@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 from instai.jobs.registry import handler
 
 
@@ -34,5 +36,5 @@ def send(ctx):
         ep.refresh_from_db()
     if ep.state == states.SCHEDULED:
         story_services.transition(ep, states.PUBLISHED, actor="user", reason="published through the official API on the owner's request")
-    notify("publish", f"قسمت {ep.number} منتشر شد", level="ok", link=f"/episodes/{ep.pk}", page=ep.series.page, episode=ep, key=f"pub:{pub.pk}", once=True)
+    notify("publish", f"قسمت {fa_digits(ep.number)} منتشر شد", level="ok", link=f"/episodes/{ep.pk}", page=ep.series.page, episode=ep, key=f"pub:{pub.pk}", once=True)
     return res

@@ -1,6 +1,8 @@
 """Studio API: format templates, the development room of a series, and pre-production of an episode."""
 from __future__ import annotations
 
+from instai.core.fa_digits import fa_digits
+
 from django.shortcuts import get_object_or_404
 from django.urls import path
 from rest_framework.decorators import api_view
@@ -376,14 +378,14 @@ def animatic_build(request, pk):
     e = _ep(pk)
     if not story_services.all_shots(e):
         raise DomainError("not_ready", "ابتدا استوری‌بورد را بسازید.", message_en="Build the storyboard first.")
-    return job_response(queue.enqueue("studio.animatic", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"انیماتیک قسمت {e.number}"))
+    return job_response(queue.enqueue("studio.animatic", {"episode_id": e.pk}, episode=e, page=e.series.page_id, title=f"انیماتیک قسمت {fa_digits(e.number)}"))
 
 
 @api_view(["POST"])
 def design_generate(request, pk):
     e = _ep(pk)
     return job_response(queue.enqueue("studio.design", {"episode_id": e.pk, "language": _lang(request)}, episode=e, page=e.series.page_id,
-                                      title=f"برگه‌های طراحی قسمت {e.number}"))
+                                      title=f"برگه‌های طراحی قسمت {fa_digits(e.number)}"))
 
 
 @api_view(["GET", "POST"])
@@ -453,7 +455,7 @@ def episode_translate(request, pk):
     lang = str(request.data.get("language") or "")[:2]
     if lang not in LANGS:
         raise bad("زبان مقصد نامعتبر است.", "Invalid target language.", language=["invalid"])
-    return job_response(queue.enqueue("studio.translate", {"episode_id": e.pk, "language": lang}, episode=e, page=e.series.page_id, title=f"ترجمهٔ قسمت {e.number}"))
+    return job_response(queue.enqueue("studio.translate", {"episode_id": e.pk, "language": lang}, episode=e, page=e.series.page_id, title=f"ترجمهٔ قسمت {fa_digits(e.number)}"))
 
 
 @api_view(["POST"])

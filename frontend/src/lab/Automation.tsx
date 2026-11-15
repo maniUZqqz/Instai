@@ -149,7 +149,7 @@ function Rhythm({ info, schedule }: { info: AutomationInfo; schedule: ScheduleIn
 }
 
 function AutoPublish({ info, onChanged }: { info: AutomationInfo; onChanged: () => void }) {
-  const { s, f } = useL()
+  const { s, f, lang } = useL()
   const act = useAction()
   const [typed, setTyped] = useState('')
   const ap = info.auto_publish
@@ -165,7 +165,7 @@ function AutoPublish({ info, onChanged }: { info: AutomationInfo; onChanged: () 
           <Badge tone={ap.feature_flag ? 'ok' : 'neutral'}>{ap.feature_flag ? s('au.flag_on') : s('au.flag_off')}</Badge>
           <Badge tone={ap.can_post_now ? 'err' : 'neutral'}><span data-testid="ap-can-post">{ap.can_post_now ? s('au.can_post') : s('au.cannot_post')}</span></Badge>
         </div>
-        {ap.why_not && <p className="small muted" data-testid="ap-why-not">{s('au.why_not')}: {ap.why_not}</p>}
+        {ap.why_not && <p className="small muted" data-testid="ap-why-not">{s('au.why_not')}: {lang === 'fa' ? ap.why_not_fa || ap.why_not : ap.why_not}</p>}
         {ap.enabled ? (
           <div className="row"><Button variant="danger" icon="stop" busy={act.busy} onClick={disable} data-testid="ap-disable">{s('au.ap_disable')}</Button></div>
         ) : (

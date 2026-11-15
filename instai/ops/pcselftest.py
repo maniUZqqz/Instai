@@ -355,7 +355,7 @@ def check_remotion_toolchain(work: Path) -> dict:
         return _r("ok", f"ابزار «ویدئو با کد» آماده است (Node.js {st['node']['version']}، بسته‌ها و مرورگر).", f"The code-to-video toolchain is ready (Node.js {st['node']['version']}, packages and browser).",
                   node_version=st["node"]["version"], **parts)
     if st["state"] == "error":
-        return _r("fail", "نصب ابزار «ویدئو با کد» کامل نشد: " + (st["error"] or st["message_fa"] or "بی‌پیام")[:200] + " — در صفحهٔ Remotion دکمهٔ «نصب دوباره» هست.",
+        return _r("fail", "نصب ابزار «ویدئو با کد» کامل نشد: " + (st.get("error_fa") or st["message_fa"] or "بی‌پیام")[:200] + " — در صفحهٔ Remotion دکمهٔ «نصب دوباره» هست.",
                   "The code-to-video toolchain did not install: " + (st["error"] or st["message_en"] or "no message")[:200] + " - the Remotion page has a re-install button.", **parts)
     from instai.jobs.handlers.remotion import kick_setup
 

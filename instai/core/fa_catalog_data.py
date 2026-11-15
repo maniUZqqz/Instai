@@ -327,5 +327,24 @@ SERVICE: dict[str, str] = {
     "auto = MOSS when ready, else Piper; Pocket and Edge are never chosen automatically": "خودکار = MOSS وقتی آماده است، وگرنه Piper؛ Pocket و Edge هرگز خودکار انتخاب نمی‌شوند",
 }
 
+# the anime comparison candidates (production/anime.CANDIDATES; /lab/compare)
+LICENCE.update({
+    "Apache-2.0 + extra restrictions that apply when retraining / making derivatives (read before commercial use)":
+        "Apache-2.0 به‌علاوهٔ محدودیت‌های بیشتر برای آموزش دوباره و ساختن نسخهٔ مشتق (پیش از استفادهٔ تجاری بخوانید)",
+    "Apache-2.0 (model card tag: commercial-use)": "Apache-2.0 (در کارتِ مدل «استفادهٔ تجاری» نوشته شده است)",
+})
+NAME.update({
+    "Wan 2.2 I2V A14B (fp8 + lightx2v) - current": "Wan 2.2 I2V A14B (fp8 + lightx2v) - مدل فعلی",
+    "Index-AniSora V3.2 (community GGUF Q4_0)": "Index-AniSora V3.2 (GGUF Q4_0 از جامعهٔ کاربران)",
+    "AnimeGen I2V (AIdeaLab, community GGUF Q4_K_M)": "AnimeGen I2V (از AIdeaLab، GGUF Q4_K_M از جامعهٔ کاربران)",
+})
+NOTE.update({
+    "The model the owner already uses in NMarketing.": "همان مدلی که همین حالا در NMarketing به کار می‌برید.",
+    "Bilibili's anime fine-tune of Wan 2.2. Needs the ComfyUI-GGUF custom node. ~9 GB per expert.":
+        "نسخهٔ انیمهٔ Wan 2.2 که شرکت Bilibili آموزش داده است. به افزونهٔ ComfyUI-GGUF نیاز دارد؛ حدود ۹ گیگابایت برای هر بخشِ مدل.",
+    "Wan 2.2 I2V fine-tune for Japanese anime. Needs the ComfyUI-GGUF custom node. ~9.7 GB per expert; the card recommends an RTX 4090 for the full weights.":
+        "نسخهٔ Wan 2.2 (از تصویر به ویدئو) برای انیمهٔ ژاپنی. به افزونهٔ ComfyUI-GGUF نیاز دارد؛ حدود ۹٫۷ گیگابایت برای هر بخشِ مدل؛ کارتِ مدل برای وزن‌های کامل RTX 4090 را پیشنهاد می‌کند.",
+})
+
 # one table for the walker: every text the Persian pages may show in English
 ALL: dict[str, str] = {**LICENCE, **VERIFIED, **ROLE, **VRAM, **NAME, **NOTE, **TITLE, **SERVICE}
