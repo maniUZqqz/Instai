@@ -22,6 +22,8 @@ interface UpdateStatus {
  * «نسخهٔ تازه آماده است»: shown in the top bar only when GitHub has a newer InstAI (GET /api/update/status, remembered for six hours by the
  * server). One click, after one question, stops the program, installs the update and starts it again (a detached helper, scripts/apply_update.py);
  * this page waits and reloads itself when the new version answers. Nothing is shown when there is nothing to do or GitHub cannot be reached.
+ * Layout (audit round ia_regress): the long sentence made every page scroll sideways on a phone (scrollWidth 565 at 390 px). The label is hidden under 760 px
+ * (the button keeps its icon, the version and the full text in `title` / `aria-label`), the version too under 560 px, and the button may shrink (`.upd-badge` in styles.css).
  */
 export function UpdateBadge() {
   const { t } = useI18n()
@@ -85,10 +87,10 @@ export function UpdateBadge() {
   }
   return (
     <>
-      <button type="button" className="btn sm primary nowrap" onClick={go} disabled={busy || restarting} title={t('upd.title')} aria-label={t('upd.badge') + ' — ' + t('upd.title')} data-testid="update-badge">
+      <button type="button" className="btn sm primary nowrap upd-badge" onClick={go} disabled={busy || restarting} title={t('upd.badge') + ' — ' + t('upd.title')} aria-label={t('upd.badge') + ' — ' + t('upd.title')} data-testid="update-badge">
         <Icon name="download" />
-        <span>{t('upd.badge')}</span>
-        {st.latest && <span className="small" dir="ltr">v{st.latest}</span>}
+        <span className="upd-badge-text">{t('upd.badge')}</span>
+        {st.latest && <span className="small upd-badge-ver" dir="ltr">v{st.latest}</span>}
       </button>
       {restarting && createPortal(
         <Modal title={t('upd.progress')} onClose={() => undefined}>

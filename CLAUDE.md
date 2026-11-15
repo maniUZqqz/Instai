@@ -121,6 +121,7 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **A new catalogue text (package, model, licence, workflow, installer item)** needs its Persian twin in `core/fa_catalog_data.py` (`tests/test_core_audit_catalog.py` checks); a hint on the System page = Persian sentence + `action` (a button) + the command in `tech`. Never put `pip install`, `Download-Models.bat --only ...` or a Windows path in a Persian sentence.
 - **A job log line the owner may read** = `queue.log_job(job, english, code=..., params=...)` or `ctx.log_t(code, ...)` / `ctx.log_bi(fa, en)`; add the code to `jobs/logtext.TEXT`. Numbers in a Persian server sentence: `fa_digits.fa_numbers`.
 - **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
+- **The update badge must never widen the top bar** (audit round ia_regress): its sentence is ~240 px and once pushed every page sideways on a 390 px phone. `.upd-badge` may shrink, the label hides under 760 px and the version under 560 px (the full text stays in `title` / `aria-label`), the top bar wraps under 560 px. `tests_ui/test_update_badge_layout.py` fakes the status to «available» (the QA sweep runs with the check off, so it cannot see this) and measures with a REAL narrow window, not a mobile emulator (an emulator widens `innerWidth` and hides the scroll). Any new top-bar item gets the same check.
 
 
 ## Cover maker (0.17.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
