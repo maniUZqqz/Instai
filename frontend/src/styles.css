@@ -1441,12 +1441,18 @@ audio {
   background: #000;
   border-radius: var(--radius-sm);
 }
-/* a tall (9:16) video is limited to a phone-like width; a wide one takes the room it is given */
+/* a tall (9:16) video is limited to a phone-like width; a wide one takes the room it is given. The width is a DEFINITE length capped by max-width (not min(100%, ..)):
+   inside the review card's grid a percentage made the track as wide as the player's poster (the cover of the episode, 1080 px) and took the whole row: the text column shrank to 0 px */
+.ep-player {
+  min-width: 0;
+}
 .ep-player.portrait {
-  width: min(100%, 300px);
+  width: 300px;
+  max-width: 100%;
 }
 .ep-player.landscape {
-  width: min(100%, 640px);
+  width: 640px;
+  max-width: 100%;
 }
 .qc-list {
   list-style: none;

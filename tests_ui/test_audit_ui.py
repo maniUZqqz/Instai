@@ -15,7 +15,8 @@ from pathlib import Path
 
 import pytest
 
-VIEWPORTS = {"desktop": {"width": 1366, "height": 850}, "phone": {"width": 390, "height": 780}}
+VIEWPORTS = {"desktop": {"width": 1366, "height": 850}, "phone": {"width": 390, "height": 780}, "tablet": {"width": 1024, "height": 768},
+             "laptop": {"width": 1280, "height": 800}, "wide": {"width": 1920, "height": 1080}}
 SHOTS = Path(os.environ.get("INSTAI_UI_SHOTS", tempfile.gettempdir())) / "instai-ui-shots"
 SIZES = ["desktop", "phone"]
 PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
@@ -214,6 +215,41 @@ def test_the_version_pill_covers_nothing_on_any_screen(browser, server, seeded, 
             no_hscroll(page, path)
         finally:
             ctx.close()
+
+
+@pytest.mark.parametrize("size", ["phone", "tablet", "laptop", "desktop", "wide"])
+def test_the_review_card_keeps_its_text_next_to_the_loaded_video(browser, server, seeded, size):
+    """Regression: an episode WITH A COVER (the player's poster is a big picture, 1080x1920) made the grid give the player the whole row: the text column shrank to 0 px and
+    the page scrolled sideways. The seeded episode has no cover, so the test gives the video a big poster itself, after its metadata has loaded."""
+    ep = _episode(seeded)
+    detail = seeded["api"].get(f"/api/episodes/{ep}")
+    if not detail["videos"] or detail["state"] not in ("quality_review", "ready_for_approval"):
+        pytest.skip("no ffmpeg on this machine: no video was rendered")
+    ctx, page, problems = visit(browser, server, f"/episodes/{ep}", size)
+    try:
+        page.wait_for_function("() => { const v = document.querySelector('[data-testid=next-review] video'); return v && v.readyState >= 1 && v.videoWidth > 0 }", timeout=30000)
+        page.evaluate("""async () => {
+            const c = document.createElement('canvas'); c.width = 1080; c.height = 1920; c.getContext('2d').fillRect(0, 0, 1080, 1920);
+            const url = c.toDataURL('image/jpeg', 0.2);
+            await new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = url });
+            document.querySelector('[data-testid=next-review] video').poster = url;
+        }""")
+        page.wait_for_timeout(600)
+        card = page.locator("[data-testid=next-review]")
+        text = card.locator(":scope > .stack").bounding_box()
+        video = card.locator("video").bounding_box()
+        vw = VIEWPORTS[size]["width"]
+        assert text and text["width"] >= min(280, vw - 90), f"the text column is {text} wide next to the loaded video {video}"
+        assert video and video["width"] <= 640 and video["x"] >= 0 and video["x"] + video["width"] <= vw + 1, video
+        review = card.locator("button").evaluate_all("els => els.map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)] })")
+        assert review and all(l >= -1 and r <= vw + 1 for l, r in review), ("a button leaves the screen", review)
+        no_hscroll(page, "episode with the video loaded")
+        page.goto(page.url.split("#")[0] + "#production", wait_until="networkidle")
+        page.wait_for_timeout(600)
+        no_hscroll(page, "episode production with the video loaded")
+        assert [p for p in problems if "favicon" not in p] == [], problems
+    finally:
+        ctx.close()
 
 
 # ------------------------------------------------------------------ the style pictures
