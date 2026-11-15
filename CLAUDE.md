@@ -123,7 +123,7 @@ Decisions made so far: `docs/DECISIONS.md`. Measured numbers: `docs/BENCHMARKS.m
 - **The update badge** reads `GET /api/update/status` (`ops/update.py`); `INSTAI_NO_UPDATE=1` switches it off (the root conftest sets it for every test).
 
 
-## Cover maker (0.16.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
+## Cover maker (0.17.0; docs in `docs/COVERS.md`, self-test in `docs/selftests/covers.md`)
 - `instai/covers/engine/` is the NMarketing thumbnail engine ported (pure Pillow + numpy, no Django, no NMarketing import: a `SOURCE:` note names the file it came from). A new layout = a function of a `Ctx` + a `StyleDef` row (`styles.py` / `styles_instai.py`) + its concept and background prompt in `hooks.py` + a note in `archetypes.py`; `tests/test_covers_engine.py` renders EVERY layout in EVERY format in both languages.
 - **Persian text goes through `typo._shape` / `typo._kw` (libraqm when it works, else `fa_text`)**; use `typo.basic_layout()` in tests to force the built-in path. A font must have drawable glyphs at the Arabic presentation-form code points (Estedad does not): add one only after `tests/test_covers_text.py` passes for it.
 - A cover is a `Cover` design with 1-6 versions; the job `covers.make` makes them on the CPU and - for an AI background - waits for ComfyUI (`compute.require_workflow`, a WAIT) after the cover is already usable. Versions are `Asset(role="other")`; `service.use_cover` registers the chosen one as `role="cover"` (what `publishing.export_package` ships).

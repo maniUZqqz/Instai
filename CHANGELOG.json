@@ -1,5 +1,43 @@
 [
   {
+    "version": "0.17.0",
+    "date": "2026-11-14",
+    "title": {
+      "fa": "کاورساز: برای هر قسمت و سریال کاورِ حرفه‌ای با عنوانِ فارسیِ درست‌چسبیده، شمارهٔ قسمت و چهرهٔ شخصیتِ ثابت؛ چند نسخهٔ A/B و ورود خودکار به بستهٔ انتشار",
+      "en": "Cover maker: a professional cover for every episode and series, with properly joined Persian titles, the episode number and the fixed character's face; A/B versions that go into the publishing package by themselves"
+    },
+    "items": [
+      {
+        "fa": "صفحهٔ تازهٔ «کاورساز» (و زبانهٔ «کاور» در انتشار): ۹ اندازه (یوتیوب، آپارات، تلگرام، اینستاگرام ۴:۵ و مربع، کاورِ ریلز و شورتس، پوستر سریال، بنرِ کانال، کارتِ فصل) با حاشیهٔ امن و ناحیه‌های ممنوعِ هر پلتفرم که روی پیش‌نمایش دیده می‌شود.",
+        "en": "A new «Cover maker» screen (and a «Cover» tab in Publishing): 9 sizes (YouTube, Aparat, Telegram, Instagram 4:5 and square, the Reels / Shorts cover, a series poster, the channel banner, a season card) with each platform's safe area and avoid zones drawn on the preview."
+      },
+      {
+        "fa": "۱۶ طرح: ۱۳ طرحِ آزموده‌شدهٔ تامنیل‌ساز NMarketing (چهرهٔ بزرگ، اگر… قبل/بعد، شمارهٔ قسمت، سؤال، سینمایی، نئون، رویارویی، جلدِ مجله…) و سه طرحِ ساختهٔ همین استودیو: کارتِ قسمت، پایانِ معلق و پوستر انتخابِ الف/ب برای داستان‌های انتخابی.",
+        "en": "16 layouts: 13 proven ones from the NMarketing thumbnail maker (big face, what-if before/after, episode number, question, cinema, neon, versus, magazine cover ...) and three made for this studio: the episode card, the cliffhanger and the A/B choice poster for choice stories."
+      },
+      {
+        "fa": "شخصیتِ ثابتِ سریال (آدمک چوبیِ قفل‌شده یا تصویرِ تأییدشده) خودکار روی کاور می‌نشیند و رنگ‌ها و فونت از «جلوهٔ» همان سریال می‌آید. متنِ فارسی روی ویندوزِ شما هم درست‌چسبیده است (حرف‌چینیِ داخلیِ برنامه، بدونِ نیاز به نصبِ چیزی).",
+        "en": "The series' fixed character (the locked stick figure or an approved picture) sits on the cover by itself and the colours and font come from that series' look. Persian text joins correctly on your Windows PC too (the program's own letter shaping; nothing to install)."
+      },
+      {
+        "fa": "تا ۶ نسخهٔ A/B؛ نسخهٔ برگزیده خودکار «کاورِ قسمت» می‌شود و در بستهٔ انتشار به شکل cover.png و یک cover.jpg زیرِ ۲ مگابایت می‌رود. تاریخچهٔ کاورها، «ویرایشِ دوباره» و دانلودِ ZIP هم هست.",
+        "en": "Up to 6 A/B versions; the chosen one becomes the episode's cover by itself and goes into the publishing package as cover.png plus a cover.jpg under 2 MB. There is also a history of covers, «edit again» and a ZIP download."
+      },
+      {
+        "fa": "پس‌زمینهٔ هوش مصنوعی (FLUX روی GPU) اختیاری است: اگر رایانهٔ GPUدار خاموش باشد، کاور همان لحظه با پس‌زمینهٔ ساده ساخته می‌شود و وقتی ComfyUI بالا آمد خودش کامل می‌شود. متن را همیشه خودِ برنامه می‌کشد، نه مدلِ تصویر.",
+        "en": "An AI background (FLUX on the GPU) is optional: when the GPU PC is off the cover is made at once with a plain background and completes by itself when ComfyUI is up. The text is always drawn by the program, never by the image model."
+      },
+      {
+        "fa": "ایده‌پردازیِ عنوان از واقعیت‌های همان قسمت (عنوان، جملهٔ قلاب، شخصیت‌ها، دیالوگ)، با هوش مصنوعیِ صفحه و فرمول‌های آمادهٔ فارسی و انگلیسی؛ هرگز عددِ آماری یا قیمتِ ساختگی نمی‌سازد.",
+        "en": "Title ideas from the facts of the episode (title, hook line, characters, dialogue), with the page's AI and ready-made Persian and English formulas; it never makes up a statistic or a price."
+      },
+      {
+        "fa": "آزمون خودکار دو ردیف تازه دارد: «سازندهٔ کاور» (همهٔ طرح‌ها در همهٔ اندازه‌ها) و «پس‌زمینهٔ هوش مصنوعیِ کاور روی GPU» که با روشن‌شدنِ رایانهٔ GPUدار خودکار اجرا می‌شود. نیازمندیِ تازه: numpy (START.bat خودش نصبش می‌کند).",
+        "en": "The self-test has two new rows: «Cover maker» (every layout in every size) and «AI background of a cover on the GPU», which runs by itself once the GPU PC is on. New requirement: numpy (START.bat installs it by itself)."
+      }
+    ]
+  },
+  {
     "version": "0.16.0",
     "date": "2026-11-14",
     "title": {

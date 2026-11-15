@@ -1,4 +1,4 @@
-# Self-test: the cover maker (0.16.0)
+# Self-test: the cover maker (0.17.0)
 
 Two rows of the PC self-test (`instai/ops/pcselftest.py` `CHECKS`; code in `instai/covers/selftest.py`). Same rules as `docs/selftests/instai-pc-selftest.md`: a check is one small REAL action, judged on its own,
 `pending` = it waits for something and runs by itself the moment it can, a failing check is a result and never a crashed job.

@@ -1,4 +1,4 @@
-// The cover maker (0.16.0): /covers and the «Cover» tab of Publishing. Server rows carry `_fa` / `_en` pairs and are read with pick(row, 'label' | 'title' | ...).
+// The cover maker (0.17.0): /covers and the «Cover» tab of Publishing. Server rows carry `_fa` / `_en` pairs and are read with pick(row, 'label' | 'title' | ...).
 export const fa: Record<string, string> = {
   'nav.covers': 'کاورساز',
   'job.kind.covers.make': 'ساخت کاور قسمت یا سریال',
