@@ -158,7 +158,10 @@ def test_episode_page_warns_about_a_shot_that_becomes_a_still_and_offers_the_pup
         assert "عروسکِ شخصیت‌ها آماده نیست" in dlg.inner_text()
         assert dlg.get_by_role("button", name="بساز و ادامه بده").count() == 1 and dlg.get_by_role("button", name="بدون عروسک ادامه بده").count() == 1
         dlg.get_by_role("button", name="بساز و ادامه بده").click()
-        page.wait_for_timeout(1500)
+        for _ in range(40):                                            # the rig is made by a request the page just sent: poll, never a fixed wait (a busy machine needs longer)
+            if api.get(f"/api/episodes/{ep}/preflight")["needs_rig"] == []:
+                break
+            page.wait_for_timeout(500)
         assert api.get(f"/api/episodes/{ep}/preflight")["needs_rig"] == []
     finally:
         ctx.close()
