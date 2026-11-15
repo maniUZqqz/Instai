@@ -1,11 +1,14 @@
 // The list of compositions: used by the render (Root.tsx registers every entry with Remotion) and by the InstAI page (the picker, the form
 // and the live preview). One file, so the preview and the rendered video can never disagree.
-import type React from 'react'
+import React from 'react'
 import { Explainer, explainerDuration, type ExplainerProps } from './compositions/Explainer'
 import { KineticText, kineticDuration, type KineticTextProps } from './compositions/KineticText'
 import { LowerThird, lowerThirdDuration, type LowerThirdProps } from './compositions/LowerThird'
 import { TitleCard, titleCardDuration, type TitleCardProps } from './compositions/TitleCard'
-import { DEFAULT_KIT, type StyleKit } from './kit/theme'
+import { DEFAULT_KIT, normalizeKit, type StyleKit } from './kit/theme'
+import { ScenePlan, planMeta } from './components/ScenePlan'
+import { COMPONENT_DEFS, sceneOf, templatePlan, type ComponentDef, type DefField } from './components/defs'
+import { hasArabic } from './components/util'
 
 export const FPS = 30
 
@@ -18,20 +21,20 @@ export type SizeId = keyof typeof SIZES
 
 export type Lang = 'fa' | 'en'
 
-export type Field = {
-  key: string
-  type: 'text' | 'textarea' | 'lines' | 'steps' | 'select' | 'checkbox'
-  fa: string
-  en: string
-  options?: { value: string; fa: string; en: string }[]
+export type Field = Omit<DefField, 'type'> & {
+  /** text | textarea | lines (one string per line) | steps (title | body) | rows (objects, one per line: a | b | c) | number | select | checkbox | json (the whole scene plan) */
+  type: DefField['type'] | 'steps' | 'json'
 }
 
 /** The props every composition gets from the page / the render job: the style kit, the output size, and its own content. */
 export type CommonProps = { kit: StyleKit; size: SizeId; fontBase?: string }
 
 export type CompositionDef = {
-  id: 'TitleCard' | 'KineticText' | 'Explainer' | 'LowerThird'
-  group: 'titles' | 'kinetic' | 'explainers'
+  id: string
+  /** titles | kinetic | explainers: the first four; plan: the scene plan; scene | data | text: the component library (ScenePlan with one scene) */
+  group: 'titles' | 'kinetic' | 'explainers' | 'plan' | 'scene' | 'data' | 'text'
+  /** the plan component behind a library entry (its labels, fields and samples) */
+  component_def?: ComponentDef
   fa: string
   en: string
   descFa: string
@@ -53,7 +56,7 @@ const ANIMS = [
   { value: 'typewriter', fa: 'ماشین‌تحریر', en: 'Typewriter' },
 ]
 
-export const COMPOSITIONS: CompositionDef[] = [
+const BASE_COMPOSITIONS: CompositionDef[] = [
   {
     id: 'TitleCard',
     group: 'titles',
@@ -130,6 +133,60 @@ export const COMPOSITIONS: CompositionDef[] = [
   },
 ]
 
+// ───────────────────────────────────────────── the scene-plan engine: «ScenePlan» (a whole plan) and one composition per component of the library
+
+/** the language of a scene's texts: Persian when any text holds Persian letters */
+const langOf = (v: unknown): 'fa' | 'en' => (hasArabic(JSON.stringify(v ?? '')) ? 'fa' : 'en')
+
+type SceneProps = CommonProps & Record<string, any>
+
+/** the plan of ONE scene of the library: the form's values + the size and the series (when the page gives them) */
+function oneSpec(def: ComponentDef, p: SceneProps): Record<string, any> {
+  const { kit: _kit, size, fontBase: _fb, series, lang, ...values } = p
+  return { version: 1, size: size ?? 'landscape', lang: lang ?? langOf(values), fps: FPS, series: series ?? {}, scenes: [sceneOf(def, values)] }
+}
+
+function sceneComposition(def: ComponentDef): CompositionDef {
+  const component: React.FC<any> = (p: SceneProps) => React.createElement(ScenePlan, { kit: normalizeKit(p.kit), size: p.size, fontBase: p.fontBase, spec: oneSpec(def, p) as any })
+  component.displayName = def.id
+  return {
+    id: def.id,
+    group: def.group,
+    fa: def.fa,
+    en: def.en,
+    descFa: def.descFa,
+    descEn: def.descEn,
+    file: 'components/ScenePlan.tsx',
+    component,
+    defaults: (lang) => def.sample(lang),
+    duration: (p: SceneProps, fps) => planMeta({ kit: normalizeKit(p.kit), size: p.size, spec: { ...oneSpec(def, p), fps } as any }).durationInFrames,
+    fields: def.fields,
+    component_def: def,
+  }
+}
+
+/** a sample plan of the page: an explainer shot in the chosen language */
+export function samplePlan(lang: Lang): Record<string, any> {
+  return templatePlan('explainer', lang)
+}
+
+const PLAN_COMPOSITION: CompositionDef = {
+  id: 'ScenePlan',
+  group: 'plan',
+  fa: 'طرح صحنه (چند صحنه)',
+  en: 'Scene plan (several scenes)',
+  descFa: 'ویدئوی چندصحنه‌ای از روی یک طرح JSON؛ همان طرحی که برای نماهای «موشن‌گرافیک» قسمت‌ها نوشته می‌شود. هر صحنه یکی از قطعه‌های آماده است و رنگ و حرکتش را از سبک می‌گیرد.',
+  descEn: 'A multi-scene video from a JSON plan - the very plan that is written for the «motion graphics» shots of episodes. Every scene is one ready-made component and takes its colours and motion from the style.',
+  file: 'components/ScenePlan.tsx',
+  component: ScenePlan as unknown as React.FC<any>,
+  defaults: (lang) => ({ spec: samplePlan(lang) }),
+  duration: (p: any, fps) => planMeta({ kit: normalizeKit(p.kit), size: p.size, spec: { ...(p.spec ?? {}), fps } }).durationInFrames,
+  fields: [{ key: 'spec', type: 'json', fa: 'طرح صحنه (JSON)', en: 'Scene plan (JSON)' }],
+}
+
+export const SCENE_COMPOSITIONS: CompositionDef[] = COMPONENT_DEFS.map(sceneComposition)
+export const COMPOSITIONS: CompositionDef[] = [...BASE_COMPOSITIONS, PLAN_COMPOSITION, ...SCENE_COMPOSITIONS]
+
 export const COMPOSITION_IDS = COMPOSITIONS.map((c) => c.id)
 
 export function byId(id: string): CompositionDef | undefined {
@@ -141,5 +198,9 @@ export function metaFor(id: string, props: Partial<CommonProps> & Record<string,
   const def = byId(id)
   const size = SIZES[(props.size as SizeId) in SIZES ? (props.size as SizeId) : 'landscape']
   const full = { kit: DEFAULT_KIT, ...props }
+  if (id === 'ScenePlan') {
+    const m = planMeta({ kit: normalizeKit(full.kit), size: (props.size as SizeId) ?? undefined, spec: (props as any).spec })
+    return { width: m.width, height: m.height, fps: m.fps, durationInFrames: Math.max(30, m.durationInFrames) }
+  }
   return { width: size.w, height: size.h, fps: FPS, durationInFrames: Math.max(30, def ? def.duration(full, FPS) : 150) }
 }

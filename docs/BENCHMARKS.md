@@ -55,3 +55,17 @@ Everything below was measured; nothing is estimated. The mixes are synthetic (no
   Final render of that episode: -14.0 LUFS, true peak -6.6 dBTP (the one-pass was already on target), no echo (all 6 windows tonal), channels in phase.
 * A final render of the e2e test episode (3 shots, 1080x1920, fake providers, no music) lands within 0.8 LU of -14 at the page's default; the same episode with the page saved at -16 lands within 0.8 of -16 and
   goes back to -14 when the profile is changed (the target is part of the timeline hash).
+## Motion-graphics components (0.16.0; measured 2026-11-14, NOT on the owner's PC)
+
+Where: the NMarketing server (Ubuntu 22.04, 2 CPUs, no GPU), Node.js 20.18, Remotion 4.0.538, Chromium headless shell with SOFTWARE GL (`swangle`), the real project (`remotion/`, nothing faked). The owner's PC (a real browser, probably a GPU) is expected to be faster in the browser part; the Python part is the same. Re-measure there with `python -m instai.motion_plan.selftest <folder>` (the PC self-test row `motion_frames` does it and keeps the time in its metrics).
+
+| What | Measured |
+|---|---|
+| One QA frame of one component (bundle cached, one browser kept open) | 10.5 s for 2 frames including the browser start (`selftest --only title,list --sizes vertical`) |
+| ONE frame of every component x 3 sizes = 57 frames, with the geometry of every text block, then `qa.py` over all of it | 187 s (`"seconds": 187.2` in the report); 57 of 57 rendered, 0 render errors |
+| Bundle of the whole project (24 compositions) after a source change | about 90 s, once per change (cached under `data/remotion/bundles`) |
+| An explainer episode (20 s target, 3-4 motion shots, preview size 360x640, real Remotion, real ffmpeg assembly, narration by the fake engine) | the whole production, plan + QA on real frames + render + assembly, took about 95 s in `tests/test_motion_pipeline.py -k real_toolchain_an_explainer` |
+| Layout findings of the 57 frames after the fixes made in this round | 0 errors, 0 warnings, 5 notes (the 1.8 % chip text of the number components, exactly at the least size) |
+
+The first run found, and this round fixed: the before / after wipe ended with only the «before» side visible, a dark label on a white pill turned light (a `label` in the plain style is re-checked against the PAGE background), the end labels of the line chart sat outside the card, and a scale of 0.333 made the preview render fail ("height must be an integer, 638.361").
+The planning estimate in `costs.py` (`motion_cpu_per_sec` 4.0 final / 1.5 preview, 25 s fixed) is still a planning figure: the server numbers above are not the owner's PC's.

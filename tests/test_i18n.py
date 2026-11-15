@@ -121,7 +121,7 @@ ENUMS = {
     "tech.": ["still_kenburns", "parallax_25d", "puppet_2d", "motion_graphics", "wan_i2v", "wan_flf", "talking_video", "three_d"],
     "job.kind.": ["styles.preview", "ideas.generate", "studio.source_search", "studio.ideas", "studio.idea_refine", "studio.idea_merge", "studio.research", "studio.map", "studio.timeline", "studio.profile",
                   "studio.bible", "studio.design", "studio.design_image", "studio.casting", "studio.translate", "studio.animatic", "story.strategy", "story.plan", "story.script",
-                  "story.storyboard", "story.research", "story.continuity"],
+                  "story.storyboard", "story.research", "story.continuity", "motion.plan", "motion.qa", "motion.critique"],
     "mdl.auto_": ["ready", "queued", "declined", "failed_recently", "low_disk", "no_comfyui", "off"],
     "mdl.offer_group.": ["anime_video", "anime_image", "identity"],
     "error.code.": ["validation_error", "not_found", "conflict", "not_ready", "invalid_transition", "llm_invalid_output", "provider_unavailable"],

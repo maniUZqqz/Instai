@@ -409,6 +409,126 @@ def check_remotion_render(work: Path) -> dict:
               f"A trial frame was rendered with Remotion ({comp.get('width', '?')}x{comp.get('height', '?')}, {secs} s).", seconds=secs, bytes=size, width=comp.get("width"), height=comp.get("height"))
 
 
+# ------------------------------------------------------------------------------------------------------------------------------ motion graphics (the scene-plan engine)
+
+def check_motion_library(work: Path) -> dict:
+    """The component library without a browser: every one of the 19 components has a valid sample in both languages, the deterministic plan of a narration is valid and as long as the
+    shot, the rule checks run on it. About a second; it never waits for anything."""
+    from instai.motion_plan import components, fallback, qa, specs
+    from instai.remotion import kit as kitmod
+
+    try:
+        for cid in components.COMPONENTS:
+            for lang in ("fa", "en"):
+                specs.normalize_scene(components.sample(cid, lang), 0)
+        kit = kitmod.style_kit(None, None)
+        plan = fallback.make_plan("آب روی زمین ۷۱ درصد سطح را پوشانده است. ابتدا بخار می‌شود، سپس ابر می‌سازد و در نهایت باران می‌شود.", 12.0, kit=kit, style=kit["key"])
+        found = qa.static_findings(plan, kit)
+    except Exception as e:  # noqa: BLE001 - a broken library is a failed check
+        return _r("fail", f"کتابخانهٔ قطعه‌های گرافیک متحرک خراب است: {type(e).__name__}", f"The motion-graphics component library is broken: {type(e).__name__}: {e}"[:300])
+    n = len(components.COMPONENTS)
+    return _r("ok", f"کتابخانهٔ گرافیک متحرک سالم است ({_fd(n)} قطعه، فارسی و انگلیسی؛ طرح خودکار از گفتار {_fd(len(plan['scenes']))} صحنه).",
+              f"The motion-graphics library is healthy ({n} components in Persian and English; the automatic plan of a narration has {len(plan['scenes'])} scenes).",
+              components=n, scenes=len(plan["scenes"]), findings=len(found))
+
+
+def check_motion_frames(work: Path) -> dict:
+    """One frame of every component in landscape, vertical and square through the REAL toolchain, then the rule checks over what the page reported (overflow, overlap, safe area,
+    size, contrast). About 1-3 minutes."""
+    from instai.motion_plan import selftest
+    from instai.remotion import toolchain
+
+    st = toolchain.status()
+    if not st["ready"]:
+        return _r("pending", "بازبینی قطعه‌های گرافیک متحرک منتظر پایان نصب ابزار «ویدئو با کد» است.", "The check of the motion-graphics components waits for the code-to-video toolchain to finish installing.")
+    t0 = time.time()
+    try:
+        rep = selftest.run_every_component(work, lang="fa", status=st)
+    except Exception as e:  # noqa: BLE001
+        return _r("fail", "ساخت قاب‌های آزمایشی قطعه‌های گرافیک متحرک انجام نشد: " + str(e)[:160], "The trial frames of the motion-graphics components could not be made: " + str(e)[:240])
+    secs = round(time.time() - t0, 1)
+    errors = [f for f in rep["findings"] if f["severity"] == "error"]
+    warns = [f for f in rep["findings"] if f["severity"] == "warn"]
+    total = len(rep["components"]) * len(rep["sizes"])
+    m = dict(rendered=rep["rendered"], total=total, errors=len(errors), warnings=len(warns), seconds=secs)
+    if rep["render_errors"] or rep["rendered"] < total:
+        return _r("fail", f"فقط {_fd(rep['rendered'])} از {_fd(total)} قاب ساخته شد: " + "؛ ".join(rep["render_errors"])[:200], f"Only {rep['rendered']} of {total} frames were made: " + "; ".join(rep["render_errors"])[:240], **m)
+    if errors:
+        f = errors[0]
+        return _r("fail", f"در {_fd(len(errors))} قاب مشکل چیدمان دیده شد (مثلاً {f['component']} در حالت {f['size']}): " + f["message"][:160],
+                  f"{len(errors)} frame(s) have a layout problem (e.g. {f['component']} in {f['size']}): " + f["message_en"][:200], **m)
+    if warns:
+        return _r("warn", f"همهٔ {_fd(total)} قاب ساخته شد؛ {_fd(len(warns))} هشدار چیدمان (مثلاً متن نزدیک لبه).", f"All {total} frames were made; {len(warns)} layout warning(s) (e.g. text near an edge).", **m)
+    return _r("ok", f"{_fd(total)} قاب (هر قطعه در سه اندازه) ساخته و سنجیده شد؛ مشکل چیدمان نیست ({_fd(secs)} ثانیه).",
+              f"{total} frames (every component in three sizes) were made and measured; no layout problem ({secs} s).", **m)
+
+
+def check_motion_critique(work: Path) -> dict:
+    """One frame of a two-scene plan is shown to the owner's vision model through InstAI's own Ollama: the answer must be the JSON verdict the critique loop reads."""
+    from instai.motion_plan import components, critique, qa, qa_browser, selftest, specs
+    from instai.providers.base import ProviderError
+    from instai.remotion import kit as kitmod
+    from instai.remotion import toolchain
+
+    st = toolchain.status()
+    if not st["ready"]:
+        return _r("pending", "نقد تصویری منتظر ابزار «ویدئو با کد» است.", "The visual critique waits for the code-to-video toolchain.")
+    t0 = time.time()
+    try:
+        prov = critique.vision_provider()
+    except ProviderError as e:
+        if e.code == "no_vision_model":
+            return _r("skip", "مدل بینایی (مثلاً qwen3-vl) در Ollama نصب نیست؛ نقد تصویری اجرا نمی‌شود و قاعده‌ها کار خود را می‌کنند.", "No vision model (e.g. qwen3-vl) is installed in Ollama; the visual critique does not run and the rule checks do their job.")
+        return _r("pending", "Ollama روشن نیست؛ آزمون نقد تصویری بعداً خودکار اجرا می‌شود.", "Ollama is not running; the visual critique test runs by itself later.")
+    kit = kitmod.style_kit(None, None)
+    spec = specs.normalize_spec({"style": kit["key"], "size": "vertical", "lang": "fa", "scenes": [components.sample("kinetic_title", "fa") | {"duration": 4}, components.sample("list", "fa")]}, max_total=300)
+    try:
+        measure = qa_browser.make_measure(SimpleNamespaceCtx(), st, kit=kit, size="vertical", work=work, frames_fn=lambda s: critique.pick_frames(s, kit=kit))
+        shots = measure(spec)
+        res = critique.ask(prov, spec, shots)
+    except Exception as e:  # noqa: BLE001
+        return _r("fail", "نقد تصویری با مدل بینایی جواب قابل‌خواندن نداد: " + str(e)[:160], "The vision model gave no readable answer: " + str(e)[:240])
+    secs = round(time.time() - t0, 1)
+    return _r("ok", f"مدل بینایی ({prov.model}) فریم‌ها را دید و نظر داد: {'مشکلی نبود' if res['verdict'] == 'ok' else _fd(len(res['ops'])) + ' اصلاح پیشنهاد شد'} ({_fd(secs)} ثانیه).",
+              f"The vision model ({prov.model}) looked at the frames and answered: {'no problem' if res['verdict'] == 'ok' else str(len(res['ops'])) + ' fix(es) suggested'} ({secs} s).",
+              model=prov.model, answer=res["verdict"], issues=len(res["issues"]), seconds=secs)
+
+
+class SimpleNamespaceCtx:
+    """The minimum of a job context that the renderer helper needs when a check calls it without a job: logging and progress go nowhere, the command runs in this process."""
+
+    def check(self):
+        return None
+
+    def log(self, *a, **k):
+        return None
+
+    def progress(self, *a, **k):
+        return None
+
+    def live(self, *a, **k):
+        return None
+
+    def run_cmd(self, cmd, cwd=None, on_line=None, timeout=900, env=None):
+        r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env, creationflags=_flags(), stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
+        for line in (r.stdout or "").splitlines():
+            if on_line:
+                on_line(line)
+        return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def _vision_ready() -> bool:
+    if not _ollama_ready():
+        return False
+    try:
+        from instai.core import settings_store
+        from instai.motion_plan import critique
+
+        return bool(critique.vision_model(str(settings_store.effective("ollama_url"))))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 # ------------------------------------------------------------------------------------------------------------------------------ GPU checks
 
 def check_gpu_card(work: Path) -> dict:
@@ -565,11 +685,14 @@ CHECKS = [
     {"key": "remotion_toolchain", "group": "tools", "fa": "ابزار «ویدئو با کد» (Remotion)", "en": "Code-to-video toolchain (Remotion)", "fn": check_remotion_toolchain},
     {"key": "remotion_render", "group": "tools", "fa": "ساخت یک قاب با Remotion", "en": "Rendering a frame with Remotion", "fn": check_remotion_render, "ready": _remotion_ready},
     {"key": "covers", "group": "tools", "fa": "سازندهٔ کاور (همهٔ طرح‌ها و اندازه‌ها)", "en": "Cover maker (every layout and size)", "fn": check_covers},
+    {"key": "motion_library", "group": "tools", "fa": "کتابخانهٔ قطعه‌های گرافیک متحرک", "en": "Motion-graphics component library", "fn": check_motion_library},
+    {"key": "motion_frames", "group": "tools", "fa": "قاب هر قطعهٔ گرافیک متحرک در سه اندازه", "en": "A frame of every motion-graphics component in three sizes", "fn": check_motion_frames, "ready": _remotion_ready},
     {"key": "gpu_card", "group": "gpu", "fa": "کارت گرافیک", "en": "Graphics card", "fn": check_gpu_card, "ready": _gpu_present},
     {"key": "nvenc", "group": "gpu", "fa": "رمزگذاری با کارت گرافیک (NVENC)", "en": "Encoding on the graphics card (NVENC)", "fn": check_nvenc, "ready": _nvenc_ready},
     {"key": "ollama_run", "group": "gpu", "fa": "مدل زبانی Ollama روی GPU", "en": "Ollama language model on the GPU", "fn": check_ollama_run, "ready": _ollama_ready},
     {"key": "comfyui", "group": "gpu", "fa": "ComfyUI (تصویر و ویدئو) روی GPU", "en": "ComfyUI (image and video) on the GPU", "fn": check_comfyui, "ready": _comfy_ready},
     {"key": "covers_bg", "group": "gpu", "fa": "پس‌زمینهٔ هوش مصنوعیِ کاور روی GPU", "en": "AI background of a cover on the GPU", "fn": check_covers_bg, "ready": _comfy_ready},
+    {"key": "motion_critique", "group": "gpu", "fa": "نقد تصویری گرافیک متحرک با مدل بینایی", "en": "Visual critique of motion graphics by the vision model", "fn": check_motion_critique, "ready": _vision_ready},
 ]
 BY_KEY = {c["key"]: c for c in CHECKS}
 

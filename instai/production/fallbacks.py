@@ -65,6 +65,8 @@ def shot_fallback(shot, ep, mode: str = "preview", *, have_clip: bool | None = N
     if t == "parallax_25d":
         return _entry(shot, "no_layers", f"{sl_fa}: لایه‌های جداشده برای پارالاکس ساخته نمی‌شود؛ {still_fa}",
                       f"{sl_en}: no separated layers are made for parallax; {still_en}")
+    if t == "motion_graphics" and have_clip is False:
+        return _entry(shot, "no_motion_clip", f"{sl_fa}: کلیپ گرافیک متحرک ساخته نشد؛ {still_fa}", f"{sl_en}: the motion-graphics clip could not be made; {still_en}")
     if t not in costs.IMPLEMENTED:
         return _entry(shot, "not_implemented", f"{sl_fa}: روشِ «{TECH_FA.get(t, t)}» هنوز ساخته نمی‌شود؛ {still_fa}",
                       f"{sl_en}: the technique \"{TECH_EN.get(t, t)}\" is not made yet; {still_en}")
@@ -165,6 +167,8 @@ def qc_check(fallbacks: list[dict]) -> dict:
         parts.append(f"{fd(len(by_code['not_implemented']))} شاتِ با روشِ ساخته‌نشده")
     if "no_clip" in by_code:
         parts.append(f"{fd(len(by_code['no_clip']))} شاتِ ویدئویی بدون کلیپ")
+    if "no_motion_clip" in by_code:
+        parts.append(f"{fd(len(by_code['no_motion_clip']))} شاتِ گرافیک متحرک بدون کلیپ")
     where = "، ".join(f"{fd(f['scene'])}٫{fd(f['index'])}" for f in sorted(fallbacks, key=lambda f: (f["scene"], f["index"])))
     en = []
     if "no_rig" in by_code:

@@ -6,6 +6,7 @@ import { Badge, Button, Card, CheckField, LinkButton, Notice, NumberField, Selec
 import { CAMERA_MOVES, IMPLEMENTED_TECHNIQUES, useFormats } from '../../formats'
 import { useAction } from '../../hooks'
 import { useI18n } from '../../i18n'
+import { MotionPlanBlock } from '../../remotion/MotionPlanBlock'
 
 interface DShot {
   key: string
@@ -281,7 +282,7 @@ function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptio
         {server?.keyframe ? (
           <img className="thumb" src={server.keyframe.url} alt={t('sbd.keyframe_alt', { n })} loading="lazy" />
         ) : (
-          <div className="thumb">{t('sbd.no_keyframe')}</div>
+          <div className="thumb">{sh.technique === 'motion_graphics' ? t('mp.drawn_by_code') : t('sbd.no_keyframe')}</div>
         )}
         {server?.narration_asset && <audio controls preload="none" src={server.narration_asset.url} aria-label={t('sbd.audio_alt', { n })} />}
       </div>
@@ -318,6 +319,7 @@ function ShotCard({ n, sh, server, editable, structureEditable, dirty, techOptio
             )}
           </Notice>
         ) : unimplemented && <Notice tone="warn">{t('sbd.fallback')}</Notice>}
+        {server && sh.technique === 'motion_graphics' && <MotionPlanBlock shotId={server.id} editable={editable} dirty={dirty} />}
         {notes.includes('clips_chained') && <Notice tone="info">{t('sbd.chained')}</Notice>}
         <div className="grid-3">
           <NumberField label={t('sbd.duration')} min={1} max={20} step={0.5} value={sh.duration_sec} onChange={(v) => onChange({ duration_sec: v ?? 4 })} disabled={!editable} />

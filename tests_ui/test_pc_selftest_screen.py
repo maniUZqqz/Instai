@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tests_ui.test_screens import PERSIAN, SHOTS, open_page  # noqa: E402
 
-KEYS = ["database", "disk", "ffmpeg", "persian_text", "delivery_loudness", "delivery_echo", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "gpu_card", "nvenc", "ollama_run", "comfyui"]
+KEYS = ["database", "disk", "ffmpeg", "persian_text", "delivery_loudness", "delivery_echo", "update_channel", "autostart", "remotion_toolchain", "remotion_render", "covers", "motion_library", "motion_frames", "gpu_card", "nvenc", "ollama_run", "comfyui", "covers_bg", "motion_critique"]
 GPU = ["gpu_card", "nvenc", "ollama_run", "comfyui"]
 
 
